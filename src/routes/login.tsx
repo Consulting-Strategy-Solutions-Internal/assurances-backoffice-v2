@@ -1,6 +1,9 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useForm } from '@tanstack/react-form'
 import { z } from 'zod'
+import { useState } from 'react'
+import { isAxiosError } from 'axios'
+import { login } from '#/services/auth'
 
 export const Route = createFileRoute('/login')({ component: LoginPage })
 
@@ -10,10 +13,30 @@ const loginSchema = z.object({
 })
 
 function LoginPage() {
+  const navigate = useNavigate()
+  const [serverError, setServerError] = useState<string | null>(null)
+
   const form = useForm({
     defaultValues: { email: '', password: '' },
     onSubmit: async ({ value }) => {
-      console.log('Login:', value)
+      setServerError(null)
+      try {
+        await login(value)
+        navigate({ to: '/dashboard' })
+      } catch (error) {
+        if (isAxiosError(error)) {
+          const status = error.response?.status
+          if (status === 401 || status === 403) {
+            setServerError('Email ou mot de passe incorrect.')
+          } else if (status && status >= 500) {
+            setServerError('Une erreur serveur est survenue. Veuillez réessayer.')
+          } else {
+            setServerError('Une erreur est survenue. Veuillez réessayer.')
+          }
+        } else {
+          setServerError('Impossible de contacter le serveur.')
+        }
+      }
     },
   })
 
@@ -83,6 +106,10 @@ function LoginPage() {
           </div>
         )}
       </form.Field>
+
+      {serverError && (
+        <p style={{ color: 'red', margin: '4px 0 0' }}>{serverError}</p>
+      )}
 
       <button type="submit">Se connecter</button>
 
