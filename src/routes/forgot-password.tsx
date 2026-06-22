@@ -34,7 +34,7 @@ function ForgotPasswordPage() {
       >
         {(field) => (
           <div>
-            <label htmlFor="email">Email</label>
+            <label htmlFor="email">Email <span style={{ color: 'red' }}>*</span></label>
             <br />
             <input
               id="email"

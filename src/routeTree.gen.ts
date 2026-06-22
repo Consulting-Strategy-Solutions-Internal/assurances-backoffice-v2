@@ -11,8 +11,13 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
-import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthUsersRouteImport } from './routes/_auth/users'
+import { Route as AuthRolesRouteImport } from './routes/_auth/roles'
+import { Route as AuthPermissionsRouteImport } from './routes/_auth/permissions'
+import { Route as AuthPartnersRouteImport } from './routes/_auth/partners'
+import { Route as AuthDashboardRouteImport } from './routes/_auth/dashboard'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -24,9 +29,8 @@ const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DashboardRoute = DashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
+const AuthRoute = AuthRouteImport.update({
+  id: '/_auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -34,37 +38,101 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthUsersRoute = AuthUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthRolesRoute = AuthRolesRouteImport.update({
+  id: '/roles',
+  path: '/roles',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthPermissionsRoute = AuthPermissionsRouteImport.update({
+  id: '/permissions',
+  path: '/permissions',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthPartnersRoute = AuthPartnersRouteImport.update({
+  id: '/partners',
+  path: '/partners',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthDashboardRoute = AuthDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/dashboard': typeof AuthDashboardRoute
+  '/partners': typeof AuthPartnersRoute
+  '/permissions': typeof AuthPermissionsRoute
+  '/roles': typeof AuthRolesRoute
+  '/users': typeof AuthUsersRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/dashboard': typeof AuthDashboardRoute
+  '/partners': typeof AuthPartnersRoute
+  '/permissions': typeof AuthPermissionsRoute
+  '/roles': typeof AuthRolesRoute
+  '/users': typeof AuthUsersRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRoute
+  '/_auth': typeof AuthRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/_auth/dashboard': typeof AuthDashboardRoute
+  '/_auth/partners': typeof AuthPartnersRoute
+  '/_auth/permissions': typeof AuthPermissionsRoute
+  '/_auth/roles': typeof AuthRolesRoute
+  '/_auth/users': typeof AuthUsersRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/forgot-password' | '/login'
+  fullPaths:
+    | '/'
+    | '/forgot-password'
+    | '/login'
+    | '/dashboard'
+    | '/partners'
+    | '/permissions'
+    | '/roles'
+    | '/users'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/forgot-password' | '/login'
-  id: '__root__' | '/' | '/dashboard' | '/forgot-password' | '/login'
+  to:
+    | '/'
+    | '/forgot-password'
+    | '/login'
+    | '/dashboard'
+    | '/partners'
+    | '/permissions'
+    | '/roles'
+    | '/users'
+  id:
+    | '__root__'
+    | '/'
+    | '/_auth'
+    | '/forgot-password'
+    | '/login'
+    | '/_auth/dashboard'
+    | '/_auth/partners'
+    | '/_auth/permissions'
+    | '/_auth/roles'
+    | '/_auth/users'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  DashboardRoute: typeof DashboardRoute
+  AuthRoute: typeof AuthRouteWithChildren
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
 }
@@ -85,11 +153,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/dashboard': {
-      id: '/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardRouteImport
+    '/_auth': {
+      id: '/_auth'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -99,12 +167,65 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_auth/users': {
+      id: '/_auth/users'
+      path: '/users'
+      fullPath: '/users'
+      preLoaderRoute: typeof AuthUsersRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/roles': {
+      id: '/_auth/roles'
+      path: '/roles'
+      fullPath: '/roles'
+      preLoaderRoute: typeof AuthRolesRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/permissions': {
+      id: '/_auth/permissions'
+      path: '/permissions'
+      fullPath: '/permissions'
+      preLoaderRoute: typeof AuthPermissionsRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/partners': {
+      id: '/_auth/partners'
+      path: '/partners'
+      fullPath: '/partners'
+      preLoaderRoute: typeof AuthPartnersRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/dashboard': {
+      id: '/_auth/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthDashboardRouteImport
+      parentRoute: typeof AuthRoute
+    }
   }
 }
 
+interface AuthRouteChildren {
+  AuthDashboardRoute: typeof AuthDashboardRoute
+  AuthPartnersRoute: typeof AuthPartnersRoute
+  AuthPermissionsRoute: typeof AuthPermissionsRoute
+  AuthRolesRoute: typeof AuthRolesRoute
+  AuthUsersRoute: typeof AuthUsersRoute
+}
+
+const AuthRouteChildren: AuthRouteChildren = {
+  AuthDashboardRoute: AuthDashboardRoute,
+  AuthPartnersRoute: AuthPartnersRoute,
+  AuthPermissionsRoute: AuthPermissionsRoute,
+  AuthRolesRoute: AuthRolesRoute,
+  AuthUsersRoute: AuthUsersRoute,
+}
+
+const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  DashboardRoute: DashboardRoute,
+  AuthRoute: AuthRouteWithChildren,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
 }
