@@ -1,5 +1,5 @@
-import { createFileRoute, redirect } from '@tanstack/react-router'
-import { verifyAuth } from '#/services/auth'
+import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
+import { verifyAuth, logout } from '#/services/auth'
 
 export const Route = createFileRoute('/dashboard')({
   beforeLoad: async () => {
@@ -13,5 +13,17 @@ export const Route = createFileRoute('/dashboard')({
 })
 
 function DashboardPage() {
-  return <h1>Dashboard</h1>
+  const navigate = useNavigate()
+
+  async function handleLogout() {
+    await logout()
+    navigate({ to: '/login' })
+  }
+
+  return (
+    <div>
+      <h1>Dashboard</h1>
+      <button onClick={handleLogout}>Se déconnecter</button>
+    </div>
+  )
 }

@@ -1,11 +1,21 @@
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Link, isRedirect, redirect, useNavigate } from '@tanstack/react-router'
 import { useForm } from '@tanstack/react-form'
 import { z } from 'zod'
 import { useState } from 'react'
 import { isAxiosError } from 'axios'
-import { login } from '#/services/auth'
+import { login, verifyAuth } from '#/services/auth'
 
-export const Route = createFileRoute('/login')({ component: LoginPage })
+export const Route = createFileRoute('/login')({
+  beforeLoad: async () => {
+    try {
+      await verifyAuth()
+      throw redirect({ to: '/dashboard' })
+    } catch (error) {
+      if (isRedirect(error)) throw error
+    }
+  },
+  component: LoginPage,
+})
 
 const loginSchema = z.object({
   email: z.string().min(1, 'L\'email est requis').email('L\'adresse email n\'est pas valide'),

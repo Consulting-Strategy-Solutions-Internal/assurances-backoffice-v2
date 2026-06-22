@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
-import { getWebRequest } from '@tanstack/react-start/server'
+import { getRequestHeader } from '@tanstack/react-start/server'
 import { api } from '#/lib/api'
 
 interface LoginPayload {
@@ -12,11 +12,14 @@ export async function login(payload: LoginPayload) {
   return response.data
 }
 
+export async function logout() {
+  await api.post('/auth/logout')
+}
+
 export const verifyAuth = createServerFn().handler(async () => {
-  const request = getWebRequest()
-  const cookie = request?.headers.get('cookie') ?? ''
+  const cookie = getRequestHeader('cookie') ?? ''
   const response = await api.get('/auth/me', {
-    headers: cookie ? { cookie } : undefined,
+    headers: cookie ? { Cookie: cookie } : {},
   })
   return response.data
 })
