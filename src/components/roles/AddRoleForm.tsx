@@ -2,9 +2,18 @@ import { useState } from 'react'
 import { useForm } from '@tanstack/react-form'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { z } from 'zod'
-import { getRoles, getPermissions, createRole, addPermissionToRole, type PermissionResponse } from '#/services/roles'
+import {
+  getRoles,
+  getPermissions,
+  createRole,
+  addPermissionToRole,
+} from '#/services/roles'
+import type { PermissionResponse } from '#/services/roles'
 import { TemplateSelector } from '#/components/roles/TemplateSelector'
 import { PermissionsAutocomplete } from '#/components/roles/PermissionsAutocomplete'
+import { Button } from '#/components/ui/button'
+import { Label } from '#/components/ui/label'
+import { FormField } from '#/components/forms/FormField'
 
 const schema = z.object({
   name: z.string().min(1, 'Le nom est requis'),
@@ -34,12 +43,21 @@ export function AddRoleForm({ onCancel }: AddRoleFormProps) {
   const { mutateAsync, isPending } = useMutation({
     mutationFn: async (values: { name: string; description?: string }) => {
       const newRole = await createRole(values)
-      const templateRole = allRoles?.content.find((r) => r.id === Number(templateId))
-      const templatePerms = (templateRole?.permissions ?? []).filter((p) => !excludedPermIds.has(p.id))
+      const templateRole = allRoles?.content.find(
+        (r) => r.id === Number(templateId),
+      )
+      const templatePerms = (templateRole?.permissions ?? []).filter(
+        (p) => !excludedPermIds.has(p.id),
+      )
       const templateIds = new Set(templatePerms.map((p) => p.id))
-      const allToAdd = [...templatePerms, ...manualPerms.filter((p) => !templateIds.has(p.id))]
+      const allToAdd = [
+        ...templatePerms,
+        ...manualPerms.filter((p) => !templateIds.has(p.id)),
+      ]
       if (allToAdd.length > 0) {
-        await Promise.all(allToAdd.map((p) => addPermissionToRole(newRole.id, p.id)))
+        await Promise.all(
+          allToAdd.map((p) => addPermissionToRole(newRole.id, p.id)),
+        )
       }
       return newRole
     },
@@ -54,9 +72,15 @@ export function AddRoleForm({ onCancel }: AddRoleFormProps) {
     onSubmit: async ({ value }) => mutateAsync(value),
   })
 
-  const templateRole = allRoles?.content.find((r) => r.id === Number(templateId))
-  const templatePermIds = new Set(templateRole?.permissions.map((p) => p.id) ?? [])
-  const availableForManual = (allPerms?.content ?? []).filter((p) => !templatePermIds.has(p.id))
+  const templateRole = allRoles?.content.find(
+    (r) => r.id === Number(templateId),
+  )
+  const templatePermIds = new Set(
+    templateRole?.permissions.map((p) => p.id) ?? [],
+  )
+  const availableForManual = (allPerms?.content ?? []).filter(
+    (p) => !templatePermIds.has(p.id),
+  )
 
   function handleTemplateChange(id: number | '') {
     setTemplateId(id)
@@ -73,7 +97,17 @@ export function AddRoleForm({ onCancel }: AddRoleFormProps) {
   }
 
   return (
-    <form onSubmit={(e) => { e.preventDefault(); form.handleSubmit() }}>
+    <form
+      className="flex flex-col gap-4"
+      onSubmit={(e) => {
+        e.preventDefault()
+        form.handleSubmit()
+      }}
+    >
+      <div className="text-[16px] font-bold tracking-[-0.01em]">
+        Nouveau rôle
+      </div>
+
       <form.Field
         name="name"
         validators={{
@@ -88,34 +122,27 @@ export function AddRoleForm({ onCancel }: AddRoleFormProps) {
         }}
       >
         {(field) => (
-          <div>
-            <label htmlFor="name">Nom du rôle <span style={{ color: 'red' }}>*</span></label>
-            <br />
-            <input
-              id="name"
-              value={field.state.value}
-              onChange={(e) => field.handleChange(e.target.value)}
-              onBlur={field.handleBlur}
-              style={field.state.meta.errors.length > 0 ? { outline: '2px solid red' } : undefined}
-            />
-            {field.state.meta.errors.length > 0 && (
-              <p style={{ color: 'red', margin: '4px 0 0' }}>{field.state.meta.errors[0]}</p>
-            )}
-          </div>
+          <FormField
+            id="name"
+            label="Nom du rôle"
+            required
+            value={field.state.value}
+            onChange={field.handleChange}
+            onBlur={field.handleBlur}
+            error={field.state.meta.errors[0]}
+          />
         )}
       </form.Field>
 
       <form.Field name="description">
         {(field) => (
-          <div>
-            <label htmlFor="description">Description</label>
-            <br />
-            <input
-              id="description"
-              value={field.state.value}
-              onChange={(e) => field.handleChange(e.target.value)}
-            />
-          </div>
+          <FormField
+            id="description"
+            label="Description"
+            value={field.state.value}
+            onChange={field.handleChange}
+            onBlur={field.handleBlur}
+          />
         )}
       </form.Field>
 
@@ -127,9 +154,10 @@ export function AddRoleForm({ onCancel }: AddRoleFormProps) {
         onTogglePermission={handleTogglePermission}
       />
 
-      <div style={{ position: 'relative' }}>
-        <label>Ajouter des permissions supplémentaires</label>
-        <br />
+      <div className="relative flex flex-col gap-1.5">
+        <Label className="text-[13px]">
+          Ajouter des permissions supplémentaires
+        </Label>
         <PermissionsAutocomplete
           selected={manualPerms}
           onChange={setManualPerms}
@@ -137,9 +165,22 @@ export function AddRoleForm({ onCancel }: AddRoleFormProps) {
         />
       </div>
 
-      <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-        <button type="submit" disabled={isPending}>{isPending ? 'Création...' : 'Créer le rôle'}</button>
-        <button type="button" onClick={onCancel}>Annuler</button>
+      <div className="flex gap-2.5 pt-1">
+        <Button
+          type="submit"
+          disabled={isPending}
+          className="rounded-[11px] shadow-[0_4px_14px_rgba(0,51,127,0.22)]"
+        >
+          {isPending ? 'Création…' : 'Créer le rôle'}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          className="rounded-[11px]"
+          onClick={onCancel}
+        >
+          Annuler
+        </Button>
       </div>
     </form>
   )

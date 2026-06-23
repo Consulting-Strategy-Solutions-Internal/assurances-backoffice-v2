@@ -14,10 +14,16 @@ import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthUsersRouteImport } from './routes/_auth/users'
+import { Route as AuthSinistresRouteImport } from './routes/_auth/sinistres'
 import { Route as AuthRolesRouteImport } from './routes/_auth/roles'
+import { Route as AuthProductsRouteImport } from './routes/_auth/products'
 import { Route as AuthPermissionsRouteImport } from './routes/_auth/permissions'
 import { Route as AuthPartnersRouteImport } from './routes/_auth/partners'
 import { Route as AuthDashboardRouteImport } from './routes/_auth/dashboard'
+import { Route as AuthClientsRouteImport } from './routes/_auth/clients'
+import { Route as AuthProductsGrilleTarifaireRouteImport } from './routes/_auth/products_.grille-tarifaire'
+import { Route as AuthProductsCategoriesRouteImport } from './routes/_auth/products_.categories'
+import { Route as AuthPartnersPartnerIdRouteImport } from './routes/_auth/partners_.$partnerId'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -43,9 +49,19 @@ const AuthUsersRoute = AuthUsersRouteImport.update({
   path: '/users',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthSinistresRoute = AuthSinistresRouteImport.update({
+  id: '/sinistres',
+  path: '/sinistres',
+  getParentRoute: () => AuthRoute,
+} as any)
 const AuthRolesRoute = AuthRolesRouteImport.update({
   id: '/roles',
   path: '/roles',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthProductsRoute = AuthProductsRouteImport.update({
+  id: '/products',
+  path: '/products',
   getParentRoute: () => AuthRoute,
 } as any)
 const AuthPermissionsRoute = AuthPermissionsRouteImport.update({
@@ -63,26 +79,59 @@ const AuthDashboardRoute = AuthDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthClientsRoute = AuthClientsRouteImport.update({
+  id: '/clients',
+  path: '/clients',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthProductsGrilleTarifaireRoute =
+  AuthProductsGrilleTarifaireRouteImport.update({
+    id: '/products_/grille-tarifaire',
+    path: '/products/grille-tarifaire',
+    getParentRoute: () => AuthRoute,
+  } as any)
+const AuthProductsCategoriesRoute = AuthProductsCategoriesRouteImport.update({
+  id: '/products_/categories',
+  path: '/products/categories',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthPartnersPartnerIdRoute = AuthPartnersPartnerIdRouteImport.update({
+  id: '/partners_/$partnerId',
+  path: '/partners/$partnerId',
+  getParentRoute: () => AuthRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/clients': typeof AuthClientsRoute
   '/dashboard': typeof AuthDashboardRoute
   '/partners': typeof AuthPartnersRoute
   '/permissions': typeof AuthPermissionsRoute
+  '/products': typeof AuthProductsRoute
   '/roles': typeof AuthRolesRoute
+  '/sinistres': typeof AuthSinistresRoute
   '/users': typeof AuthUsersRoute
+  '/partners/$partnerId': typeof AuthPartnersPartnerIdRoute
+  '/products/categories': typeof AuthProductsCategoriesRoute
+  '/products/grille-tarifaire': typeof AuthProductsGrilleTarifaireRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/clients': typeof AuthClientsRoute
   '/dashboard': typeof AuthDashboardRoute
   '/partners': typeof AuthPartnersRoute
   '/permissions': typeof AuthPermissionsRoute
+  '/products': typeof AuthProductsRoute
   '/roles': typeof AuthRolesRoute
+  '/sinistres': typeof AuthSinistresRoute
   '/users': typeof AuthUsersRoute
+  '/partners/$partnerId': typeof AuthPartnersPartnerIdRoute
+  '/products/categories': typeof AuthProductsCategoriesRoute
+  '/products/grille-tarifaire': typeof AuthProductsGrilleTarifaireRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -90,11 +139,17 @@ export interface FileRoutesById {
   '/_auth': typeof AuthRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/_auth/clients': typeof AuthClientsRoute
   '/_auth/dashboard': typeof AuthDashboardRoute
   '/_auth/partners': typeof AuthPartnersRoute
   '/_auth/permissions': typeof AuthPermissionsRoute
+  '/_auth/products': typeof AuthProductsRoute
   '/_auth/roles': typeof AuthRolesRoute
+  '/_auth/sinistres': typeof AuthSinistresRoute
   '/_auth/users': typeof AuthUsersRoute
+  '/_auth/partners_/$partnerId': typeof AuthPartnersPartnerIdRoute
+  '/_auth/products_/categories': typeof AuthProductsCategoriesRoute
+  '/_auth/products_/grille-tarifaire': typeof AuthProductsGrilleTarifaireRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -102,32 +157,50 @@ export interface FileRouteTypes {
     | '/'
     | '/forgot-password'
     | '/login'
+    | '/clients'
     | '/dashboard'
     | '/partners'
     | '/permissions'
+    | '/products'
     | '/roles'
+    | '/sinistres'
     | '/users'
+    | '/partners/$partnerId'
+    | '/products/categories'
+    | '/products/grille-tarifaire'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/forgot-password'
     | '/login'
+    | '/clients'
     | '/dashboard'
     | '/partners'
     | '/permissions'
+    | '/products'
     | '/roles'
+    | '/sinistres'
     | '/users'
+    | '/partners/$partnerId'
+    | '/products/categories'
+    | '/products/grille-tarifaire'
   id:
     | '__root__'
     | '/'
     | '/_auth'
     | '/forgot-password'
     | '/login'
+    | '/_auth/clients'
     | '/_auth/dashboard'
     | '/_auth/partners'
     | '/_auth/permissions'
+    | '/_auth/products'
     | '/_auth/roles'
+    | '/_auth/sinistres'
     | '/_auth/users'
+    | '/_auth/partners_/$partnerId'
+    | '/_auth/products_/categories'
+    | '/_auth/products_/grille-tarifaire'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -174,11 +247,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthUsersRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_auth/sinistres': {
+      id: '/_auth/sinistres'
+      path: '/sinistres'
+      fullPath: '/sinistres'
+      preLoaderRoute: typeof AuthSinistresRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/_auth/roles': {
       id: '/_auth/roles'
       path: '/roles'
       fullPath: '/roles'
       preLoaderRoute: typeof AuthRolesRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/products': {
+      id: '/_auth/products'
+      path: '/products'
+      fullPath: '/products'
+      preLoaderRoute: typeof AuthProductsRouteImport
       parentRoute: typeof AuthRoute
     }
     '/_auth/permissions': {
@@ -202,23 +289,63 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthDashboardRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_auth/clients': {
+      id: '/_auth/clients'
+      path: '/clients'
+      fullPath: '/clients'
+      preLoaderRoute: typeof AuthClientsRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/products_/grille-tarifaire': {
+      id: '/_auth/products_/grille-tarifaire'
+      path: '/products/grille-tarifaire'
+      fullPath: '/products/grille-tarifaire'
+      preLoaderRoute: typeof AuthProductsGrilleTarifaireRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/products_/categories': {
+      id: '/_auth/products_/categories'
+      path: '/products/categories'
+      fullPath: '/products/categories'
+      preLoaderRoute: typeof AuthProductsCategoriesRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/partners_/$partnerId': {
+      id: '/_auth/partners_/$partnerId'
+      path: '/partners/$partnerId'
+      fullPath: '/partners/$partnerId'
+      preLoaderRoute: typeof AuthPartnersPartnerIdRouteImport
+      parentRoute: typeof AuthRoute
+    }
   }
 }
 
 interface AuthRouteChildren {
+  AuthClientsRoute: typeof AuthClientsRoute
   AuthDashboardRoute: typeof AuthDashboardRoute
   AuthPartnersRoute: typeof AuthPartnersRoute
   AuthPermissionsRoute: typeof AuthPermissionsRoute
+  AuthProductsRoute: typeof AuthProductsRoute
   AuthRolesRoute: typeof AuthRolesRoute
+  AuthSinistresRoute: typeof AuthSinistresRoute
   AuthUsersRoute: typeof AuthUsersRoute
+  AuthPartnersPartnerIdRoute: typeof AuthPartnersPartnerIdRoute
+  AuthProductsCategoriesRoute: typeof AuthProductsCategoriesRoute
+  AuthProductsGrilleTarifaireRoute: typeof AuthProductsGrilleTarifaireRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
+  AuthClientsRoute: AuthClientsRoute,
   AuthDashboardRoute: AuthDashboardRoute,
   AuthPartnersRoute: AuthPartnersRoute,
   AuthPermissionsRoute: AuthPermissionsRoute,
+  AuthProductsRoute: AuthProductsRoute,
   AuthRolesRoute: AuthRolesRoute,
+  AuthSinistresRoute: AuthSinistresRoute,
   AuthUsersRoute: AuthUsersRoute,
+  AuthPartnersPartnerIdRoute: AuthPartnersPartnerIdRoute,
+  AuthProductsCategoriesRoute: AuthProductsCategoriesRoute,
+  AuthProductsGrilleTarifaireRoute: AuthProductsGrilleTarifaireRoute,
 }
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)

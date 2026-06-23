@@ -2,10 +2,15 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { useForm } from '@tanstack/react-form'
 import { z } from 'zod'
 
-export const Route = createFileRoute('/forgot-password')({ component: ForgotPasswordPage })
+export const Route = createFileRoute('/forgot-password')({
+  component: ForgotPasswordPage,
+})
 
 const forgotPasswordSchema = z.object({
-  email: z.string().min(1, 'L\'email est requis').email('L\'adresse email n\'est pas valide'),
+  email: z
+    .string()
+    .min(1, "L'email est requis")
+    .email("L'adresse email n'est pas valide"),
 })
 
 function ForgotPasswordPage() {
@@ -34,7 +39,9 @@ function ForgotPasswordPage() {
       >
         {(field) => (
           <div>
-            <label htmlFor="email">Email <span style={{ color: 'red' }}>*</span></label>
+            <label htmlFor="email">
+              Email <span style={{ color: 'red' }}>*</span>
+            </label>
             <br />
             <input
               id="email"
@@ -42,7 +49,11 @@ function ForgotPasswordPage() {
               value={field.state.value}
               onChange={(e) => field.handleChange(e.target.value)}
               onBlur={field.handleBlur}
-              style={field.state.meta.errors.length > 0 ? { outline: '2px solid red' } : undefined}
+              style={
+                field.state.meta.errors.length > 0
+                  ? { outline: '2px solid red' }
+                  : undefined
+              }
             />
             {field.state.meta.errors.length > 0 && (
               <p style={{ color: 'red', margin: '4px 0 0' }}>

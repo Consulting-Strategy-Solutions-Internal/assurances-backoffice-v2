@@ -3,19 +3,29 @@ import { useForm } from '@tanstack/react-form'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
 import { z } from 'zod'
-import { Modal } from '#/components/ui/Modal'
 import { createPartner } from '#/services/partners'
+import { FormDialog } from '#/components/forms/FormDialog'
+import { FormField } from '#/components/forms/FormField'
 
 const schema = z.object({
   name: z.string().min(1, 'Le nom est requis'),
   distributorCode: z.string().min(1, 'Le code distributeur est requis'),
-  email: z.string().email("L'adresse email n'est pas valide").optional().or(z.literal('')),
+  email: z
+    .string()
+    .email("L'adresse email n'est pas valide")
+    .optional()
+    .or(z.literal('')),
   location: z.string().optional(),
 })
 
 const FIELDS = [
   { name: 'name', label: 'Nom', type: 'text', required: true },
-  { name: 'distributorCode', label: 'Code distributeur', type: 'text', required: true },
+  {
+    name: 'distributorCode',
+    label: 'Code distributeur',
+    type: 'text',
+    required: true,
+  },
   { name: 'email', label: 'Email', type: 'email', required: false },
   { name: 'location', label: 'Localisation', type: 'text', required: false },
 ] as const
@@ -50,8 +60,10 @@ export function AddPartnerModal({ onClose }: AddPartnerModalProps) {
       } catch (error) {
         if (isAxiosError(error)) {
           const status = error.response?.status
-          if (status === 409) setServerError('Un partenaire avec ce code distributeur existe déjà.')
-          else if (status && status >= 500) setServerError('Une erreur serveur est survenue.')
+          if (status === 409)
+            setServerError('Un partenaire avec ce code distributeur existe déjà.')
+          else if (status && status >= 500)
+            setServerError('Une erreur serveur est survenue.')
           else setServerError('Une erreur est survenue. Veuillez réessayer.')
         } else {
           setServerError('Impossible de contacter le serveur.')
@@ -61,52 +73,53 @@ export function AddPartnerModal({ onClose }: AddPartnerModalProps) {
   })
 
   return (
-    <Modal onClose={onClose}>
-      <h2>Ajouter un partenaire</h2>
-      <form onSubmit={(e) => { e.preventDefault(); form.handleSubmit() }}>
-        {FIELDS.map(({ name, label, type, required }) => (
-          <form.Field
-            key={name}
-            name={name}
-            validators={required ? {
-              onBlur: ({ value }) => {
-                const result = (schema.shape[name] as z.ZodString).safeParse(value)
-                return result.success ? undefined : result.error.issues[0].message
-              },
-              onSubmit: ({ value }) => {
-                const result = (schema.shape[name] as z.ZodString).safeParse(value)
-                return result.success ? undefined : result.error.issues[0].message
-              },
-            } : undefined}
-          >
-            {(field) => (
-              <div>
-                <label htmlFor={name}>
-                  {label}{required && <span style={{ color: 'red' }}> *</span>}
-                </label><br />
-                <input
-                  id={name}
-                  type={type}
-                  value={field.state.value as string}
-                  onChange={(e) => field.handleChange(type === 'number' ? Number(e.target.value) as any : e.target.value)}
-                  onBlur={field.handleBlur}
-                  style={field.state.meta.errors.length > 0 ? { outline: '2px solid red' } : undefined}
-                />
-                {field.state.meta.errors.length > 0 && (
-                  <p style={{ color: 'red', margin: '4px 0 0' }}>{field.state.meta.errors[0]}</p>
-                )}
-              </div>
-            )}
-          </form.Field>
-        ))}
-
-        {serverError && <p style={{ color: 'red' }}>{serverError}</p>}
-
-        <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
-          <button type="submit" disabled={isPending}>{isPending ? 'Création...' : 'Créer'}</button>
-          <button type="button" onClick={onClose}>Annuler</button>
-        </div>
-      </form>
-    </Modal>
+    <FormDialog
+      onClose={onClose}
+      eyebrow="Partenaires"
+      title="Nouveau partenaire"
+      description="Ajoutez un courtier ou une agence à votre réseau."
+      onSubmit={() => form.handleSubmit()}
+      submitLabel={isPending ? 'Création…' : 'Créer le partenaire'}
+      pending={isPending}
+      error={serverError}
+    >
+      {FIELDS.map(({ name, label, type, required }) => (
+        <form.Field
+          key={name}
+          name={name}
+          validators={
+            required
+              ? {
+                  onBlur: ({ value }) => {
+                    const result = schema.shape[name].safeParse(value)
+                    return result.success
+                      ? undefined
+                      : result.error.issues[0].message
+                  },
+                  onSubmit: ({ value }) => {
+                    const result = schema.shape[name].safeParse(value)
+                    return result.success
+                      ? undefined
+                      : result.error.issues[0].message
+                  },
+                }
+              : undefined
+          }
+        >
+          {(field) => (
+            <FormField
+              id={name}
+              label={label}
+              type={type}
+              required={required}
+              value={field.state.value}
+              onChange={field.handleChange}
+              onBlur={field.handleBlur}
+              error={field.state.meta.errors[0]}
+            />
+          )}
+        </form.Field>
+      ))}
+    </FormDialog>
   )
 }

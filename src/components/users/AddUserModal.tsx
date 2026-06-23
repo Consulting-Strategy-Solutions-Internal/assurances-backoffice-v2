@@ -3,14 +3,26 @@ import { useForm } from '@tanstack/react-form'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
 import { z } from 'zod'
-import { Modal } from '#/components/ui/Modal'
 import { createUser } from '#/services/users'
 import { getRoles } from '#/services/roles'
+import { FormDialog } from '#/components/forms/FormDialog'
+import { FormField } from '#/components/forms/FormField'
+import { Label } from '#/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '#/components/ui/select'
 
 const schema = z.object({
   firstName: z.string().min(1, 'Le prénom est requis'),
   lastName: z.string().min(1, 'Le nom est requis'),
-  email: z.string().min(1, "L'email est requis").email("L'adresse email n'est pas valide"),
+  email: z
+    .string()
+    .min(1, "L'email est requis")
+    .email("L'adresse email n'est pas valide"),
   phoneNumber: z.string().min(1, 'Le téléphone est requis'),
   addressLine1: z.string().min(1, "L'adresse est requise"),
   addressLine2: z.string().optional(),
@@ -23,7 +35,12 @@ const FIELDS = [
   { name: 'email', label: 'Email', type: 'email', required: true },
   { name: 'phoneNumber', label: 'Téléphone', type: 'text', required: true },
   { name: 'addressLine1', label: 'Adresse', type: 'text', required: true },
-  { name: 'addressLine2', label: 'Adresse (complément)', type: 'text', required: false },
+  {
+    name: 'addressLine2',
+    label: 'Adresse (complément)',
+    type: 'text',
+    required: false,
+  },
 ] as const
 
 interface AddUserModalProps {
@@ -48,7 +65,15 @@ export function AddUserModal({ onClose }: AddUserModalProps) {
   })
 
   const form = useForm({
-    defaultValues: { firstName: '', lastName: '', email: '', phoneNumber: '', addressLine1: '', addressLine2: '', roleId: 0 },
+    defaultValues: {
+      firstName: '',
+      lastName: '',
+      email: '',
+      phoneNumber: '',
+      addressLine1: '',
+      addressLine2: '',
+      roleId: 0,
+    },
     onSubmit: async ({ value }) => {
       setServerError(null)
       try {
@@ -56,8 +81,10 @@ export function AddUserModal({ onClose }: AddUserModalProps) {
       } catch (error) {
         if (isAxiosError(error)) {
           const status = error.response?.status
-          if (status === 409) setServerError('Un utilisateur avec cet email existe déjà.')
-          else if (status && status >= 500) setServerError('Une erreur serveur est survenue.')
+          if (status === 409)
+            setServerError('Un utilisateur avec cet email existe déjà.')
+          else if (status && status >= 500)
+            setServerError('Une erreur serveur est survenue.')
           else setServerError('Une erreur est survenue. Veuillez réessayer.')
         } else {
           setServerError('Impossible de contacter le serveur.')
@@ -67,82 +94,101 @@ export function AddUserModal({ onClose }: AddUserModalProps) {
   })
 
   return (
-    <Modal onClose={onClose}>
-      <h2>Ajouter un administrateur</h2>
-      <form onSubmit={(e) => { e.preventDefault(); form.handleSubmit() }}>
-
-        <form.Field
-          name="roleId"
-          validators={{
-            onBlur: ({ value }) => (!value || value === 0 ? 'Le rôle est requis' : undefined),
-            onSubmit: ({ value }) => (!value || value === 0 ? 'Le rôle est requis' : undefined),
-          }}
-        >
-          {(field) => (
-            <div>
-              <label htmlFor="roleId">Rôle <span style={{ color: 'red' }}>*</span></label><br />
-              <select
-                id="roleId"
-                value={field.state.value}
-                onChange={(e) => field.handleChange(Number(e.target.value))}
-                onBlur={field.handleBlur}
-                style={field.state.meta.errors.length > 0 ? { outline: '2px solid red' } : undefined}
+    <FormDialog
+      onClose={onClose}
+      eyebrow="Administrateurs"
+      title="Inviter un administrateur"
+      description="Créez un compte interne et attribuez-lui un rôle."
+      onSubmit={() => form.handleSubmit()}
+      submitLabel={isPending ? 'Création…' : "Créer l'administrateur"}
+      pending={isPending}
+      error={serverError}
+    >
+      <form.Field
+        name="roleId"
+        validators={{
+          onBlur: ({ value }) =>
+            !value || value === 0 ? 'Le rôle est requis' : undefined,
+          onSubmit: ({ value }) =>
+            !value || value === 0 ? 'Le rôle est requis' : undefined,
+        }}
+      >
+        {(field) => {
+          const error = field.state.meta.errors[0]
+          return (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="roleId" className="text-[13px]">
+                Rôle<span className="text-destructive">*</span>
+              </Label>
+              <Select
+                value={field.state.value ? String(field.state.value) : ''}
+                onValueChange={(v) => {
+                  field.handleChange(Number(v))
+                  field.handleBlur()
+                }}
               >
-                <option value={0} disabled>— Sélectionner un rôle —</option>
-                {rolesData?.content.map((r) => (
-                  <option key={r.id} value={r.id}>{r.name}</option>
-                ))}
-              </select>
-              {field.state.meta.errors.length > 0 && (
-                <p style={{ color: 'red', margin: '4px 0 0' }}>{field.state.meta.errors[0]}</p>
+                <SelectTrigger
+                  id="roleId"
+                  aria-invalid={!!error}
+                  className="h-10 w-full rounded-[10px]"
+                >
+                  <SelectValue placeholder="Sélectionner un rôle" />
+                </SelectTrigger>
+                <SelectContent>
+                  {rolesData?.content.map((r) => (
+                    <SelectItem key={r.id} value={String(r.id)}>
+                      {r.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {error && (
+                <p className="text-[12px] font-medium text-destructive">
+                  {error}
+                </p>
               )}
             </div>
+          )
+        }}
+      </form.Field>
+
+      {FIELDS.map(({ name, label, type, required }) => (
+        <form.Field
+          key={name}
+          name={name}
+          validators={
+            required
+              ? {
+                  onBlur: ({ value }) => {
+                    const result = schema.shape[name].safeParse(value)
+                    return result.success
+                      ? undefined
+                      : result.error.issues[0].message
+                  },
+                  onSubmit: ({ value }) => {
+                    const result = schema.shape[name].safeParse(value)
+                    return result.success
+                      ? undefined
+                      : result.error.issues[0].message
+                  },
+                }
+              : undefined
+          }
+        >
+          {(field) => (
+            <FormField
+              id={name}
+              label={label}
+              type={type}
+              required={required}
+              value={field.state.value}
+              onChange={field.handleChange}
+              onBlur={field.handleBlur}
+              error={field.state.meta.errors[0]}
+            />
           )}
         </form.Field>
-
-        {FIELDS.map(({ name, label, type, required }) => (
-          <form.Field
-            key={name}
-            name={name}
-            validators={required ? {
-              onBlur: ({ value }) => {
-                const result = (schema.shape[name] as z.ZodString).safeParse(value)
-                return result.success ? undefined : result.error.issues[0].message
-              },
-              onSubmit: ({ value }) => {
-                const result = (schema.shape[name] as z.ZodString).safeParse(value)
-                return result.success ? undefined : result.error.issues[0].message
-              },
-            } : undefined}
-          >
-            {(field) => (
-              <div>
-                <label htmlFor={name}>
-                  {label}{required && <span style={{ color: 'red' }}> *</span>}
-                </label><br />
-                <input
-                  id={name}
-                  type={type}
-                  value={field.state.value as string}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  onBlur={field.handleBlur}
-                  style={field.state.meta.errors.length > 0 ? { outline: '2px solid red' } : undefined}
-                />
-                {field.state.meta.errors.length > 0 && (
-                  <p style={{ color: 'red', margin: '4px 0 0' }}>{field.state.meta.errors[0]}</p>
-                )}
-              </div>
-            )}
-          </form.Field>
-        ))}
-
-        {serverError && <p style={{ color: 'red' }}>{serverError}</p>}
-
-        <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
-          <button type="submit" disabled={isPending}>{isPending ? 'Création...' : 'Créer'}</button>
-          <button type="button" onClick={onClose}>Annuler</button>
-        </div>
-      </form>
-    </Modal>
+      ))}
+    </FormDialog>
   )
 }

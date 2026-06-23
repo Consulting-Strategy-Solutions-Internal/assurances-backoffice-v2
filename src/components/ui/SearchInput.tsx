@@ -4,7 +4,11 @@ interface SearchInputProps {
   placeholder?: string
 }
 
-export function SearchInput({ value, onChange, placeholder }: SearchInputProps) {
+export function SearchInput({
+  value,
+  onChange,
+  placeholder,
+}: SearchInputProps) {
   return (
     <input
       type="search"
