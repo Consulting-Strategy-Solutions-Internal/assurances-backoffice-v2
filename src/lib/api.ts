@@ -30,7 +30,9 @@ api.interceptors.response.use(
     const isAuthEndpoint =
       originalRequest?.url?.includes('/auth/admin/login') ||
       originalRequest?.url?.includes('/auth/login') ||
-      originalRequest?.url?.includes('/auth/refresh')
+      originalRequest?.url?.includes('/auth/refresh') ||
+      originalRequest?.url?.includes('/auth/forgot-password') ||
+      originalRequest?.url?.includes('/auth/reset-password')
 
     if (
       error.response?.status === 401 &&
