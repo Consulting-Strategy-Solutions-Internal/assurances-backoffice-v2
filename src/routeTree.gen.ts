@@ -9,16 +9,34 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthUsersRouteImport } from './routes/_auth/users'
+import { Route as AuthSinistresRouteImport } from './routes/_auth/sinistres'
 import { Route as AuthRolesRouteImport } from './routes/_auth/roles'
+import { Route as AuthProfilRouteImport } from './routes/_auth/profil'
+import { Route as AuthProductsRouteImport } from './routes/_auth/products'
 import { Route as AuthPermissionsRouteImport } from './routes/_auth/permissions'
 import { Route as AuthPartnersRouteImport } from './routes/_auth/partners'
 import { Route as AuthDashboardRouteImport } from './routes/_auth/dashboard'
+import { Route as AuthCotationsRouteImport } from './routes/_auth/cotations'
+import { Route as AuthClientsRouteImport } from './routes/_auth/clients'
+import { Route as AuthProductsGrilleTarifaireRouteImport } from './routes/_auth/products_.grille-tarifaire'
+import { Route as AuthProductsCategoriesRouteImport } from './routes/_auth/products_.categories'
+import { Route as AuthProductsAccessoiresRouteImport } from './routes/_auth/products_.accessoires'
+import { Route as AuthProductsProductIdRouteImport } from './routes/_auth/products_.$productId'
+import { Route as AuthPartnersPartnerIdRouteImport } from './routes/_auth/partners_.$partnerId'
+import { Route as AuthCotationsSimulationRouteImport } from './routes/_auth/cotations_.simulation'
+import { Route as AuthProductsGrilleTarifaireRateTableIdRouteImport } from './routes/_auth/products_.grille-tarifaire_.$rateTableId'
 
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -43,9 +61,24 @@ const AuthUsersRoute = AuthUsersRouteImport.update({
   path: '/users',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthSinistresRoute = AuthSinistresRouteImport.update({
+  id: '/sinistres',
+  path: '/sinistres',
+  getParentRoute: () => AuthRoute,
+} as any)
 const AuthRolesRoute = AuthRolesRouteImport.update({
   id: '/roles',
   path: '/roles',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthProfilRoute = AuthProfilRouteImport.update({
+  id: '/profil',
+  path: '/profil',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthProductsRoute = AuthProductsRouteImport.update({
+  id: '/products',
+  path: '/products',
   getParentRoute: () => AuthRoute,
 } as any)
 const AuthPermissionsRoute = AuthPermissionsRouteImport.update({
@@ -63,26 +96,99 @@ const AuthDashboardRoute = AuthDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthCotationsRoute = AuthCotationsRouteImport.update({
+  id: '/cotations',
+  path: '/cotations',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthClientsRoute = AuthClientsRouteImport.update({
+  id: '/clients',
+  path: '/clients',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthProductsGrilleTarifaireRoute =
+  AuthProductsGrilleTarifaireRouteImport.update({
+    id: '/products_/grille-tarifaire',
+    path: '/products/grille-tarifaire',
+    getParentRoute: () => AuthRoute,
+  } as any)
+const AuthProductsCategoriesRoute = AuthProductsCategoriesRouteImport.update({
+  id: '/products_/categories',
+  path: '/products/categories',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthProductsAccessoiresRoute = AuthProductsAccessoiresRouteImport.update({
+  id: '/products_/accessoires',
+  path: '/products/accessoires',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthProductsProductIdRoute = AuthProductsProductIdRouteImport.update({
+  id: '/products_/$productId',
+  path: '/products/$productId',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthPartnersPartnerIdRoute = AuthPartnersPartnerIdRouteImport.update({
+  id: '/partners_/$partnerId',
+  path: '/partners/$partnerId',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthCotationsSimulationRoute = AuthCotationsSimulationRouteImport.update({
+  id: '/cotations_/simulation',
+  path: '/cotations/simulation',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthProductsGrilleTarifaireRateTableIdRoute =
+  AuthProductsGrilleTarifaireRateTableIdRouteImport.update({
+    id: '/products_/grille-tarifaire_/$rateTableId',
+    path: '/products/grille-tarifaire/$rateTableId',
+    getParentRoute: () => AuthRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/clients': typeof AuthClientsRoute
+  '/cotations': typeof AuthCotationsRoute
   '/dashboard': typeof AuthDashboardRoute
   '/partners': typeof AuthPartnersRoute
   '/permissions': typeof AuthPermissionsRoute
+  '/products': typeof AuthProductsRoute
+  '/profil': typeof AuthProfilRoute
   '/roles': typeof AuthRolesRoute
+  '/sinistres': typeof AuthSinistresRoute
   '/users': typeof AuthUsersRoute
+  '/cotations/simulation': typeof AuthCotationsSimulationRoute
+  '/partners/$partnerId': typeof AuthPartnersPartnerIdRoute
+  '/products/$productId': typeof AuthProductsProductIdRoute
+  '/products/accessoires': typeof AuthProductsAccessoiresRoute
+  '/products/categories': typeof AuthProductsCategoriesRoute
+  '/products/grille-tarifaire': typeof AuthProductsGrilleTarifaireRoute
+  '/products/grille-tarifaire/$rateTableId': typeof AuthProductsGrilleTarifaireRateTableIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/clients': typeof AuthClientsRoute
+  '/cotations': typeof AuthCotationsRoute
   '/dashboard': typeof AuthDashboardRoute
   '/partners': typeof AuthPartnersRoute
   '/permissions': typeof AuthPermissionsRoute
+  '/products': typeof AuthProductsRoute
+  '/profil': typeof AuthProfilRoute
   '/roles': typeof AuthRolesRoute
+  '/sinistres': typeof AuthSinistresRoute
   '/users': typeof AuthUsersRoute
+  '/cotations/simulation': typeof AuthCotationsSimulationRoute
+  '/partners/$partnerId': typeof AuthPartnersPartnerIdRoute
+  '/products/$productId': typeof AuthProductsProductIdRoute
+  '/products/accessoires': typeof AuthProductsAccessoiresRoute
+  '/products/categories': typeof AuthProductsCategoriesRoute
+  '/products/grille-tarifaire': typeof AuthProductsGrilleTarifaireRoute
+  '/products/grille-tarifaire/$rateTableId': typeof AuthProductsGrilleTarifaireRateTableIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -90,11 +196,24 @@ export interface FileRoutesById {
   '/_auth': typeof AuthRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/_auth/clients': typeof AuthClientsRoute
+  '/_auth/cotations': typeof AuthCotationsRoute
   '/_auth/dashboard': typeof AuthDashboardRoute
   '/_auth/partners': typeof AuthPartnersRoute
   '/_auth/permissions': typeof AuthPermissionsRoute
+  '/_auth/products': typeof AuthProductsRoute
+  '/_auth/profil': typeof AuthProfilRoute
   '/_auth/roles': typeof AuthRolesRoute
+  '/_auth/sinistres': typeof AuthSinistresRoute
   '/_auth/users': typeof AuthUsersRoute
+  '/_auth/cotations_/simulation': typeof AuthCotationsSimulationRoute
+  '/_auth/partners_/$partnerId': typeof AuthPartnersPartnerIdRoute
+  '/_auth/products_/$productId': typeof AuthProductsProductIdRoute
+  '/_auth/products_/accessoires': typeof AuthProductsAccessoiresRoute
+  '/_auth/products_/categories': typeof AuthProductsCategoriesRoute
+  '/_auth/products_/grille-tarifaire': typeof AuthProductsGrilleTarifaireRoute
+  '/_auth/products_/grille-tarifaire_/$rateTableId': typeof AuthProductsGrilleTarifaireRateTableIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -102,32 +221,71 @@ export interface FileRouteTypes {
     | '/'
     | '/forgot-password'
     | '/login'
+    | '/reset-password'
+    | '/clients'
+    | '/cotations'
     | '/dashboard'
     | '/partners'
     | '/permissions'
+    | '/products'
+    | '/profil'
     | '/roles'
+    | '/sinistres'
     | '/users'
+    | '/cotations/simulation'
+    | '/partners/$partnerId'
+    | '/products/$productId'
+    | '/products/accessoires'
+    | '/products/categories'
+    | '/products/grille-tarifaire'
+    | '/products/grille-tarifaire/$rateTableId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/forgot-password'
     | '/login'
+    | '/reset-password'
+    | '/clients'
+    | '/cotations'
     | '/dashboard'
     | '/partners'
     | '/permissions'
+    | '/products'
+    | '/profil'
     | '/roles'
+    | '/sinistres'
     | '/users'
+    | '/cotations/simulation'
+    | '/partners/$partnerId'
+    | '/products/$productId'
+    | '/products/accessoires'
+    | '/products/categories'
+    | '/products/grille-tarifaire'
+    | '/products/grille-tarifaire/$rateTableId'
   id:
     | '__root__'
     | '/'
     | '/_auth'
     | '/forgot-password'
     | '/login'
+    | '/reset-password'
+    | '/_auth/clients'
+    | '/_auth/cotations'
     | '/_auth/dashboard'
     | '/_auth/partners'
     | '/_auth/permissions'
+    | '/_auth/products'
+    | '/_auth/profil'
     | '/_auth/roles'
+    | '/_auth/sinistres'
     | '/_auth/users'
+    | '/_auth/cotations_/simulation'
+    | '/_auth/partners_/$partnerId'
+    | '/_auth/products_/$productId'
+    | '/_auth/products_/accessoires'
+    | '/_auth/products_/categories'
+    | '/_auth/products_/grille-tarifaire'
+    | '/_auth/products_/grille-tarifaire_/$rateTableId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -135,10 +293,18 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRouteWithChildren
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -174,11 +340,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthUsersRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_auth/sinistres': {
+      id: '/_auth/sinistres'
+      path: '/sinistres'
+      fullPath: '/sinistres'
+      preLoaderRoute: typeof AuthSinistresRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/_auth/roles': {
       id: '/_auth/roles'
       path: '/roles'
       fullPath: '/roles'
       preLoaderRoute: typeof AuthRolesRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/profil': {
+      id: '/_auth/profil'
+      path: '/profil'
+      fullPath: '/profil'
+      preLoaderRoute: typeof AuthProfilRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/products': {
+      id: '/_auth/products'
+      path: '/products'
+      fullPath: '/products'
+      preLoaderRoute: typeof AuthProductsRouteImport
       parentRoute: typeof AuthRoute
     }
     '/_auth/permissions': {
@@ -202,23 +389,111 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthDashboardRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_auth/cotations': {
+      id: '/_auth/cotations'
+      path: '/cotations'
+      fullPath: '/cotations'
+      preLoaderRoute: typeof AuthCotationsRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/clients': {
+      id: '/_auth/clients'
+      path: '/clients'
+      fullPath: '/clients'
+      preLoaderRoute: typeof AuthClientsRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/products_/grille-tarifaire': {
+      id: '/_auth/products_/grille-tarifaire'
+      path: '/products/grille-tarifaire'
+      fullPath: '/products/grille-tarifaire'
+      preLoaderRoute: typeof AuthProductsGrilleTarifaireRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/products_/categories': {
+      id: '/_auth/products_/categories'
+      path: '/products/categories'
+      fullPath: '/products/categories'
+      preLoaderRoute: typeof AuthProductsCategoriesRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/products_/accessoires': {
+      id: '/_auth/products_/accessoires'
+      path: '/products/accessoires'
+      fullPath: '/products/accessoires'
+      preLoaderRoute: typeof AuthProductsAccessoiresRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/products_/$productId': {
+      id: '/_auth/products_/$productId'
+      path: '/products/$productId'
+      fullPath: '/products/$productId'
+      preLoaderRoute: typeof AuthProductsProductIdRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/partners_/$partnerId': {
+      id: '/_auth/partners_/$partnerId'
+      path: '/partners/$partnerId'
+      fullPath: '/partners/$partnerId'
+      preLoaderRoute: typeof AuthPartnersPartnerIdRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/cotations_/simulation': {
+      id: '/_auth/cotations_/simulation'
+      path: '/cotations/simulation'
+      fullPath: '/cotations/simulation'
+      preLoaderRoute: typeof AuthCotationsSimulationRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/products_/grille-tarifaire_/$rateTableId': {
+      id: '/_auth/products_/grille-tarifaire_/$rateTableId'
+      path: '/products/grille-tarifaire/$rateTableId'
+      fullPath: '/products/grille-tarifaire/$rateTableId'
+      preLoaderRoute: typeof AuthProductsGrilleTarifaireRateTableIdRouteImport
+      parentRoute: typeof AuthRoute
+    }
   }
 }
 
 interface AuthRouteChildren {
+  AuthClientsRoute: typeof AuthClientsRoute
+  AuthCotationsRoute: typeof AuthCotationsRoute
   AuthDashboardRoute: typeof AuthDashboardRoute
   AuthPartnersRoute: typeof AuthPartnersRoute
   AuthPermissionsRoute: typeof AuthPermissionsRoute
+  AuthProductsRoute: typeof AuthProductsRoute
+  AuthProfilRoute: typeof AuthProfilRoute
   AuthRolesRoute: typeof AuthRolesRoute
+  AuthSinistresRoute: typeof AuthSinistresRoute
   AuthUsersRoute: typeof AuthUsersRoute
+  AuthCotationsSimulationRoute: typeof AuthCotationsSimulationRoute
+  AuthPartnersPartnerIdRoute: typeof AuthPartnersPartnerIdRoute
+  AuthProductsProductIdRoute: typeof AuthProductsProductIdRoute
+  AuthProductsAccessoiresRoute: typeof AuthProductsAccessoiresRoute
+  AuthProductsCategoriesRoute: typeof AuthProductsCategoriesRoute
+  AuthProductsGrilleTarifaireRoute: typeof AuthProductsGrilleTarifaireRoute
+  AuthProductsGrilleTarifaireRateTableIdRoute: typeof AuthProductsGrilleTarifaireRateTableIdRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
+  AuthClientsRoute: AuthClientsRoute,
+  AuthCotationsRoute: AuthCotationsRoute,
   AuthDashboardRoute: AuthDashboardRoute,
   AuthPartnersRoute: AuthPartnersRoute,
   AuthPermissionsRoute: AuthPermissionsRoute,
+  AuthProductsRoute: AuthProductsRoute,
+  AuthProfilRoute: AuthProfilRoute,
   AuthRolesRoute: AuthRolesRoute,
+  AuthSinistresRoute: AuthSinistresRoute,
   AuthUsersRoute: AuthUsersRoute,
+  AuthCotationsSimulationRoute: AuthCotationsSimulationRoute,
+  AuthPartnersPartnerIdRoute: AuthPartnersPartnerIdRoute,
+  AuthProductsProductIdRoute: AuthProductsProductIdRoute,
+  AuthProductsAccessoiresRoute: AuthProductsAccessoiresRoute,
+  AuthProductsCategoriesRoute: AuthProductsCategoriesRoute,
+  AuthProductsGrilleTarifaireRoute: AuthProductsGrilleTarifaireRoute,
+  AuthProductsGrilleTarifaireRateTableIdRoute:
+    AuthProductsGrilleTarifaireRateTableIdRoute,
 }
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
@@ -228,6 +503,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRouteWithChildren,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

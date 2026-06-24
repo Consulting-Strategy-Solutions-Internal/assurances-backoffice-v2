@@ -1,7 +1,16 @@
-import { createFileRoute, Link, Outlet, redirect, useNavigate, useRouterState } from '@tanstack/react-router'
-import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
-import { verifyAuth, logout, getMe, type MeResponse } from '#/services/auth'
+import {
+  createFileRoute,
+  Outlet,
+  redirect,
+  useNavigate,
+} from '@tanstack/react-router'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { verifyAuth, logout, getMe } from '#/services/auth'
+import type { MeResponse } from '#/services/auth'
+import { ShellProvider } from '#/components/dashboard/shell'
+import { Sidebar } from '#/components/dashboard/Sidebar'
+import { Topbar } from '#/components/dashboard/Topbar'
+import { Toaster } from '#/components/ui/sonner'
 
 export const Route = createFileRoute('/_auth')({
   beforeLoad: async () => {
@@ -16,9 +25,7 @@ export const Route = createFileRoute('/_auth')({
 
 function AuthLayout() {
   const navigate = useNavigate()
-  const pathname = useRouterState({ select: (s) => s.location.pathname })
-  const isRolesOrPermissions = pathname.startsWith('/roles') || pathname.startsWith('/permissions')
-  const [rolesOpen, setRolesOpen] = useState(isRolesOrPermissions)
+  const queryClient = useQueryClient()
 
   const { data: user } = useQuery<MeResponse>({
     queryKey: ['me'],
@@ -26,52 +33,30 @@ function AuthLayout() {
   })
 
   async function handleLogout() {
-    await logout()
-    navigate({ to: '/login' })
+    // The HttpOnly auth cookies are cleared server-side by /auth/logout; we
+    // can only react to it client-side. Purge the cache and redirect in a
+    // `finally` so a logout that fails (network/500) still drops the user's
+    // in-memory data and bounces them out, never stranding them logged-in.
+    try {
+      await logout()
+    } finally {
+      queryClient.clear()
+      navigate({ to: '/login' })
+    }
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
-      <nav style={{ width: '220px', flexShrink: 0, borderRight: '1px solid #e5e7eb' }}>
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-          <li>
-            <Link to="/dashboard">Dashboard</Link>
-          </li>
-          <li>
-            <Link to="/users">Administrateurs</Link>
-          </li>
-          <li>
-            <Link to="/partners">Partenaires</Link>
-          </li>
-          <li>
-            <button
-              onClick={() => setRolesOpen((o) => !o)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-            >
-              Rôles & Permissions {rolesOpen ? '▲' : '▼'}
-            </button>
-            {rolesOpen && (
-              <ul style={{ listStyle: 'none', padding: '0 0 0 16px', margin: 0 }}>
-                <li>
-                  <Link to="/roles">Rôles</Link>
-                </li>
-                <li>
-                  <Link to="/permissions">Permissions</Link>
-                </li>
-              </ul>
-            )}
-          </li>
-        </ul>
-      </nav>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <header style={{ borderBottom: '1px solid #e5e7eb', padding: '12px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span>{user ? `${user.firstName} ${user.lastName}` : ''}</span>
-          <button onClick={handleLogout}>Se déconnecter</button>
-        </header>
-        <main style={{ flex: 1 }}>
-          <Outlet />
+    <ShellProvider>
+      <div className="flex h-screen overflow-hidden bg-background">
+        <Sidebar user={user} onLogout={handleLogout} />
+        <main className="flex h-screen flex-1 flex-col overflow-y-auto">
+          <Topbar />
+          <div className="w-full max-w-[1360px] flex-1 px-[34px] pt-7 pb-[52px]">
+            <Outlet />
+          </div>
         </main>
       </div>
-    </div>
+      <Toaster />
+    </ShellProvider>
   )
 }

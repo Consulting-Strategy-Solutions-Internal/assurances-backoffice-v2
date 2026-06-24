@@ -9,7 +9,10 @@ export const api = axios.create({
 })
 
 let isRefreshing = false
-let failedQueue: Array<{ resolve: (value: unknown) => void; reject: (reason?: unknown) => void }> = []
+let failedQueue: Array<{
+  resolve: (value: unknown) => void
+  reject: (reason?: unknown) => void
+}> = []
 
 function processQueue(error: unknown) {
   failedQueue.forEach(({ resolve, reject }) => {
@@ -25,10 +28,17 @@ api.interceptors.response.use(
     const originalRequest = error.config
 
     const isAuthEndpoint =
+      originalRequest?.url?.includes('/auth/admin/login') ||
       originalRequest?.url?.includes('/auth/login') ||
-      originalRequest?.url?.includes('/auth/refresh')
+      originalRequest?.url?.includes('/auth/refresh') ||
+      originalRequest?.url?.includes('/auth/forgot-password') ||
+      originalRequest?.url?.includes('/auth/reset-password')
 
-    if (error.response?.status === 401 && !originalRequest?._retry && !isAuthEndpoint) {
+    if (
+      error.response?.status === 401 &&
+      !originalRequest?._retry &&
+      !isAuthEndpoint
+    ) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject })
