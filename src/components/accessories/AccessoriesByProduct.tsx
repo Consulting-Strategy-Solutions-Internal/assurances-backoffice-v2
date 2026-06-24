@@ -28,12 +28,17 @@ interface AccessoriesByProductProps {
   groups: AccessoryGroup[]
   onEdit: (accessory: AccessoryResponse) => void
   onDelete: (accessory: AccessoryResponse) => void
+  /** When false, the row "Modifier"/"Supprimer" actions are disabled. */
+  canWrite?: boolean
 }
+
+const noPerm = "Vous n'avez pas la permission requise (accessory:write)."
 
 export function AccessoriesByProduct({
   groups,
   onEdit,
   onDelete,
+  canWrite = true,
 }: AccessoriesByProductProps) {
   if (groups.length === 0) {
     return (
@@ -52,7 +57,7 @@ export function AccessoriesByProduct({
           <div className="flex items-center justify-between gap-3 border-b px-[18px] py-3">
             <div className="flex items-center gap-2.5">
               <Badge className="rounded-md border-transparent bg-primary/10 px-2 py-0.5 font-mono text-[12px] font-bold text-primary tabular-nums">
-                {group.productCode ?? '—'}
+                {group.productCode ?? ''}
               </Badge>
               <span className="text-[14.5px] font-bold">{group.label}</span>
             </div>
@@ -97,6 +102,8 @@ export function AccessoriesByProduct({
                         size="sm"
                         className="rounded-[9px]"
                         onClick={() => onEdit(a)}
+                        disabled={!canWrite}
+                        title={canWrite ? undefined : noPerm}
                       >
                         Modifier
                       </Button>
@@ -106,6 +113,8 @@ export function AccessoriesByProduct({
                         size="sm"
                         className="rounded-[9px] text-destructive hover:bg-destructive/10 hover:text-destructive"
                         onClick={() => onDelete(a)}
+                        disabled={!canWrite}
+                        title={canWrite ? undefined : noPerm}
                       >
                         Supprimer
                       </Button>

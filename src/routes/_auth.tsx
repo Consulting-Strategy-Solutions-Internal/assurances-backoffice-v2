@@ -1,5 +1,10 @@
-import { createFileRoute, Outlet, redirect, useNavigate } from '@tanstack/react-router'
-import { useQuery } from '@tanstack/react-query'
+import {
+  createFileRoute,
+  Outlet,
+  redirect,
+  useNavigate,
+} from '@tanstack/react-router'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { verifyAuth, logout, getMe } from '#/services/auth'
 import type { MeResponse } from '#/services/auth'
 import { ShellProvider } from '#/components/dashboard/shell'
@@ -20,6 +25,7 @@ export const Route = createFileRoute('/_auth')({
 
 function AuthLayout() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
   const { data: user } = useQuery<MeResponse>({
     queryKey: ['me'],
@@ -27,8 +33,16 @@ function AuthLayout() {
   })
 
   async function handleLogout() {
-    await logout()
-    navigate({ to: '/login' })
+    // The HttpOnly auth cookies are cleared server-side by /auth/logout; we
+    // can only react to it client-side. Purge the cache and redirect in a
+    // `finally` so a logout that fails (network/500) still drops the user's
+    // in-memory data and bounces them out, never stranding them logged-in.
+    try {
+      await logout()
+    } finally {
+      queryClient.clear()
+      navigate({ to: '/login' })
+    }
   }
 
   return (

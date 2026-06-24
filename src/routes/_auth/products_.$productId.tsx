@@ -12,6 +12,7 @@ import { usePermissions } from '#/components/dashboard/use-permissions'
 import { LegalQualityModal } from '#/components/pricing/LegalQualityModal'
 import { LegalQualityCard } from '#/components/pricing/LegalQualityCard'
 import { WarrantyModal } from '#/components/pricing/WarrantyModal'
+import { IaPricing } from '#/components/ia-pricing/IaPricing'
 import { getCategories, getProduct } from '#/services/products'
 import {
   deleteLegalQuality,
@@ -74,6 +75,7 @@ function ProductPricingPage() {
     [categoriesData, product],
   )
   const isMrh = category?.calculationType === 'MRH'
+  const isIa = category?.calculationType === 'IA'
 
   const { data: legalQualitiesData } = useQuery({
     queryKey: ['legal-qualities', id],
@@ -160,15 +162,20 @@ function ProductPricingPage() {
       </div>
 
       {!isMrh ? (
-        <Card className="gap-0 py-0">
-          <div className="p-9 text-center text-[13.5px] text-muted-foreground">
-            La configuration tarifaire détaillée n'est disponible que pour le
-            modèle de calcul <span className="font-semibold">MRH</span>.
-            {category
-              ? ` La catégorie « ${category.name} » utilise le modèle ${category.calculationType ?? 'non défini'}.`
-              : ''}
-          </div>
-        </Card>
+        isIa ? (
+          <IaPricing productId={id} />
+        ) : (
+          <Card className="gap-0 py-0">
+            <div className="p-9 text-center text-[13.5px] text-muted-foreground">
+              La configuration tarifaire détaillée n'est disponible que pour les
+              modèles de calcul <span className="font-semibold">MRH</span> et{' '}
+              <span className="font-semibold">IA</span>.
+              {category
+                ? ` La catégorie « ${category.name} » utilise le modèle ${category.calculationType ?? 'non défini'}.`
+                : ''}
+            </div>
+          </Card>
+        )
       ) : (
         <div className="flex flex-col gap-6">
           {/* Garanties (catalogue global) */}

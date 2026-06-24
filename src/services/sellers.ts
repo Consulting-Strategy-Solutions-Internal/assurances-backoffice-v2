@@ -21,8 +21,6 @@ export interface CreateSellerPayload {
   lastName: string
   phoneNumber: string
   email?: string
-  password: string
-  pinCode?: number
 }
 
 export interface UpdateSellerPayload {

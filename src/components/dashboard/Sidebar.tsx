@@ -3,12 +3,14 @@ import { useState } from 'react'
 import {
   ChevronDown,
   ChevronsUpDown,
+  FileText,
   LayoutDashboard,
   LogOut,
   Package,
   Share2,
   ShieldCheck,
   TriangleAlert,
+  User,
   UserCog,
   Users,
   type LucideIcon,
@@ -20,6 +22,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '#/components/ui/dropdown-menu'
 import { cn } from '#/lib/utils'
@@ -36,6 +39,11 @@ const PILOTAGE: NavItem[] = [
   { to: '/dashboard', label: "Vue d'ensemble", icon: LayoutDashboard },
   { to: '/sinistres', label: 'Sinistres', icon: TriangleAlert, badge: '327' },
   { to: '/clients', label: 'Clients', icon: Users },
+]
+
+const COTATIONS_CHILDREN = [
+  { to: '/cotations', label: 'Liste' },
+  { to: '/cotations/simulation', label: 'Simulation' },
 ]
 
 const PRODUITS_CHILDREN = [
@@ -56,6 +64,74 @@ const RESEAU: NavItem[] = [
   },
 ]
 
+/** Collapsible sidebar section: a parent row that toggles a list of children. */
+function CollapsibleNavGroup({
+  icon: Icon,
+  label,
+  basePath,
+  items,
+  pathname,
+}: {
+  icon: LucideIcon
+  label: string
+  basePath: string
+  items: { to: string; label: string }[]
+  pathname: string
+}) {
+  const groupActive = pathname.startsWith(basePath)
+  const [open, setOpen] = useState(groupActive)
+  return (
+    <>
+      <Button
+        type="button"
+        variant="ghost"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        className={cn(
+          'h-auto w-full justify-start gap-3 rounded-[10px] px-[13px] py-[10px] text-[14px] font-medium tracking-[-0.01em]',
+          groupActive &&
+            'font-semibold text-primary hover:bg-primary/[0.07] hover:text-primary',
+        )}
+      >
+        <Icon
+          className={cn(
+            'size-[18px]',
+            groupActive ? 'text-primary' : 'text-muted-foreground',
+          )}
+        />
+        <span className="flex-1 text-left">{label}</span>
+        <ChevronDown
+          className={cn(
+            'size-4 text-muted-foreground transition-transform',
+            open && 'rotate-180',
+          )}
+        />
+      </Button>
+      {open && (
+        <div className="my-0.5 ml-[27px] flex flex-col gap-0.5 border-l border-sidebar-border pl-2">
+          {items.map((c) => {
+            const active = pathname === c.to
+            return (
+              <Button
+                key={c.to}
+                asChild
+                variant="ghost"
+                className={cn(
+                  'h-auto w-full justify-start rounded-[8px] px-2.5 py-[7px] text-[13px] font-medium text-muted-foreground',
+                  active &&
+                    'bg-primary/[0.07] font-semibold text-primary hover:bg-primary/[0.07] hover:text-primary',
+                )}
+              >
+                <Link to={c.to}>{c.label}</Link>
+              </Button>
+            )
+          })}
+        </div>
+      )}
+    </>
+  )
+}
+
 export function Sidebar({
   user,
   onLogout,
@@ -64,8 +140,6 @@ export function Sidebar({
   onLogout: () => void
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
-  const productsActive = pathname.startsWith('/products')
-  const [productsOpen, setProductsOpen] = useState(productsActive)
 
   const isActive = (item: NavItem) =>
     pathname.startsWith(item.to) ||
@@ -132,53 +206,21 @@ export function Sidebar({
       <nav className="flex flex-col gap-[3px]">
         {PILOTAGE.map(renderItem)}
 
-        {/* Produits: collapsible group */}
-        <Button
-          type="button"
-          variant="ghost"
-          aria-expanded={productsOpen}
-          onClick={() => setProductsOpen((o) => !o)}
-          className={cn(
-            'h-auto w-full justify-start gap-3 rounded-[10px] px-[13px] py-[10px] text-[14px] font-medium tracking-[-0.01em]',
-            productsActive &&
-              'font-semibold text-primary hover:bg-primary/[0.07] hover:text-primary',
-          )}
-        >
-          <Package
-            className={cn(
-              'size-[18px]',
-              productsActive ? 'text-primary' : 'text-muted-foreground',
-            )}
-          />
-          <span className="flex-1 text-left">Produits</span>
-          <ChevronDown
-            className={cn(
-              'size-4 text-muted-foreground transition-transform',
-              productsOpen && 'rotate-180',
-            )}
-          />
-        </Button>
-        {productsOpen && (
-          <div className="my-0.5 ml-[27px] flex flex-col gap-0.5 border-l border-sidebar-border pl-2">
-            {PRODUITS_CHILDREN.map((c) => {
-              const active = pathname === c.to
-              return (
-                <Button
-                  key={c.to}
-                  asChild
-                  variant="ghost"
-                  className={cn(
-                    'h-auto w-full justify-start rounded-[8px] px-2.5 py-[7px] text-[13px] font-medium text-muted-foreground',
-                    active &&
-                      'bg-primary/[0.07] font-semibold text-primary hover:bg-primary/[0.07] hover:text-primary',
-                  )}
-                >
-                  <Link to={c.to}>{c.label}</Link>
-                </Button>
-              )
-            })}
-          </div>
-        )}
+        <CollapsibleNavGroup
+          icon={FileText}
+          label="Cotations"
+          basePath="/cotations"
+          items={COTATIONS_CHILDREN}
+          pathname={pathname}
+        />
+
+        <CollapsibleNavGroup
+          icon={Package}
+          label="Produits"
+          basePath="/products"
+          items={PRODUITS_CHILDREN}
+          pathname={pathname}
+        />
       </nav>
 
       <div className="px-3 pt-[22px] pb-2 text-[10.5px] font-bold tracking-[0.1em] text-muted-foreground">
@@ -210,6 +252,13 @@ export function Sidebar({
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="top" align="start" className="w-[214px]">
+            <DropdownMenuItem asChild>
+              <Link to="/profil">
+                <User className="size-4" />
+                Mon profil
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem variant="destructive" onClick={onLogout}>
               <LogOut className="size-4" />
               Se déconnecter

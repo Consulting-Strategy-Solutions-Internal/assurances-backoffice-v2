@@ -19,3 +19,13 @@ export function formatDate(iso?: string): string {
   if (Number.isNaN(date.getTime())) return '—'
   return dateFormatter.format(date)
 }
+
+const numberFormatter = new Intl.NumberFormat('fr-FR', {
+  maximumFractionDigits: 2,
+})
+
+/** Formats a number as an FCFA amount (e.g. "10 007,5 FCFA"); '' if undefined. */
+export function formatFcfa(value?: number | null): string {
+  if (value == null) return ''
+  return `${numberFormatter.format(value)} FCFA`
+}

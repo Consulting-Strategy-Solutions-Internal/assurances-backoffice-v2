@@ -28,6 +28,7 @@ api.interceptors.response.use(
     const originalRequest = error.config
 
     const isAuthEndpoint =
+      originalRequest?.url?.includes('/auth/admin/login') ||
       originalRequest?.url?.includes('/auth/login') ||
       originalRequest?.url?.includes('/auth/refresh')
 

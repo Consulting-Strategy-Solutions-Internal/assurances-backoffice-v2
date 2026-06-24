@@ -17,13 +17,6 @@ import { Label } from '#/components/ui/label'
 import { Avatar, AvatarFallback } from '#/components/ui/avatar'
 import { Tabs, TabsList, TabsTrigger } from '#/components/ui/tabs'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '#/components/ui/select'
-import {
   Table,
   TableBody,
   TableCell,
@@ -59,9 +52,12 @@ const FIELDS = [
   },
 ] as const
 
-const headCls = 'h-auto bg-[#fafbfc] px-3 py-3 text-[11px] font-bold uppercase tracking-[0.05em] text-muted-foreground'
-const errorBanner = 'rounded-lg bg-destructive/10 px-3 py-2.5 text-[13px] font-medium text-destructive'
-const successBanner = 'rounded-lg bg-[#e7f6ee] px-3 py-2.5 text-[13px] font-medium text-[#1c8a57]'
+const headCls =
+  'h-auto bg-[#fafbfc] px-3 py-3 text-[11px] font-bold uppercase tracking-[0.05em] text-muted-foreground'
+const errorBanner =
+  'rounded-lg bg-destructive/10 px-3 py-2.5 text-[13px] font-medium text-destructive'
+const successBanner =
+  'rounded-lg bg-[#e7f6ee] px-3 py-2.5 text-[13px] font-medium text-[#1c8a57]'
 
 export function ManagerStep({ partnerId }: { partnerId: number }) {
   const [mode, setMode] = useState<'existing' | 'new'>('existing')
@@ -144,7 +140,7 @@ function CurrentManagers({
         >
           <Avatar className="size-9">
             <AvatarFallback className="bg-primary/10 text-[12.5px] font-bold text-primary">
-              {`${m.firstName[0] ?? ''}${m.lastName[0] ?? ''}`.toUpperCase()}
+              {`${m.firstName.charAt(0)}${m.lastName.charAt(0)}`.toUpperCase()}
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1 leading-[1.3]">
@@ -238,7 +234,9 @@ function SelectExistingManager({
       </div>
 
       {serverError && <p className={errorBanner}>{serverError}</p>}
-      {success && <p className={successBanner}>Manager rattaché au partenaire.</p>}
+      {success && (
+        <p className={successBanner}>Manager rattaché au partenaire.</p>
+      )}
 
       <div className="overflow-hidden rounded-xl border">
         <Table>
@@ -254,7 +252,10 @@ function SelectExistingManager({
           <TableBody>
             {candidates.length === 0 ? (
               <TableRow className="hover:bg-transparent">
-                <TableCell colSpan={5} className="py-8 text-center text-[13.5px] text-muted-foreground">
+                <TableCell
+                  colSpan={5}
+                  className="py-8 text-center text-[13.5px] text-muted-foreground"
+                >
                   Aucun manager disponible.
                 </TableCell>
               </TableRow>
@@ -332,12 +333,19 @@ function CreateNewManager({
     queryFn: () => getRoles(0, 200),
   })
 
+  // This form only ever creates managers, so the role is forced to MANAGER
+  // (resolved from the role catalogue) instead of being picked by the user.
+  const managerRole = rolesData?.content.find(
+    (r) => r.name.toUpperCase() === 'MANAGER',
+  )
+
   const { mutateAsync, isPending } = useMutation({
     mutationFn: async (payload: CreateUserPayload) => {
-      const created = await createUser(payload)
-      // The create response doesn't reliably carry the new user's id, so fall
-      // back to resolving it by email before rattaching (emails are unique).
-      let userId: number | undefined = created?.id
+      // The create response doesn't reliably carry the new user's id (the type
+      // says otherwise), so fall back to resolving it by email before
+      // rattaching (emails are unique).
+      const created: { id?: number } = await createUser(payload)
+      let userId = created.id
       if (userId == null) {
         const list = await getUsers({ page: 0, size: 200 })
         userId = list.content.find(
@@ -346,7 +354,7 @@ function CreateNewManager({
       }
       if (userId == null) {
         throw new Error(
-          "Le manager a été créé mais reste introuvable pour le rattachement. Rafraîchissez la page et rattachez-le via « Utilisateur existant ».",
+          'Le manager a été créé mais reste introuvable pour le rattachement. Rafraîchissez la page et rattachez-le via « Utilisateur existant ».',
         )
       }
       return assignUserToPartner(userId, partnerId)
@@ -366,14 +374,19 @@ function CreateNewManager({
       phoneNumber: '',
       addressLine1: '',
       addressLine2: '',
-      roleId: 0,
     },
     onSubmit: async ({ value }) => {
       setServerError(null)
       setSuccess(false)
+      if (!managerRole) {
+        setServerError(
+          'Rôle « Manager » introuvable. Réessayez dans un instant.',
+        )
+        return
+      }
       try {
         await mutateAsync({
-          roleId: value.roleId,
+          roleId: managerRole.id,
           firstName: value.firstName,
           lastName: value.lastName,
           email: value.email,
@@ -406,52 +419,15 @@ function CreateNewManager({
         form.handleSubmit()
       }}
     >
-      <form.Field
-        name="roleId"
-        validators={{
-          onBlur: ({ value }) => (!value ? 'Le rôle est requis' : undefined),
-          onSubmit: ({ value }) => (!value ? 'Le rôle est requis' : undefined),
-        }}
-      >
-        {(field) => {
-          const error = field.state.meta.errors[0]
-          return (
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="manager-roleId" className="text-[13px]">
-                Rôle<span className="text-destructive">*</span>
-              </Label>
-              <Select
-                value={field.state.value ? String(field.state.value) : ''}
-                onValueChange={(v) => {
-                  field.handleChange(Number(v))
-                  field.handleBlur()
-                  setSuccess(false)
-                }}
-              >
-                <SelectTrigger
-                  id="manager-roleId"
-                  aria-invalid={!!error}
-                  className="h-10 w-full rounded-[10px]"
-                >
-                  <SelectValue placeholder="Sélectionner un rôle" />
-                </SelectTrigger>
-                <SelectContent>
-                  {rolesData?.content.map((r) => (
-                    <SelectItem key={r.id} value={String(r.id)}>
-                      {r.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {error && (
-                <p className="text-[12px] font-medium text-destructive">
-                  {error}
-                </p>
-              )}
-            </div>
-          )
-        }}
-      </form.Field>
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-[13px]">Rôle</Label>
+        <div className="flex h-10 items-center rounded-[10px] border bg-muted px-3 text-[13.5px] font-medium text-muted-foreground">
+          Manager
+        </div>
+        <p className="text-[12px] text-muted-foreground">
+          Ce compte est créé avec le rôle Manager.
+        </p>
+      </div>
 
       {FIELDS.map(({ name, label, type, required }) => (
         <form.Field
@@ -494,11 +470,13 @@ function CreateNewManager({
       <div>
         <Button
           type="submit"
-          disabled={isPending || !canWrite}
+          disabled={isPending || !canWrite || !managerRole}
           title={
-            canWrite
-              ? undefined
-              : "Vous n'avez pas la permission requise (iam:write)."
+            !canWrite
+              ? "Vous n'avez pas la permission requise (iam:write)."
+              : !managerRole
+                ? 'Rôle « Manager » indisponible pour le moment.'
+                : undefined
           }
           className="rounded-[11px] shadow-[0_4px_14px_rgba(0,51,127,0.22)]"
         >

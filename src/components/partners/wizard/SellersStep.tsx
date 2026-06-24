@@ -44,9 +44,6 @@ const schema = z.object({
   lastName: z.string().min(1, 'Le nom est requis'),
   phoneNumber: z.string().min(1, 'Le téléphone est requis'),
   distributorCode: z.string().min(1, 'Le code distributeur est requis'),
-  password: z
-    .string()
-    .min(8, 'Le mot de passe doit contenir au moins 8 caractères'),
   email: z
     .string()
     .email("L'adresse email n'est pas valide")
@@ -65,11 +62,12 @@ const TEXT_FIELDS = [
     required: true,
   },
   { name: 'email', label: 'Email', type: 'email', required: false },
-  { name: 'password', label: 'Mot de passe', type: 'password', required: true },
 ] as const
 
-const headCls = 'h-auto bg-[#fafbfc] px-3 py-3 text-[11px] font-bold uppercase tracking-[0.05em] text-muted-foreground'
-const errorBanner = 'rounded-lg bg-destructive/10 px-3 py-2.5 text-[13px] font-medium text-destructive'
+const headCls =
+  'h-auto bg-[#fafbfc] px-3 py-3 text-[11px] font-bold uppercase tracking-[0.05em] text-muted-foreground'
+const errorBanner =
+  'rounded-lg bg-destructive/10 px-3 py-2.5 text-[13px] font-medium text-destructive'
 
 type SellerRow = SellerResponse & { attachment: string }
 
@@ -149,8 +147,6 @@ export function SellersStep({ partnerId }: { partnerId: number }) {
       phoneNumber: '',
       distributorCode: '',
       email: '',
-      password: '',
-      pinCode: '',
     },
     onSubmit: async ({ value }) => {
       setServerError(null)
@@ -160,12 +156,7 @@ export function SellersStep({ partnerId }: { partnerId: number }) {
           lastName: value.lastName,
           phoneNumber: value.phoneNumber,
           distributorCode: value.distributorCode,
-          password: value.password,
           email: value.email || undefined,
-          pinCode:
-            value.pinCode === '' || Number.isNaN(Number(value.pinCode))
-              ? undefined
-              : Number(value.pinCode),
         })
       } catch (error) {
         setServerError(
@@ -196,13 +187,18 @@ export function SellersStep({ partnerId }: { partnerId: number }) {
                 <TableHead className={headCls}>Téléphone</TableHead>
                 <TableHead className={headCls}>Code distributeur</TableHead>
                 <TableHead className={headCls}>Email</TableHead>
-                <TableHead className={cn(headCls, 'pr-[18px]')}>Rattachement</TableHead>
+                <TableHead className={cn(headCls, 'pr-[18px]')}>
+                  Rattachement
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {rows.length === 0 ? (
                 <TableRow className="hover:bg-transparent">
-                  <TableCell colSpan={5} className="py-8 text-center text-[13.5px] text-muted-foreground">
+                  <TableCell
+                    colSpan={5}
+                    className="py-8 text-center text-[13.5px] text-muted-foreground"
+                  >
                     Aucun agent pour ce partenaire.
                   </TableCell>
                 </TableRow>
@@ -222,7 +218,10 @@ export function SellersStep({ partnerId }: { partnerId: number }) {
                       {s.email ?? ''}
                     </TableCell>
                     <TableCell className="py-3 pr-[18px]">
-                      <Badge variant="secondary" className="rounded-md text-[11.5px]">
+                      <Badge
+                        variant="secondary"
+                        className="rounded-md text-[11.5px]"
+                      >
                         {s.attachment}
                       </Badge>
                     </TableCell>
@@ -321,19 +320,6 @@ export function SellersStep({ partnerId }: { partnerId: number }) {
               )}
             </form.Field>
           ))}
-
-          <form.Field name="pinCode">
-            {(field) => (
-              <FormField
-                id="seller-pinCode"
-                label="Code PIN"
-                type="number"
-                value={field.state.value}
-                onChange={field.handleChange}
-                onBlur={field.handleBlur}
-              />
-            )}
-          </form.Field>
 
           {serverError && <p className={errorBanner}>{serverError}</p>}
 

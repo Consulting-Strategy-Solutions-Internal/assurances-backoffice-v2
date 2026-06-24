@@ -39,6 +39,32 @@ const loginSchema = z.object({
     .min(8, 'Le mot de passe doit contenir au moins 8 caractères'),
 })
 
+type LoginField = keyof typeof loginSchema.shape
+
+/** Validate a single field against its Zod rule, returning the first error message. */
+function validateField(field: LoginField, value: string) {
+  const result = loginSchema.shape[field].safeParse(value)
+  return result.success ? undefined : result.error.issues[0].message
+}
+
+/**
+ * onBlur shows the error when leaving the field; onChange re-validates only once
+ * the field has been blurred, so a corrected value clears the error live —
+ * without forcing the user to click back into the input.
+ */
+function fieldValidators(field: LoginField) {
+  return {
+    onBlur: ({ value }: { value: string }) => validateField(field, value),
+    onChange: ({
+      value,
+      fieldApi,
+    }: {
+      value: string
+      fieldApi: { state: { meta: { isBlurred: boolean } } }
+    }) => (fieldApi.state.meta.isBlurred ? validateField(field, value) : undefined),
+  }
+}
+
 function LoginPage() {
   const navigate = useNavigate()
   const [serverError, setServerError] = useState<string | null>(null)
@@ -128,17 +154,7 @@ function LoginPage() {
                 form.handleSubmit()
               }}
             >
-              <form.Field
-                name="email"
-                validators={{
-                  onBlur: ({ value }) => {
-                    const result = loginSchema.shape.email.safeParse(value)
-                    return result.success
-                      ? undefined
-                      : result.error.issues[0].message
-                  },
-                }}
-              >
+              <form.Field name="email" validators={fieldValidators('email')}>
                 {(field) => (
                   <FormField
                     id="email"
@@ -155,14 +171,7 @@ function LoginPage() {
 
               <form.Field
                 name="password"
-                validators={{
-                  onBlur: ({ value }) => {
-                    const result = loginSchema.shape.password.safeParse(value)
-                    return result.success
-                      ? undefined
-                      : result.error.issues[0].message
-                  },
-                }}
+                validators={fieldValidators('password')}
               >
                 {(field) => (
                   <FormField

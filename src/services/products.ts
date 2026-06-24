@@ -1,8 +1,8 @@
 import { api } from '#/lib/api'
 import type { PageResponse } from '#/services/users'
 
-/** The only product-category calculation type the API currently supports. */
-export const PRODUCT_CALCULATION_TYPES = ['MRH'] as const
+/** Product-category calculation types supported by the API. */
+export const PRODUCT_CALCULATION_TYPES = ['MRH', 'IA'] as const
 export type ProductCalculationType = (typeof PRODUCT_CALCULATION_TYPES)[number]
 
 export interface ProductResponse {
