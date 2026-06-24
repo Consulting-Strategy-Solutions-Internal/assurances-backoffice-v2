@@ -9,11 +9,13 @@ import { Pagination } from '#/components/ui/Pagination'
 import { Card } from '#/components/ui/card'
 import { Button } from '#/components/ui/button'
 import { useShell } from '#/components/dashboard/shell'
+import { usePermissions } from '#/components/dashboard/use-permissions'
 
 export const Route = createFileRoute('/_auth/roles')({ component: RolesPage })
 
 function RolesPage() {
   const { search } = useShell()
+  const { can } = usePermissions()
   const [page, setPage] = useState(0)
   const [showForm, setShowForm] = useState(false)
 
@@ -55,6 +57,12 @@ function RolesPage() {
           <Button
             className="rounded-[11px] shadow-[0_4px_14px_rgba(0,51,127,0.22)]"
             onClick={() => setShowForm((v) => !v)}
+            disabled={!showForm && !can('iam:write')}
+            title={
+              can('iam:write')
+                ? undefined
+                : "Vous n'avez pas la permission requise (iam:write)."
+            }
           >
             {showForm ? (
               'Annuler'

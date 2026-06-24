@@ -41,6 +41,7 @@ const PILOTAGE: NavItem[] = [
 const PRODUITS_CHILDREN = [
   { to: '/products', label: 'Catalogue' },
   { to: '/products/categories', label: 'Catégories' },
+  { to: '/products/accessoires', label: 'Accessoires' },
   { to: '/products/grille-tarifaire', label: 'Grille tarifaire' },
 ]
 

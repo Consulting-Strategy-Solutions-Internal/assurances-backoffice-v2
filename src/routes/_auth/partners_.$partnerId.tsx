@@ -1,18 +1,39 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
+import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react'
 import { getPartner } from '#/services/partners'
 import { getUsers } from '#/services/users'
 import { Stepper } from '#/components/ui/Stepper'
 import { ManagerStep } from '#/components/partners/wizard/ManagerStep'
 import { AgenciesStep } from '#/components/partners/wizard/AgenciesStep'
 import { SellersStep } from '#/components/partners/wizard/SellersStep'
+import { Card } from '#/components/ui/card'
+import { Button } from '#/components/ui/button'
+import { Badge } from '#/components/ui/badge'
+import { Separator } from '#/components/ui/separator'
 
 export const Route = createFileRoute('/_auth/partners_/$partnerId')({
   component: PartnerRelationsPage,
 })
 
 const STEPS = ['Manager', 'Agences', 'Agents']
+
+function BackLink() {
+  return (
+    <Button
+      asChild
+      variant="ghost"
+      size="sm"
+      className="mb-3 -ml-2 rounded-[10px] text-muted-foreground"
+    >
+      <Link to="/partners">
+        <ArrowLeft />
+        Retour aux partenaires
+      </Link>
+    </Button>
+  )
+}
 
 function PartnerRelationsPage() {
   const { partnerId } = Route.useParams()
@@ -36,18 +57,25 @@ function PartnerRelationsPage() {
     queryFn: () => getUsers({ page: 0, size: 200 }),
   })
 
-  if (isLoading)
+  if (isLoading) {
     return (
-      <div style={{ padding: '24px' }}>
-        <p>Chargement...</p>
-      </div>
+      <Card className="gap-0 py-0">
+        <div className="p-9 text-center text-sm text-muted-foreground">
+          Chargement…
+        </div>
+      </Card>
     )
+  }
   if (error || !partner) {
     return (
-      <div style={{ padding: '24px' }}>
-        <p style={{ color: 'red' }}>Partenaire introuvable.</p>
-        <Link to="/partners">← Retour aux partenaires</Link>
-      </div>
+      <>
+        <BackLink />
+        <Card className="gap-0 py-0">
+          <div className="p-9 text-center text-[13.5px] text-destructive">
+            Partenaire introuvable.
+          </div>
+        </Card>
+      </>
     )
   }
 
@@ -61,66 +89,69 @@ function PartnerRelationsPage() {
   }
 
   return (
-    <div style={{ padding: '24px' }}>
-      <Link to="/partners">← Retour aux partenaires</Link>
+    <>
+      <BackLink />
 
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginTop: '8px',
-        }}
-      >
-        <h1>Relations · {partner.name}</h1>
-        <span style={{ color: '#6b7280' }}>
-          Code : {partner.distributorCode}
-        </span>
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-[26px] font-extrabold tracking-[-0.03em]">
+            Relations · {partner.name}
+          </h1>
+          <p className="mt-[7px] text-sm text-muted-foreground">
+            Rattachez le manager, les agences et les agents de ce partenaire.
+          </p>
+        </div>
+        <Badge
+          variant="secondary"
+          className="rounded-md px-2.5 py-1 text-[12px] font-semibold"
+        >
+          Code {partner.distributorCode}
+        </Badge>
       </div>
 
-      <Stepper steps={STEPS} current={step} onStepClick={goToStep} />
-
-      <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '16px' }}>
+      <Card className="gap-0 p-6">
+        <Stepper steps={STEPS} current={step} onStepClick={goToStep} />
+        <Separator className="my-5" />
         {step === 0 && <ManagerStep partnerId={id} />}
         {step === 1 && <AgenciesStep partnerId={id} />}
         {step === 2 && <SellersStep partnerId={id} />}
-      </div>
+      </Card>
 
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          marginTop: '24px',
-        }}
-      >
-        <button
-          type="button"
+      <div className="mt-5 flex items-center justify-between">
+        <Button
+          variant="outline"
+          className="rounded-[11px]"
           disabled={step === 0}
           onClick={() => setStep((s) => s - 1)}
         >
-          ← Précédent
-        </button>
+          <ChevronLeft />
+          Précédent
+        </Button>
         {isLastStep ? (
-          <button type="button" onClick={() => navigate({ to: '/partners' })}>
+          <Button
+            className="rounded-[11px] shadow-[0_4px_14px_rgba(0,51,127,0.22)]"
+            onClick={() => navigate({ to: '/partners' })}
+          >
             Terminer
-          </button>
+          </Button>
         ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div className="flex items-center gap-3">
             {step === 0 && !hasManager && (
-              <span style={{ color: '#b45309', fontSize: '13px' }}>
+              <span className="text-[13px] text-[#9a7400]">
                 Rattachez d'abord un manager pour continuer.
               </span>
             )}
-            <button
-              type="button"
+            <Button
+              className="rounded-[11px] shadow-[0_4px_14px_rgba(0,51,127,0.22)]"
               disabled={step === 0 && !hasManager}
               onClick={() => goToStep(step + 1)}
             >
-              Suivant →
-            </button>
+              Suivant
+              <ChevronRight />
+            </Button>
           </div>
         )}
       </div>
-    </div>
+    </>
   )
 }

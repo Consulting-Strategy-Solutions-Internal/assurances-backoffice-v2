@@ -15,6 +15,8 @@ import { cn } from '#/lib/utils'
 interface PartnersTableProps {
   partners: PartnerResponse[]
   onEditInfo: (partner: PartnerResponse) => void
+  /** When false, the "Modifier" action is disabled (lacks partner:write). */
+  canEdit?: boolean
 }
 
 const headCls = 'h-auto bg-[#fafbfc] px-3 py-3 text-[11px] font-bold uppercase tracking-[0.05em] text-muted-foreground'
@@ -28,7 +30,11 @@ function initials(name: string) {
     .join('')
 }
 
-export function PartnersTable({ partners, onEditInfo }: PartnersTableProps) {
+export function PartnersTable({
+  partners,
+  onEditInfo,
+  canEdit = true,
+}: PartnersTableProps) {
   return (
     <Table>
       <TableHeader>
@@ -77,6 +83,12 @@ export function PartnersTable({ partners, onEditInfo }: PartnersTableProps) {
                     size="sm"
                     className="rounded-[9px]"
                     onClick={() => onEditInfo(partner)}
+                    disabled={!canEdit}
+                    title={
+                      canEdit
+                        ? undefined
+                        : "Vous n'avez pas la permission requise (partner:write)."
+                    }
                   >
                     Modifier
                   </Button>

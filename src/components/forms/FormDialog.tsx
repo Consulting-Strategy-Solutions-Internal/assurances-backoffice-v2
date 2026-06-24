@@ -18,6 +18,8 @@ interface FormDialogProps {
   onSubmit: () => void
   submitLabel: string
   pending?: boolean
+  /** Disables the primary submit (e.g. when a required picker has no options). */
+  submitDisabled?: boolean
   error?: string | null
   children: ReactNode
 }
@@ -35,6 +37,7 @@ export function FormDialog({
   onSubmit,
   submitLabel,
   pending,
+  submitDisabled,
   error,
   children,
 }: FormDialogProps) {
@@ -76,13 +79,17 @@ export function FormDialog({
           </div>
           <DialogFooter className="gap-2.5 border-t p-6 sm:justify-end">
             <DialogClose asChild>
-              <Button type="button" variant="outline" className="rounded-[11px]">
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-[11px]"
+              >
                 Annuler
               </Button>
             </DialogClose>
             <Button
               type="submit"
-              disabled={pending}
+              disabled={pending || submitDisabled}
               className="rounded-[11px] shadow-[0_4px_14px_rgba(0,51,127,0.22)]"
             >
               {submitLabel}

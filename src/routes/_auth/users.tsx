@@ -15,6 +15,7 @@ import {
 } from '#/components/ui/select'
 import { PageHeader } from '#/components/dashboard/PageHeader'
 import { useShell } from '#/components/dashboard/shell'
+import { usePermissions } from '#/components/dashboard/use-permissions'
 
 type VerifiedFilter = 'all' | 'yes' | 'no'
 
@@ -22,6 +23,7 @@ export const Route = createFileRoute('/_auth/users')({ component: UsersPage })
 
 function UsersPage() {
   const { search } = useShell()
+  const { can } = usePermissions()
   const [page, setPage] = useState(0)
   const [showModal, setShowModal] = useState(false)
   const [filterVerified, setFilterVerified] = useState<VerifiedFilter>('all')
@@ -58,6 +60,12 @@ function UsersPage() {
         subtitle="Utilisateurs internes et niveaux d'accès"
         action="Inviter un administrateur"
         onAction={() => setShowModal(true)}
+        actionDisabled={!can('iam:write')}
+        actionTitle={
+          can('iam:write')
+            ? undefined
+            : "Vous n'avez pas la permission requise (iam:write)."
+        }
       />
 
       {showModal && <AddUserModal onClose={() => setShowModal(false)} />}

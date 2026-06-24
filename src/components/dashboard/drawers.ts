@@ -1,6 +1,5 @@
 import type { DrawerContent } from './DetailDrawer'
 import type { ClientRow, RenouvelerRow, SinistreRow } from './mock-data'
-import type { ProductRow } from '#/components/products/data'
 
 export function sinistreDrawer(r: SinistreRow): DrawerContent {
   return {
@@ -28,20 +27,6 @@ export function renouvelerDrawer(r: RenouvelerRow): DrawerContent {
       { label: 'Prime', value: r.prime + ' FCFA' },
     ],
     actionLabel: 'Renouveler le contrat',
-  }
-}
-
-export function productDrawer(r: ProductRow): DrawerContent {
-  return {
-    title: r.nom,
-    subtitle: r.code,
-    statut: r.statut,
-    rows: [
-      { label: 'Branche', value: r.branche },
-      { label: 'Catégorie', value: r.categorie },
-      { label: 'Prime de base', value: r.prime + ' FCFA' },
-    ],
-    actionLabel: 'Voir le produit',
   }
 }
 

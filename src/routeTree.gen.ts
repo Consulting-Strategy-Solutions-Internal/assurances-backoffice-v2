@@ -23,7 +23,10 @@ import { Route as AuthDashboardRouteImport } from './routes/_auth/dashboard'
 import { Route as AuthClientsRouteImport } from './routes/_auth/clients'
 import { Route as AuthProductsGrilleTarifaireRouteImport } from './routes/_auth/products_.grille-tarifaire'
 import { Route as AuthProductsCategoriesRouteImport } from './routes/_auth/products_.categories'
+import { Route as AuthProductsAccessoiresRouteImport } from './routes/_auth/products_.accessoires'
+import { Route as AuthProductsProductIdRouteImport } from './routes/_auth/products_.$productId'
 import { Route as AuthPartnersPartnerIdRouteImport } from './routes/_auth/partners_.$partnerId'
+import { Route as AuthProductsGrilleTarifaireRateTableIdRouteImport } from './routes/_auth/products_.grille-tarifaire_.$rateTableId'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -95,11 +98,27 @@ const AuthProductsCategoriesRoute = AuthProductsCategoriesRouteImport.update({
   path: '/products/categories',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthProductsAccessoiresRoute = AuthProductsAccessoiresRouteImport.update({
+  id: '/products_/accessoires',
+  path: '/products/accessoires',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthProductsProductIdRoute = AuthProductsProductIdRouteImport.update({
+  id: '/products_/$productId',
+  path: '/products/$productId',
+  getParentRoute: () => AuthRoute,
+} as any)
 const AuthPartnersPartnerIdRoute = AuthPartnersPartnerIdRouteImport.update({
   id: '/partners_/$partnerId',
   path: '/partners/$partnerId',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthProductsGrilleTarifaireRateTableIdRoute =
+  AuthProductsGrilleTarifaireRateTableIdRouteImport.update({
+    id: '/products_/grille-tarifaire_/$rateTableId',
+    path: '/products/grille-tarifaire/$rateTableId',
+    getParentRoute: () => AuthRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -114,8 +133,11 @@ export interface FileRoutesByFullPath {
   '/sinistres': typeof AuthSinistresRoute
   '/users': typeof AuthUsersRoute
   '/partners/$partnerId': typeof AuthPartnersPartnerIdRoute
+  '/products/$productId': typeof AuthProductsProductIdRoute
+  '/products/accessoires': typeof AuthProductsAccessoiresRoute
   '/products/categories': typeof AuthProductsCategoriesRoute
   '/products/grille-tarifaire': typeof AuthProductsGrilleTarifaireRoute
+  '/products/grille-tarifaire/$rateTableId': typeof AuthProductsGrilleTarifaireRateTableIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -130,8 +152,11 @@ export interface FileRoutesByTo {
   '/sinistres': typeof AuthSinistresRoute
   '/users': typeof AuthUsersRoute
   '/partners/$partnerId': typeof AuthPartnersPartnerIdRoute
+  '/products/$productId': typeof AuthProductsProductIdRoute
+  '/products/accessoires': typeof AuthProductsAccessoiresRoute
   '/products/categories': typeof AuthProductsCategoriesRoute
   '/products/grille-tarifaire': typeof AuthProductsGrilleTarifaireRoute
+  '/products/grille-tarifaire/$rateTableId': typeof AuthProductsGrilleTarifaireRateTableIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -148,8 +173,11 @@ export interface FileRoutesById {
   '/_auth/sinistres': typeof AuthSinistresRoute
   '/_auth/users': typeof AuthUsersRoute
   '/_auth/partners_/$partnerId': typeof AuthPartnersPartnerIdRoute
+  '/_auth/products_/$productId': typeof AuthProductsProductIdRoute
+  '/_auth/products_/accessoires': typeof AuthProductsAccessoiresRoute
   '/_auth/products_/categories': typeof AuthProductsCategoriesRoute
   '/_auth/products_/grille-tarifaire': typeof AuthProductsGrilleTarifaireRoute
+  '/_auth/products_/grille-tarifaire_/$rateTableId': typeof AuthProductsGrilleTarifaireRateTableIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -166,8 +194,11 @@ export interface FileRouteTypes {
     | '/sinistres'
     | '/users'
     | '/partners/$partnerId'
+    | '/products/$productId'
+    | '/products/accessoires'
     | '/products/categories'
     | '/products/grille-tarifaire'
+    | '/products/grille-tarifaire/$rateTableId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -182,8 +213,11 @@ export interface FileRouteTypes {
     | '/sinistres'
     | '/users'
     | '/partners/$partnerId'
+    | '/products/$productId'
+    | '/products/accessoires'
     | '/products/categories'
     | '/products/grille-tarifaire'
+    | '/products/grille-tarifaire/$rateTableId'
   id:
     | '__root__'
     | '/'
@@ -199,8 +233,11 @@ export interface FileRouteTypes {
     | '/_auth/sinistres'
     | '/_auth/users'
     | '/_auth/partners_/$partnerId'
+    | '/_auth/products_/$productId'
+    | '/_auth/products_/accessoires'
     | '/_auth/products_/categories'
     | '/_auth/products_/grille-tarifaire'
+    | '/_auth/products_/grille-tarifaire_/$rateTableId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -310,11 +347,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthProductsCategoriesRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_auth/products_/accessoires': {
+      id: '/_auth/products_/accessoires'
+      path: '/products/accessoires'
+      fullPath: '/products/accessoires'
+      preLoaderRoute: typeof AuthProductsAccessoiresRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/products_/$productId': {
+      id: '/_auth/products_/$productId'
+      path: '/products/$productId'
+      fullPath: '/products/$productId'
+      preLoaderRoute: typeof AuthProductsProductIdRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/_auth/partners_/$partnerId': {
       id: '/_auth/partners_/$partnerId'
       path: '/partners/$partnerId'
       fullPath: '/partners/$partnerId'
       preLoaderRoute: typeof AuthPartnersPartnerIdRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/products_/grille-tarifaire_/$rateTableId': {
+      id: '/_auth/products_/grille-tarifaire_/$rateTableId'
+      path: '/products/grille-tarifaire/$rateTableId'
+      fullPath: '/products/grille-tarifaire/$rateTableId'
+      preLoaderRoute: typeof AuthProductsGrilleTarifaireRateTableIdRouteImport
       parentRoute: typeof AuthRoute
     }
   }
@@ -330,8 +388,11 @@ interface AuthRouteChildren {
   AuthSinistresRoute: typeof AuthSinistresRoute
   AuthUsersRoute: typeof AuthUsersRoute
   AuthPartnersPartnerIdRoute: typeof AuthPartnersPartnerIdRoute
+  AuthProductsProductIdRoute: typeof AuthProductsProductIdRoute
+  AuthProductsAccessoiresRoute: typeof AuthProductsAccessoiresRoute
   AuthProductsCategoriesRoute: typeof AuthProductsCategoriesRoute
   AuthProductsGrilleTarifaireRoute: typeof AuthProductsGrilleTarifaireRoute
+  AuthProductsGrilleTarifaireRateTableIdRoute: typeof AuthProductsGrilleTarifaireRateTableIdRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
@@ -344,8 +405,12 @@ const AuthRouteChildren: AuthRouteChildren = {
   AuthSinistresRoute: AuthSinistresRoute,
   AuthUsersRoute: AuthUsersRoute,
   AuthPartnersPartnerIdRoute: AuthPartnersPartnerIdRoute,
+  AuthProductsProductIdRoute: AuthProductsProductIdRoute,
+  AuthProductsAccessoiresRoute: AuthProductsAccessoiresRoute,
   AuthProductsCategoriesRoute: AuthProductsCategoriesRoute,
   AuthProductsGrilleTarifaireRoute: AuthProductsGrilleTarifaireRoute,
+  AuthProductsGrilleTarifaireRateTableIdRoute:
+    AuthProductsGrilleTarifaireRateTableIdRoute,
 }
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)

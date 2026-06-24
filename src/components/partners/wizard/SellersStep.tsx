@@ -6,8 +6,10 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
-import { isAxiosError } from 'axios'
+import { Plus } from 'lucide-react'
 import { z } from 'zod'
+import { apiErrorMessage } from '#/lib/api-error'
+import { usePermissions } from '#/components/dashboard/use-permissions'
 import { getPartnerAgencies } from '#/services/agencies'
 import {
   createAgencySeller,
@@ -16,6 +18,26 @@ import {
   getPartnerSellers,
 } from '#/services/sellers'
 import type { CreateSellerPayload, SellerResponse } from '#/services/sellers'
+import { cn } from '#/lib/utils'
+import { Button } from '#/components/ui/button'
+import { Badge } from '#/components/ui/badge'
+import { Label } from '#/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '#/components/ui/select'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '#/components/ui/table'
+import { FormField } from '#/components/forms/FormField'
 
 const schema = z.object({
   firstName: z.string().min(1, 'Le prénom est requis'),
@@ -46,17 +68,16 @@ const TEXT_FIELDS = [
   { name: 'password', label: 'Mot de passe', type: 'password', required: true },
 ] as const
 
-interface SellersStepProps {
-  partnerId: number
-}
+const headCls = 'h-auto bg-[#fafbfc] px-3 py-3 text-[11px] font-bold uppercase tracking-[0.05em] text-muted-foreground'
+const errorBanner = 'rounded-lg bg-destructive/10 px-3 py-2.5 text-[13px] font-medium text-destructive'
 
 type SellerRow = SellerResponse & { attachment: string }
 
-export function SellersStep({ partnerId }: SellersStepProps) {
+export function SellersStep({ partnerId }: { partnerId: number }) {
   const queryClient = useQueryClient()
+  const { can } = usePermissions()
   const [serverError, setServerError] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
-  // 'partner' ou `agency-<id>`
   const [target, setTarget] = useState('partner')
 
   const { data: agenciesData } = useQuery({
@@ -94,7 +115,6 @@ export function SellersStep({ partnerId }: SellersStepProps) {
   const listLoading =
     partnerSellersLoading || agencySellerResults.some((q) => q.isLoading)
 
-  // Les listes ne chargent qu'une page ; on prévient si des éléments sont masqués.
   const truncated =
     partnerSellersData?.last === false ||
     agenciesData?.last === false ||
@@ -148,100 +168,124 @@ export function SellersStep({ partnerId }: SellersStepProps) {
               : Number(value.pinCode),
         })
       } catch (error) {
-        if (isAxiosError(error)) {
-          const status = error.response?.status
-          if (status === 409)
-            setServerError('Un agent avec ce code distributeur existe déjà.')
-          else if (status && status >= 500)
-            setServerError('Une erreur serveur est survenue.')
-          else setServerError('Une erreur est survenue. Veuillez réessayer.')
-        } else {
-          setServerError('Impossible de contacter le serveur.')
-        }
+        setServerError(
+          apiErrorMessage(error, {
+            conflict: 'Un agent avec ce code distributeur existe déjà.',
+          }),
+        )
       }
     },
   })
 
   return (
     <div>
-      <h3>Agents (sellers)</h3>
-      <p style={{ color: '#6b7280' }}>
+      <div className="text-[16px] font-bold tracking-[-0.01em]">Agents</div>
+      <p className="mt-1 mb-4 text-[13.5px] text-muted-foreground">
         Ajoutez des agents rattachés directement au partenaire ou à l'une de ses
         agences.
       </p>
 
       {listLoading ? (
-        <p>Chargement...</p>
+        <p className="text-[13.5px] text-muted-foreground">Chargement…</p>
       ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>Nom</th>
-              <th>Téléphone</th>
-              <th>Code distributeur</th>
-              <th>Email</th>
-              <th>Rattachement</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 ? (
-              <tr>
-                <td colSpan={5}>Aucun agent pour ce partenaire.</td>
-              </tr>
-            ) : (
-              rows.map((s) => (
-                <tr key={`${s.attachment}-${s.id}`}>
-                  <td>
-                    {s.firstName} {s.lastName}
-                  </td>
-                  <td>{s.phoneNumber}</td>
-                  <td>{s.distributorCode}</td>
-                  <td>{s.email ?? ''}</td>
-                  <td>{s.attachment}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+        <div className="overflow-hidden rounded-xl border">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className={cn(headCls, 'pl-[18px]')}>Nom</TableHead>
+                <TableHead className={headCls}>Téléphone</TableHead>
+                <TableHead className={headCls}>Code distributeur</TableHead>
+                <TableHead className={headCls}>Email</TableHead>
+                <TableHead className={cn(headCls, 'pr-[18px]')}>Rattachement</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.length === 0 ? (
+                <TableRow className="hover:bg-transparent">
+                  <TableCell colSpan={5} className="py-8 text-center text-[13.5px] text-muted-foreground">
+                    Aucun agent pour ce partenaire.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                rows.map((s) => (
+                  <TableRow key={`${s.attachment}-${s.id}`}>
+                    <TableCell className="py-3 pl-[18px] text-[13.5px] font-semibold">
+                      {s.firstName} {s.lastName}
+                    </TableCell>
+                    <TableCell className="py-3 text-[13px] text-muted-foreground">
+                      {s.phoneNumber}
+                    </TableCell>
+                    <TableCell className="py-3 text-[13px] font-semibold text-muted-foreground">
+                      {s.distributorCode}
+                    </TableCell>
+                    <TableCell className="py-3 text-[13px] text-muted-foreground">
+                      {s.email ?? ''}
+                    </TableCell>
+                    <TableCell className="py-3 pr-[18px]">
+                      <Badge variant="secondary" className="rounded-md text-[11.5px]">
+                        {s.attachment}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       )}
 
       {truncated && (
-        <p style={{ color: '#b45309', margin: '8px 0 0', fontSize: '13px' }}>
+        <p className="mt-2 text-[13px] text-[#9a7400]">
           Liste tronquée (100+ éléments) · tous les agents ne sont pas affichés.
         </p>
       )}
 
       {!showForm ? (
-        <div style={{ marginTop: '12px' }}>
-          <button type="button" onClick={() => setShowForm(true)}>
+        <div className="mt-4">
+          <Button
+            type="button"
+            variant="outline"
+            className="rounded-[10px]"
+            onClick={() => setShowForm(true)}
+            disabled={!can('seller:write')}
+            title={
+              can('seller:write')
+                ? undefined
+                : "Vous n'avez pas la permission requise (seller:write)."
+            }
+          >
+            <Plus />
             Ajouter un agent
-          </button>
+          </Button>
         </div>
       ) : (
         <form
+          className="mt-5 flex max-w-[460px] flex-col gap-4"
           onSubmit={(e) => {
             e.preventDefault()
             form.handleSubmit()
           }}
-          style={{ marginTop: '16px' }}
         >
-          <div>
-            <label htmlFor="seller-target">
-              Rattachement <span style={{ color: 'red' }}>*</span>
-            </label>
-            <br />
-            <select
-              id="seller-target"
-              value={target}
-              onChange={(e) => setTarget(e.target.value)}
-            >
-              <option value="partner">Partenaire (direct)</option>
-              {agencies.map((a) => (
-                <option key={a.id} value={`agency-${a.id}`}>
-                  Agence : {a.name}
-                </option>
-              ))}
-            </select>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="seller-target" className="text-[13px]">
+              Rattachement<span className="text-destructive">*</span>
+            </Label>
+            <Select value={target} onValueChange={setTarget}>
+              <SelectTrigger
+                id="seller-target"
+                className="h-10 w-full rounded-[10px]"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="partner">Partenaire (direct)</SelectItem>
+                {agencies.map((a) => (
+                  <SelectItem key={a.id} value={`agency-${a.id}`}>
+                    Agence : {a.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {TEXT_FIELDS.map(({ name, label, type, required }) => (
@@ -264,60 +308,47 @@ export function SellersStep({ partnerId }: SellersStepProps) {
               }}
             >
               {(field) => (
-                <div>
-                  <label htmlFor={`seller-${name}`}>
-                    {label}
-                    {required && <span style={{ color: 'red' }}> *</span>}
-                  </label>
-                  <br />
-                  <input
-                    id={`seller-${name}`}
-                    type={type}
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    onBlur={field.handleBlur}
-                    autoComplete={
-                      type === 'password' ? 'new-password' : undefined
-                    }
-                    style={
-                      field.state.meta.errors.length > 0
-                        ? { outline: '2px solid red' }
-                        : undefined
-                    }
-                  />
-                  {field.state.meta.errors.length > 0 && (
-                    <p style={{ color: 'red', margin: '4px 0 0' }}>
-                      {field.state.meta.errors[0]}
-                    </p>
-                  )}
-                </div>
+                <FormField
+                  id={`seller-${name}`}
+                  label={label}
+                  type={type}
+                  required={required}
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  onBlur={field.handleBlur}
+                  error={field.state.meta.errors[0]}
+                />
               )}
             </form.Field>
           ))}
 
           <form.Field name="pinCode">
             {(field) => (
-              <div>
-                <label htmlFor="seller-pinCode">Code PIN</label>
-                <br />
-                <input
-                  id="seller-pinCode"
-                  type="number"
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                />
-              </div>
+              <FormField
+                id="seller-pinCode"
+                label="Code PIN"
+                type="number"
+                value={field.state.value}
+                onChange={field.handleChange}
+                onBlur={field.handleBlur}
+              />
             )}
           </form.Field>
 
-          {serverError && <p style={{ color: 'red' }}>{serverError}</p>}
+          {serverError && <p className={errorBanner}>{serverError}</p>}
 
-          <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
-            <button type="submit" disabled={isPending}>
-              {isPending ? 'Création...' : "Créer l'agent"}
-            </button>
-            <button
+          <div className="flex gap-2.5">
+            <Button
+              type="submit"
+              disabled={isPending}
+              className="rounded-[11px] shadow-[0_4px_14px_rgba(0,51,127,0.22)]"
+            >
+              {isPending ? 'Création…' : "Créer l'agent"}
+            </Button>
+            <Button
               type="button"
+              variant="outline"
+              className="rounded-[11px]"
               onClick={() => {
                 setShowForm(false)
                 setServerError(null)
@@ -325,7 +356,7 @@ export function SellersStep({ partnerId }: SellersStepProps) {
               }}
             >
               Annuler
-            </button>
+            </Button>
           </div>
         </form>
       )}

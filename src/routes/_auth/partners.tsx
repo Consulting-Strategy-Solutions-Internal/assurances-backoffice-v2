@@ -13,6 +13,7 @@ import { Card } from '#/components/ui/card'
 import { Button } from '#/components/ui/button'
 import { PageHeader } from '#/components/dashboard/PageHeader'
 import { useShell } from '#/components/dashboard/shell'
+import { usePermissions } from '#/components/dashboard/use-permissions'
 
 export const Route = createFileRoute('/_auth/partners')({
   component: PartnersPage,
@@ -20,6 +21,7 @@ export const Route = createFileRoute('/_auth/partners')({
 
 function PartnersPage() {
   const { search } = useShell()
+  const { can } = usePermissions()
   const [page, setPage] = useState(0)
   const [showModal, setShowModal] = useState(false)
   const [editingPartner, setEditingPartner] = useState<PartnerResponse | null>(
@@ -74,6 +76,12 @@ function PartnersPage() {
           </div>
           <Button
             onClick={() => setShowModal(true)}
+            disabled={!can('partner:write')}
+            title={
+              can('partner:write')
+                ? undefined
+                : "Vous n'avez pas la permission requise (partner:write)."
+            }
             className="w-fit rounded-[10px] bg-[#FFC61E] font-bold text-[#0c2c5e] hover:bg-[#ffcf45]"
           >
             <CirclePlus />
@@ -112,7 +120,11 @@ function PartnersPage() {
       ) : (
         <>
           <Card className="gap-0 overflow-hidden py-0">
-            <PartnersTable partners={partners} onEditInfo={setEditingPartner} />
+            <PartnersTable
+              partners={partners}
+              onEditInfo={setEditingPartner}
+              canEdit={can('partner:write')}
+            />
           </Card>
           <Pagination
             page={page}
