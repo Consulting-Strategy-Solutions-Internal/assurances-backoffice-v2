@@ -3,6 +3,7 @@ import { useForm } from '@tanstack/react-form'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
 import { Search } from 'lucide-react'
+import { toast } from 'sonner'
 import { z } from 'zod'
 import { assignUserToPartner, createUser, getUsers } from '#/services/users'
 import type { CreateUserPayload, UserResponse } from '#/services/users'
@@ -13,9 +14,7 @@ import { usePermissions } from '#/components/dashboard/use-permissions'
 import { Input } from '#/components/ui/input'
 import { Button } from '#/components/ui/button'
 import { Badge } from '#/components/ui/badge'
-import { Label } from '#/components/ui/label'
 import { Avatar, AvatarFallback } from '#/components/ui/avatar'
-import { Tabs, TabsList, TabsTrigger } from '#/components/ui/tabs'
 import {
   Table,
   TableBody,
@@ -25,6 +24,7 @@ import {
   TableRow,
 } from '#/components/ui/table'
 import { FormField } from '#/components/forms/FormField'
+import { FormDialog } from '#/components/forms/FormDialog'
 
 const schema = z.object({
   firstName: z.string().min(1, 'Le prénom est requis'),
@@ -60,7 +60,7 @@ const successBanner =
   'rounded-lg bg-[#e7f6ee] px-3 py-2.5 text-[13px] font-medium text-[#1c8a57]'
 
 export function ManagerStep({ partnerId }: { partnerId: number }) {
-  const [mode, setMode] = useState<'existing' | 'new'>('existing')
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
   const { can } = usePermissions()
   const canWrite = can('iam:write')
 
@@ -90,26 +90,25 @@ export function ManagerStep({ partnerId }: { partnerId: number }) {
         </p>
       )}
 
-      <Tabs
-        value={mode}
-        onValueChange={(v) => setMode(v as 'existing' | 'new')}
-        className="my-5"
-      >
-        <TabsList>
-          <TabsTrigger value="existing">Utilisateur existant</TabsTrigger>
-          <TabsTrigger value="new">Nouveau manager</TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <div className="my-5 flex justify-end">
+        <Button type="button" onClick={() => setIsCreateOpen(true)}>
+          Nouveau manager
+        </Button>
+      </div>
 
-      {mode === 'existing' ? (
-        <SelectExistingManager
+      <SelectExistingManager
+        partnerId={partnerId}
+        users={allUsers}
+        isLoading={isLoading}
+        canWrite={canWrite}
+      />
+
+      {isCreateOpen && (
+        <CreateNewManager
           partnerId={partnerId}
-          users={allUsers}
-          isLoading={isLoading}
           canWrite={canWrite}
+          onClose={() => setIsCreateOpen(false)}
         />
-      ) : (
-        <CreateNewManager partnerId={partnerId} canWrite={canWrite} />
       )}
     </div>
   )
@@ -203,7 +202,6 @@ function SelectExistingManager({
 
   const candidates = users
     .filter((u) => u.role.toLowerCase().includes('manager'))
-    .filter((u) => u.partnerId !== partnerId)
     .filter((u) => {
       if (!search) return true
       const q = search.toLowerCase()
@@ -246,6 +244,7 @@ function SelectExistingManager({
               <TableHead className={headCls}>Email</TableHead>
               <TableHead className={headCls}>Rôle</TableHead>
               <TableHead className={headCls}>Siège actuel</TableHead>
+              <TableHead className={headCls}>Statut</TableHead>
               <TableHead className={cn(headCls, 'pr-[18px] text-right')} />
             </TableRow>
           </TableHeader>
@@ -253,10 +252,10 @@ function SelectExistingManager({
             {candidates.length === 0 ? (
               <TableRow className="hover:bg-transparent">
                 <TableCell
-                  colSpan={5}
+                  colSpan={6}
                   className="py-8 text-center text-[13.5px] text-muted-foreground"
                 >
-                  Aucun manager disponible.
+                  Aucun manager enregistré.
                 </TableCell>
               </TableRow>
             ) : (
@@ -284,17 +283,34 @@ function SelectExistingManager({
                       </span>
                     )}
                   </TableCell>
+                  <TableCell className="py-3">
+                    {u.partnerId === partnerId ? (
+                      <Badge className="bg-[#e7f6ee] text-[#1c8a57] hover:bg-[#e7f6ee]">
+                        Rattaché
+                      </Badge>
+                    ) : u.partnerId == null ? (
+                      <Badge variant="secondary">Disponible</Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-[#9a7400]">
+                        Rattaché ailleurs
+                      </Badge>
+                    )}
+                  </TableCell>
                   <TableCell className="py-3 pr-[18px] text-right">
                     <Button
                       type="button"
                       size="sm"
                       variant="outline"
                       className="rounded-[9px]"
-                      disabled={isPending || !canWrite}
+                      disabled={
+                        isPending || !canWrite || u.partnerId === partnerId
+                      }
                       title={
-                        canWrite
-                          ? undefined
-                          : "Vous n'avez pas la permission requise (iam:write)."
+                        u.partnerId === partnerId
+                          ? 'Ce manager est déjà rattaché à ce partenaire.'
+                          : canWrite
+                            ? undefined
+                            : "Vous n'avez pas la permission requise (iam:write)."
                       }
                       onClick={() => {
                         setServerError(null)
@@ -302,9 +318,11 @@ function SelectExistingManager({
                         mutate(u.id)
                       }}
                     >
-                      {isPending && variables === u.id
-                        ? 'Rattachement…'
-                        : 'Rattacher'}
+                      {u.partnerId === partnerId
+                        ? 'Rattaché'
+                        : isPending && variables === u.id
+                          ? 'Rattachement…'
+                          : 'Rattacher'}
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -320,13 +338,14 @@ function SelectExistingManager({
 function CreateNewManager({
   partnerId,
   canWrite,
+  onClose,
 }: {
   partnerId: number
   canWrite: boolean
+  onClose: () => void
 }) {
   const queryClient = useQueryClient()
   const [serverError, setServerError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
 
   const { data: rolesData } = useQuery({
     queryKey: ['roles-all'],
@@ -361,8 +380,9 @@ function CreateNewManager({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] })
-      setSuccess(true)
+      toast.success('Manager créé et rattaché au partenaire.')
       form.reset()
+      onClose()
     },
   })
 
@@ -377,7 +397,6 @@ function CreateNewManager({
     },
     onSubmit: async ({ value }) => {
       setServerError(null)
-      setSuccess(false)
       if (!managerRole) {
         setServerError(
           'Rôle « Manager » introuvable. Réessayez dans un instant.',
@@ -412,23 +431,17 @@ function CreateNewManager({
   })
 
   return (
-    <form
-      className="flex max-w-[460px] flex-col gap-4"
-      onSubmit={(e) => {
-        e.preventDefault()
-        form.handleSubmit()
-      }}
+    <FormDialog
+      onClose={onClose}
+      eyebrow="Partenaires"
+      title="Nouveau manager"
+      description="Créez un manager et rattachez-le automatiquement à ce partenaire."
+      onSubmit={() => form.handleSubmit()}
+      submitLabel={isPending ? 'Création…' : 'Créer et rattacher'}
+      pending={isPending}
+      submitDisabled={!canWrite || !managerRole}
+      error={serverError}
     >
-      <div className="flex flex-col gap-1.5">
-        <Label className="text-[13px]">Rôle</Label>
-        <div className="flex h-10 items-center rounded-[10px] border bg-muted px-3 text-[13.5px] font-medium text-muted-foreground">
-          Manager
-        </div>
-        <p className="text-[12px] text-muted-foreground">
-          Ce compte est créé avec le rôle Manager.
-        </p>
-      </div>
-
       {FIELDS.map(({ name, label, type, required }) => (
         <form.Field
           key={name}
@@ -451,38 +464,13 @@ function CreateNewManager({
               type={type}
               required={required}
               value={field.state.value}
-              onChange={(v) => {
-                field.handleChange(v)
-                setSuccess(false)
-              }}
+              onChange={field.handleChange}
               onBlur={field.handleBlur}
               error={field.state.meta.errors[0]}
             />
           )}
         </form.Field>
       ))}
-
-      {serverError && <p className={errorBanner}>{serverError}</p>}
-      {success && (
-        <p className={successBanner}>Manager créé et rattaché au partenaire.</p>
-      )}
-
-      <div>
-        <Button
-          type="submit"
-          disabled={isPending || !canWrite || !managerRole}
-          title={
-            !canWrite
-              ? "Vous n'avez pas la permission requise (iam:write)."
-              : !managerRole
-                ? 'Rôle « Manager » indisponible pour le moment.'
-                : undefined
-          }
-          className="rounded-[11px] shadow-[0_4px_14px_rgba(0,51,127,0.22)]"
-        >
-          {isPending ? 'Création…' : 'Créer et rattacher'}
-        </Button>
-      </div>
-    </form>
+    </FormDialog>
   )
 }

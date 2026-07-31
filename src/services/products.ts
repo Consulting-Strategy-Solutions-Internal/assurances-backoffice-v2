@@ -10,6 +10,10 @@ export interface ProductResponse {
   label: string
   productCode: number
   categoryId: number
+  discountEnabled: boolean
+  maxDiscountRate: number | null
+  /** @deprecated The negotiated rate now belongs to CommissionScheme. */
+  commissionRate: number | null
   createdAt: string
   updatedAt: string
 }
@@ -29,8 +33,15 @@ export interface CreateProductPayload {
   categoryId: number
 }
 
-// Le DTO de mise à jour partage la même forme que la création (UpdateProductDto).
-export type UpdateProductPayload = CreateProductPayload
+export interface UpdateProductPayload {
+  label: string
+  productCode: number
+  categoryId: number
+  discountEnabled: boolean
+  maxDiscountRate: number | null
+  /** @deprecated Kept only because UpdateProductDto still exposes it. */
+  commissionRate: number | null
+}
 
 export interface CreateCategoryPayload {
   name: string

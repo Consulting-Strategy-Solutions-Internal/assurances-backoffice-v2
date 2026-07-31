@@ -53,7 +53,13 @@ export function EditProductModal({ product, onClose }: EditProductModalProps) {
       label: string
       productCode: number
       categoryId: number
-    }) => updateProduct(product.id, data),
+    }) =>
+      updateProduct(product.id, {
+        ...data,
+        discountEnabled: product.discountEnabled,
+        maxDiscountRate: product.maxDiscountRate,
+        commissionRate: product.commissionRate,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] })
       onClose()

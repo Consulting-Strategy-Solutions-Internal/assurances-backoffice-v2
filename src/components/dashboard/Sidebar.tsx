@@ -4,6 +4,7 @@ import {
   ChevronDown,
   ChevronsUpDown,
   FileText,
+  HandCoins,
   LayoutDashboard,
   LogOut,
   Package,
@@ -51,6 +52,12 @@ const PRODUITS_CHILDREN = [
   { to: '/products/categories', label: 'Catégories' },
   { to: '/products/accessoires', label: 'Accessoires' },
   { to: '/products/grille-tarifaire', label: 'Grille tarifaire' },
+]
+
+const COMMISSIONS_CHILDREN = [
+  { to: '/commissions/schemes', label: 'Schémas' },
+  { to: '/commissions/distributions', label: 'Distributions' },
+  { to: '/commissions/wallets', label: 'Wallets' },
 ]
 
 const RESEAU: NavItem[] = [
@@ -222,6 +229,14 @@ export function Sidebar({
           label="Produits"
           basePath="/products"
           items={PRODUITS_CHILDREN}
+          pathname={pathname}
+        />
+
+        <CollapsibleNavGroup
+          icon={HandCoins}
+          label="Commissions"
+          basePath="/commissions"
+          items={COMMISSIONS_CHILDREN}
           pathname={pathname}
         />
       </nav>

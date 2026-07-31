@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useForm } from '@tanstack/react-form'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
+import { toast } from 'sonner'
 import { z } from 'zod'
 import { apiErrorMessage } from '#/lib/api-error'
 import { usePermissions } from '#/components/dashboard/use-permissions'
@@ -18,6 +19,7 @@ import {
   TableRow,
 } from '#/components/ui/table'
 import { FormField } from '#/components/forms/FormField'
+import { FormDialog } from '#/components/forms/FormDialog'
 
 const schema = z.object({
   name: z.string().min(1, 'Le nom est requis'),
@@ -42,9 +44,8 @@ const FIELDS = [
   { name: 'location', label: 'Localisation', type: 'text', required: false },
 ] as const
 
-const headCls = 'h-auto bg-[#fafbfc] px-3 py-3 text-[11px] font-bold uppercase tracking-[0.05em] text-muted-foreground'
-const errorBanner = 'rounded-lg bg-destructive/10 px-3 py-2.5 text-[13px] font-medium text-destructive'
-
+const headCls =
+  'h-auto bg-[#fafbfc] px-3 py-3 text-[11px] font-bold uppercase tracking-[0.05em] text-muted-foreground'
 export function AgenciesStep({ partnerId }: { partnerId: number }) {
   const queryClient = useQueryClient()
   const { can } = usePermissions()
@@ -63,6 +64,7 @@ export function AgenciesStep({ partnerId }: { partnerId: number }) {
       createAgency(partnerId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agencies', partnerId] })
+      toast.success('Agence créée avec succès.')
       setShowForm(false)
       form.reset()
     },
@@ -106,13 +108,18 @@ export function AgenciesStep({ partnerId }: { partnerId: number }) {
                 <TableHead className={cn(headCls, 'pl-[18px]')}>Nom</TableHead>
                 <TableHead className={headCls}>Code distributeur</TableHead>
                 <TableHead className={headCls}>Email</TableHead>
-                <TableHead className={cn(headCls, 'pr-[18px]')}>Localisation</TableHead>
+                <TableHead className={cn(headCls, 'pr-[18px]')}>
+                  Localisation
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {agencies.length === 0 ? (
                 <TableRow className="hover:bg-transparent">
-                  <TableCell colSpan={4} className="py-8 text-center text-[13.5px] text-muted-foreground">
+                  <TableCell
+                    colSpan={4}
+                    className="py-8 text-center text-[13.5px] text-muted-foreground"
+                  >
                     Aucune agence pour ce partenaire.
                   </TableCell>
                 </TableRow>
@@ -146,31 +153,38 @@ export function AgenciesStep({ partnerId }: { partnerId: number }) {
         </p>
       )}
 
-      {!showForm ? (
-        <div className="mt-4">
-          <Button
-            type="button"
-            variant="outline"
-            className="rounded-[10px]"
-            onClick={() => setShowForm(true)}
-            disabled={!can('agency:write')}
-            title={
-              can('agency:write')
-                ? undefined
-                : "Vous n'avez pas la permission requise (agency:write)."
-            }
-          >
-            <Plus />
-            Ajouter une agence
-          </Button>
-        </div>
-      ) : (
-        <form
-          className="mt-5 flex max-w-[460px] flex-col gap-4"
-          onSubmit={(e) => {
-            e.preventDefault()
-            form.handleSubmit()
+      <div className="mt-4">
+        <Button
+          type="button"
+          variant="outline"
+          className="rounded-[10px]"
+          onClick={() => setShowForm(true)}
+          disabled={!can('agency:write')}
+          title={
+            can('agency:write')
+              ? undefined
+              : "Vous n'avez pas la permission requise (agency:write)."
+          }
+        >
+          <Plus />
+          Ajouter une agence
+        </Button>
+      </div>
+
+      {showForm && (
+        <FormDialog
+          onClose={() => {
+            setShowForm(false)
+            setServerError(null)
+            form.reset()
           }}
+          eyebrow="Partenaires"
+          title="Nouvelle agence"
+          description="Ajoutez une agence à ce partenaire."
+          onSubmit={() => form.handleSubmit()}
+          submitLabel={isPending ? 'Création…' : "Créer l'agence"}
+          pending={isPending}
+          error={serverError}
         >
           {FIELDS.map(({ name, label, type, required }) => (
             <form.Field
@@ -205,31 +219,7 @@ export function AgenciesStep({ partnerId }: { partnerId: number }) {
               )}
             </form.Field>
           ))}
-
-          {serverError && <p className={errorBanner}>{serverError}</p>}
-
-          <div className="flex gap-2.5">
-            <Button
-              type="submit"
-              disabled={isPending}
-              className="rounded-[11px] shadow-[0_4px_14px_rgba(0,51,127,0.22)]"
-            >
-              {isPending ? 'Création…' : "Créer l'agence"}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="rounded-[11px]"
-              onClick={() => {
-                setShowForm(false)
-                setServerError(null)
-                form.reset()
-              }}
-            >
-              Annuler
-            </Button>
-          </div>
-        </form>
+        </FormDialog>
       )}
     </div>
   )

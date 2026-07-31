@@ -21,7 +21,7 @@ export function usePermissions() {
     retry: false,
   })
 
-  const roleName = me?.role?.toLowerCase()
+  const roleName = me?.role.toLowerCase()
   const role = rolesData?.content.find((r) => r.name.toLowerCase() === roleName)
   // null while we can't resolve the set yet (me/roles still loading, or the
   // role isn't readable) — callers treat null as "unknown → allow".

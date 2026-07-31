@@ -6,6 +6,9 @@ interface FormFieldProps {
   id: string
   label: string
   type?: string
+  min?: number
+  max?: number
+  step?: number | 'any'
   required?: boolean
   value: string
   onChange?: (value: string) => void
@@ -20,6 +23,9 @@ export function FormField({
   id,
   label,
   type = 'text',
+  min,
+  max,
+  step,
   required,
   value,
   onChange,
@@ -37,16 +43,36 @@ export function FormField({
       <Input
         id={id}
         type={type}
+        min={min}
+        max={max}
+        step={step}
+        aria-required={required}
         value={value}
         disabled={disabled}
         aria-invalid={!!error}
+        aria-describedby={
+          error ? `${id}-error` : hint ? `${id}-hint` : undefined
+        }
         onChange={(e) => onChange?.(e.target.value)}
         onBlur={onBlur}
-        className={cn('h-10 rounded-[10px]', disabled && 'bg-muted text-muted-foreground')}
+        className={cn(
+          'h-10 rounded-[10px]',
+          disabled && 'bg-muted text-muted-foreground',
+        )}
       />
-      {hint && <p className="text-[12px] text-muted-foreground">{hint}</p>}
+      {hint && (
+        <p id={`${id}-hint`} className="text-[12px] text-muted-foreground">
+          {hint}
+        </p>
+      )}
       {error && (
-        <p className="text-[12px] font-medium text-destructive">{error}</p>
+        <p
+          id={`${id}-error`}
+          role="alert"
+          className="text-[12px] font-medium text-destructive"
+        >
+          {error}
+        </p>
       )}
     </div>
   )
