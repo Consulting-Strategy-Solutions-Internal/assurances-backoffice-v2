@@ -14,10 +14,8 @@ import { ConfirmDialog } from '#/components/dashboard/ConfirmDialog'
 import { ImportCsvDialog } from '#/components/forms/ImportCsvDialog'
 import { AddAccessoryModal } from '#/components/accessories/AddAccessoryModal'
 import { EditAccessoryModal } from '#/components/accessories/EditAccessoryModal'
-import {
-  AccessoriesByProduct,
-  type AccessoryGroup,
-} from '#/components/accessories/AccessoriesByProduct'
+import { AccessoriesByProduct } from '#/components/accessories/AccessoriesByProduct'
+import type { AccessoryGroup } from '#/components/accessories/AccessoriesByProduct'
 import { deleteAccessory, getAccessories } from '#/services/accessories'
 import type { AccessoryResponse } from '#/services/accessories'
 import { getProducts } from '#/services/products'

@@ -57,7 +57,7 @@ export function findAccessory(
   brackets: AccessoryBracket[],
   netPremium: number,
 ): number {
-  if (!brackets || brackets.length === 0) return 0
+  if (brackets.length === 0) return 0
   const matches = brackets.filter(
     (b) => netPremium >= nz(b.minPremium) && netPremium <= nz(b.maxPremium),
   )
@@ -83,10 +83,17 @@ export function findProration(
   brackets: ProrationBracket[],
   durationMonths: number,
 ): number {
-  if (!brackets || brackets.length === 0) return 1
+  return findProrationBracket(brackets, durationMonths)?.coefficient ?? 1
+}
+
+/** Returns the exact configured band selected for a duration, or null for ×1. */
+export function findProrationBracket(
+  brackets: ProrationBracket[],
+  durationMonths: number,
+): ProrationBracket | null {
+  if (brackets.length === 0) return null
   const matches = brackets.filter(
     (b) =>
-      b.minMonths != null &&
       durationMonths >= b.minMonths &&
       (b.maxMonths == null || durationMonths <= b.maxMonths),
   )
@@ -100,5 +107,5 @@ export function findProration(
       `Aucune bande de prorata ne couvre la durée de ${durationMonths} mois.`,
     )
   }
-  return matches[0].coefficient
+  return matches[0]
 }

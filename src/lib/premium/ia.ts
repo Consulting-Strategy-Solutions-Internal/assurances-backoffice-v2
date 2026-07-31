@@ -13,16 +13,15 @@
  *   PTTC dû    = PTTC × c(durée)
  */
 import {
-  type AccessoryBracket,
   PremiumError,
-  type ProrationBracket,
   findAccessory,
-  findProration,
+  findProrationBracket,
   money,
   nz,
   perMille,
   percent,
 } from '#/lib/premium/math'
+import type { AccessoryBracket, ProrationBracket } from '#/lib/premium/math'
 
 export type TriggerType = 'AGE' | 'MANUAL'
 
@@ -75,6 +74,7 @@ export interface IaResult {
   pttc: number
   durationMonths: number
   coefficient: number
+  prorationBracket: ProrationBracket | null
   pttcDue: number
 }
 
@@ -120,7 +120,9 @@ export function computeIa(input: IaInput): IaResult {
 
   const reductionPercent = nz(input.reductionRate)
   if (reductionPercent < 0 || reductionPercent > 100) {
-    throw new PremiumError('Le taux de réduction doit être compris entre 0 et 100.')
+    throw new PremiumError(
+      'Le taux de réduction doit être compris entre 0 et 100.',
+    )
   }
 
   const tMaj = surchargePercent / 100
@@ -131,10 +133,16 @@ export function computeIa(input: IaInput): IaResult {
   const tax = percent(pnt + fees, IA_TAX_RATE)
   const pttc = pnt + fees + tax
 
-  if (input.durationMonths <= 0) {
-    throw new PremiumError('La durée doit être d’au moins 1 mois.')
+  if (!Number.isInteger(input.durationMonths) || input.durationMonths <= 0) {
+    throw new PremiumError(
+      'La durée doit être un nombre entier d’au moins 1 mois.',
+    )
   }
-  const coefficient = findProration(input.prorationBrackets, input.durationMonths)
+  const prorationBracket = findProrationBracket(
+    input.prorationBrackets,
+    input.durationMonths,
+  )
+  const coefficient = prorationBracket?.coefficient ?? 1
   const pttcDue = pttc * coefficient
 
   return {
@@ -152,6 +160,7 @@ export function computeIa(input: IaInput): IaResult {
     pttc: money(pttc),
     durationMonths: input.durationMonths,
     coefficient,
+    prorationBracket,
     pttcDue: money(pttcDue),
   }
 }

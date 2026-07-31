@@ -9,45 +9,44 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
-import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthUsersRouteImport } from './routes/_auth/users'
-import { Route as AuthSinistresRouteImport } from './routes/_auth/sinistres'
-import { Route as AuthRolesRouteImport } from './routes/_auth/roles'
-import { Route as AuthProfilRouteImport } from './routes/_auth/profil'
-import { Route as AuthProductsRouteImport } from './routes/_auth/products'
-import { Route as AuthPermissionsRouteImport } from './routes/_auth/permissions'
-import { Route as AuthPartnersRouteImport } from './routes/_auth/partners'
-import { Route as AuthDashboardRouteImport } from './routes/_auth/dashboard'
-import { Route as AuthCotationsRouteImport } from './routes/_auth/cotations'
+import { Route as AuthRouteImport } from './routes/_auth'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthClientsRouteImport } from './routes/_auth/clients'
-import { Route as AuthSinistresTypesRouteImport } from './routes/_auth/sinistres_.types'
-import { Route as AuthSinistresClaimIdRouteImport } from './routes/_auth/sinistres_.$claimId'
-import { Route as AuthProductsGrilleTarifaireRouteImport } from './routes/_auth/products_.grille-tarifaire'
-import { Route as AuthProductsCategoriesRouteImport } from './routes/_auth/products_.categories'
-import { Route as AuthProductsAccessoiresRouteImport } from './routes/_auth/products_.accessoires'
-import { Route as AuthProductsProductIdRouteImport } from './routes/_auth/products_.$productId'
-import { Route as AuthPartnersPartnerIdRouteImport } from './routes/_auth/partners_.$partnerId'
-import { Route as AuthCotationsSimulationRouteImport } from './routes/_auth/cotations_.simulation'
-import { Route as AuthCommissionsWalletsRouteImport } from './routes/_auth/commissions.wallets'
-import { Route as AuthCommissionsSchemesRouteImport } from './routes/_auth/commissions.schemes'
-import { Route as AuthCommissionsDistributionsRouteImport } from './routes/_auth/commissions.distributions'
+import { Route as AuthCotationsRouteImport } from './routes/_auth/cotations'
+import { Route as AuthDashboardRouteImport } from './routes/_auth/dashboard'
+import { Route as AuthPartnersRouteImport } from './routes/_auth/partners'
+import { Route as AuthPermissionsRouteImport } from './routes/_auth/permissions'
+import { Route as AuthProductsRouteImport } from './routes/_auth/products'
+import { Route as AuthProfilRouteImport } from './routes/_auth/profil'
+import { Route as AuthRolesRouteImport } from './routes/_auth/roles'
+import { Route as AuthSinistresRouteImport } from './routes/_auth/sinistres'
+import { Route as AuthUsersRouteImport } from './routes/_auth/users'
 import { Route as AuthClientsClientIdRouteImport } from './routes/_auth/clients_.$clientId'
-import { Route as AuthProductsGrilleTarifaireRateTableIdRouteImport } from './routes/_auth/products_.grille-tarifaire_.$rateTableId'
+import { Route as AuthCommissionsDistributionsRouteImport } from './routes/_auth/commissions.distributions'
+import { Route as AuthCommissionsSchemesRouteImport } from './routes/_auth/commissions.schemes'
+import { Route as AuthCommissionsWalletsRouteImport } from './routes/_auth/commissions.wallets'
+import { Route as AuthCotationsSimulationRouteImport } from './routes/_auth/cotations_.simulation'
+import { Route as AuthPartnersPartnerIdRouteImport } from './routes/_auth/partners_.$partnerId'
+import { Route as AuthProductsProductIdRouteImport } from './routes/_auth/products_.$productId'
+import { Route as AuthProductsAccessoiresRouteImport } from './routes/_auth/products_.accessoires'
+import { Route as AuthProductsCategoriesRouteImport } from './routes/_auth/products_.categories'
+import { Route as AuthProductsGrilleTarifaireRouteImport } from './routes/_auth/products_.grille-tarifaire'
+import { Route as AuthSinistresClaimIdRouteImport } from './routes/_auth/sinistres_.$claimId'
+import { Route as AuthSinistresTypesRouteImport } from './routes/_auth/sinistres_.types'
 import { Route as AuthCommissionsSchemesNewRouteImport } from './routes/_auth/commissions.schemes_.new'
+import { Route as AuthProductsGrilleTarifaireRateTableIdRouteImport } from './routes/_auth/products_.grille-tarifaire_.$rateTableId'
 import { Route as AuthCommissionsSchemesSchemeIdEditRouteImport } from './routes/_auth/commissions.schemes_.$schemeId.edit'
 
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
+const AuthRoute = AuthRouteImport.update({
+  id: '/_auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
@@ -55,53 +54,19 @@ const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/_auth',
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthUsersRoute = AuthUsersRouteImport.update({
-  id: '/users',
-  path: '/users',
-  getParentRoute: () => AuthRoute,
-} as any)
-const AuthSinistresRoute = AuthSinistresRouteImport.update({
-  id: '/sinistres',
-  path: '/sinistres',
-  getParentRoute: () => AuthRoute,
-} as any)
-const AuthRolesRoute = AuthRolesRouteImport.update({
-  id: '/roles',
-  path: '/roles',
-  getParentRoute: () => AuthRoute,
-} as any)
-const AuthProfilRoute = AuthProfilRouteImport.update({
-  id: '/profil',
-  path: '/profil',
-  getParentRoute: () => AuthRoute,
-} as any)
-const AuthProductsRoute = AuthProductsRouteImport.update({
-  id: '/products',
-  path: '/products',
-  getParentRoute: () => AuthRoute,
-} as any)
-const AuthPermissionsRoute = AuthPermissionsRouteImport.update({
-  id: '/permissions',
-  path: '/permissions',
-  getParentRoute: () => AuthRoute,
-} as any)
-const AuthPartnersRoute = AuthPartnersRouteImport.update({
-  id: '/partners',
-  path: '/partners',
-  getParentRoute: () => AuthRoute,
-} as any)
-const AuthDashboardRoute = AuthDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
+const AuthClientsRoute = AuthClientsRouteImport.update({
+  id: '/clients',
+  path: '/clients',
   getParentRoute: () => AuthRoute,
 } as any)
 const AuthCotationsRoute = AuthCotationsRouteImport.update({
@@ -109,60 +74,49 @@ const AuthCotationsRoute = AuthCotationsRouteImport.update({
   path: '/cotations',
   getParentRoute: () => AuthRoute,
 } as any)
-const AuthClientsRoute = AuthClientsRouteImport.update({
-  id: '/clients',
-  path: '/clients',
+const AuthDashboardRoute = AuthDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => AuthRoute,
 } as any)
-const AuthSinistresTypesRoute = AuthSinistresTypesRouteImport.update({
-  id: '/sinistres_/types',
-  path: '/sinistres/types',
+const AuthPartnersRoute = AuthPartnersRouteImport.update({
+  id: '/partners',
+  path: '/partners',
   getParentRoute: () => AuthRoute,
 } as any)
-const AuthSinistresClaimIdRoute = AuthSinistresClaimIdRouteImport.update({
-  id: '/sinistres_/$claimId',
-  path: '/sinistres/$claimId',
+const AuthPermissionsRoute = AuthPermissionsRouteImport.update({
+  id: '/permissions',
+  path: '/permissions',
   getParentRoute: () => AuthRoute,
 } as any)
-const AuthProductsGrilleTarifaireRoute =
-  AuthProductsGrilleTarifaireRouteImport.update({
-    id: '/products_/grille-tarifaire',
-    path: '/products/grille-tarifaire',
-    getParentRoute: () => AuthRoute,
-  } as any)
-const AuthProductsCategoriesRoute = AuthProductsCategoriesRouteImport.update({
-  id: '/products_/categories',
-  path: '/products/categories',
+const AuthProductsRoute = AuthProductsRouteImport.update({
+  id: '/products',
+  path: '/products',
   getParentRoute: () => AuthRoute,
 } as any)
-const AuthProductsAccessoiresRoute = AuthProductsAccessoiresRouteImport.update({
-  id: '/products_/accessoires',
-  path: '/products/accessoires',
+const AuthProfilRoute = AuthProfilRouteImport.update({
+  id: '/profil',
+  path: '/profil',
   getParentRoute: () => AuthRoute,
 } as any)
-const AuthProductsProductIdRoute = AuthProductsProductIdRouteImport.update({
-  id: '/products_/$productId',
-  path: '/products/$productId',
+const AuthRolesRoute = AuthRolesRouteImport.update({
+  id: '/roles',
+  path: '/roles',
   getParentRoute: () => AuthRoute,
 } as any)
-const AuthPartnersPartnerIdRoute = AuthPartnersPartnerIdRouteImport.update({
-  id: '/partners_/$partnerId',
-  path: '/partners/$partnerId',
+const AuthSinistresRoute = AuthSinistresRouteImport.update({
+  id: '/sinistres',
+  path: '/sinistres',
   getParentRoute: () => AuthRoute,
 } as any)
-const AuthCotationsSimulationRoute = AuthCotationsSimulationRouteImport.update({
-  id: '/cotations_/simulation',
-  path: '/cotations/simulation',
+const AuthUsersRoute = AuthUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
   getParentRoute: () => AuthRoute,
 } as any)
-const AuthCommissionsWalletsRoute = AuthCommissionsWalletsRouteImport.update({
-  id: '/commissions/wallets',
-  path: '/commissions/wallets',
-  getParentRoute: () => AuthRoute,
-} as any)
-const AuthCommissionsSchemesRoute = AuthCommissionsSchemesRouteImport.update({
-  id: '/commissions/schemes',
-  path: '/commissions/schemes',
+const AuthClientsClientIdRoute = AuthClientsClientIdRouteImport.update({
+  id: '/clients_/$clientId',
+  path: '/clients/$clientId',
   getParentRoute: () => AuthRoute,
 } as any)
 const AuthCommissionsDistributionsRoute =
@@ -171,21 +125,67 @@ const AuthCommissionsDistributionsRoute =
     path: '/commissions/distributions',
     getParentRoute: () => AuthRoute,
   } as any)
-const AuthClientsClientIdRoute = AuthClientsClientIdRouteImport.update({
-  id: '/clients_/$clientId',
-  path: '/clients/$clientId',
+const AuthCommissionsSchemesRoute = AuthCommissionsSchemesRouteImport.update({
+  id: '/commissions/schemes',
+  path: '/commissions/schemes',
   getParentRoute: () => AuthRoute,
 } as any)
-const AuthProductsGrilleTarifaireRateTableIdRoute =
-  AuthProductsGrilleTarifaireRateTableIdRouteImport.update({
-    id: '/products_/grille-tarifaire_/$rateTableId',
-    path: '/products/grille-tarifaire/$rateTableId',
+const AuthCommissionsWalletsRoute = AuthCommissionsWalletsRouteImport.update({
+  id: '/commissions/wallets',
+  path: '/commissions/wallets',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthCotationsSimulationRoute = AuthCotationsSimulationRouteImport.update({
+  id: '/cotations_/simulation',
+  path: '/cotations/simulation',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthPartnersPartnerIdRoute = AuthPartnersPartnerIdRouteImport.update({
+  id: '/partners_/$partnerId',
+  path: '/partners/$partnerId',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthProductsProductIdRoute = AuthProductsProductIdRouteImport.update({
+  id: '/products_/$productId',
+  path: '/products/$productId',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthProductsAccessoiresRoute = AuthProductsAccessoiresRouteImport.update({
+  id: '/products_/accessoires',
+  path: '/products/accessoires',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthProductsCategoriesRoute = AuthProductsCategoriesRouteImport.update({
+  id: '/products_/categories',
+  path: '/products/categories',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthProductsGrilleTarifaireRoute =
+  AuthProductsGrilleTarifaireRouteImport.update({
+    id: '/products_/grille-tarifaire',
+    path: '/products/grille-tarifaire',
     getParentRoute: () => AuthRoute,
   } as any)
+const AuthSinistresClaimIdRoute = AuthSinistresClaimIdRouteImport.update({
+  id: '/sinistres_/$claimId',
+  path: '/sinistres/$claimId',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthSinistresTypesRoute = AuthSinistresTypesRouteImport.update({
+  id: '/sinistres_/types',
+  path: '/sinistres/types',
+  getParentRoute: () => AuthRoute,
+} as any)
 const AuthCommissionsSchemesNewRoute =
   AuthCommissionsSchemesNewRouteImport.update({
     id: '/commissions/schemes_/new',
     path: '/commissions/schemes/new',
+    getParentRoute: () => AuthRoute,
+  } as any)
+const AuthProductsGrilleTarifaireRateTableIdRoute =
+  AuthProductsGrilleTarifaireRateTableIdRouteImport.update({
+    id: '/products_/grille-tarifaire_/$rateTableId',
+    path: '/products/grille-tarifaire/$rateTableId',
     getParentRoute: () => AuthRoute,
   } as any)
 const AuthCommissionsSchemesSchemeIdEditRoute =
@@ -397,25 +397,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/forgot-password': {
-      id: '/forgot-password'
-      path: '/forgot-password'
-      fullPath: '/forgot-password'
-      preLoaderRoute: typeof ForgotPasswordRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_auth': {
@@ -425,67 +411,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_auth/users': {
-      id: '/_auth/users'
-      path: '/users'
-      fullPath: '/users'
-      preLoaderRoute: typeof AuthUsersRouteImport
-      parentRoute: typeof AuthRoute
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_auth/sinistres': {
-      id: '/_auth/sinistres'
-      path: '/sinistres'
-      fullPath: '/sinistres'
-      preLoaderRoute: typeof AuthSinistresRouteImport
-      parentRoute: typeof AuthRoute
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_auth/roles': {
-      id: '/_auth/roles'
-      path: '/roles'
-      fullPath: '/roles'
-      preLoaderRoute: typeof AuthRolesRouteImport
-      parentRoute: typeof AuthRoute
-    }
-    '/_auth/profil': {
-      id: '/_auth/profil'
-      path: '/profil'
-      fullPath: '/profil'
-      preLoaderRoute: typeof AuthProfilRouteImport
-      parentRoute: typeof AuthRoute
-    }
-    '/_auth/products': {
-      id: '/_auth/products'
-      path: '/products'
-      fullPath: '/products'
-      preLoaderRoute: typeof AuthProductsRouteImport
-      parentRoute: typeof AuthRoute
-    }
-    '/_auth/permissions': {
-      id: '/_auth/permissions'
-      path: '/permissions'
-      fullPath: '/permissions'
-      preLoaderRoute: typeof AuthPermissionsRouteImport
-      parentRoute: typeof AuthRoute
-    }
-    '/_auth/partners': {
-      id: '/_auth/partners'
-      path: '/partners'
-      fullPath: '/partners'
-      preLoaderRoute: typeof AuthPartnersRouteImport
-      parentRoute: typeof AuthRoute
-    }
-    '/_auth/dashboard': {
-      id: '/_auth/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof AuthDashboardRouteImport
+    '/_auth/clients': {
+      id: '/_auth/clients'
+      path: '/clients'
+      fullPath: '/clients'
+      preLoaderRoute: typeof AuthClientsRouteImport
       parentRoute: typeof AuthRoute
     }
     '/_auth/cotations': {
@@ -495,88 +446,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCotationsRouteImport
       parentRoute: typeof AuthRoute
     }
-    '/_auth/clients': {
-      id: '/_auth/clients'
-      path: '/clients'
-      fullPath: '/clients'
-      preLoaderRoute: typeof AuthClientsRouteImport
+    '/_auth/dashboard': {
+      id: '/_auth/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthDashboardRouteImport
       parentRoute: typeof AuthRoute
     }
-    '/_auth/sinistres_/types': {
-      id: '/_auth/sinistres_/types'
-      path: '/sinistres/types'
-      fullPath: '/sinistres/types'
-      preLoaderRoute: typeof AuthSinistresTypesRouteImport
+    '/_auth/partners': {
+      id: '/_auth/partners'
+      path: '/partners'
+      fullPath: '/partners'
+      preLoaderRoute: typeof AuthPartnersRouteImport
       parentRoute: typeof AuthRoute
     }
-    '/_auth/sinistres_/$claimId': {
-      id: '/_auth/sinistres_/$claimId'
-      path: '/sinistres/$claimId'
-      fullPath: '/sinistres/$claimId'
-      preLoaderRoute: typeof AuthSinistresClaimIdRouteImport
+    '/_auth/permissions': {
+      id: '/_auth/permissions'
+      path: '/permissions'
+      fullPath: '/permissions'
+      preLoaderRoute: typeof AuthPermissionsRouteImport
       parentRoute: typeof AuthRoute
     }
-    '/_auth/products_/grille-tarifaire': {
-      id: '/_auth/products_/grille-tarifaire'
-      path: '/products/grille-tarifaire'
-      fullPath: '/products/grille-tarifaire'
-      preLoaderRoute: typeof AuthProductsGrilleTarifaireRouteImport
+    '/_auth/products': {
+      id: '/_auth/products'
+      path: '/products'
+      fullPath: '/products'
+      preLoaderRoute: typeof AuthProductsRouteImport
       parentRoute: typeof AuthRoute
     }
-    '/_auth/products_/categories': {
-      id: '/_auth/products_/categories'
-      path: '/products/categories'
-      fullPath: '/products/categories'
-      preLoaderRoute: typeof AuthProductsCategoriesRouteImport
+    '/_auth/profil': {
+      id: '/_auth/profil'
+      path: '/profil'
+      fullPath: '/profil'
+      preLoaderRoute: typeof AuthProfilRouteImport
       parentRoute: typeof AuthRoute
     }
-    '/_auth/products_/accessoires': {
-      id: '/_auth/products_/accessoires'
-      path: '/products/accessoires'
-      fullPath: '/products/accessoires'
-      preLoaderRoute: typeof AuthProductsAccessoiresRouteImport
+    '/_auth/roles': {
+      id: '/_auth/roles'
+      path: '/roles'
+      fullPath: '/roles'
+      preLoaderRoute: typeof AuthRolesRouteImport
       parentRoute: typeof AuthRoute
     }
-    '/_auth/products_/$productId': {
-      id: '/_auth/products_/$productId'
-      path: '/products/$productId'
-      fullPath: '/products/$productId'
-      preLoaderRoute: typeof AuthProductsProductIdRouteImport
+    '/_auth/sinistres': {
+      id: '/_auth/sinistres'
+      path: '/sinistres'
+      fullPath: '/sinistres'
+      preLoaderRoute: typeof AuthSinistresRouteImport
       parentRoute: typeof AuthRoute
     }
-    '/_auth/partners_/$partnerId': {
-      id: '/_auth/partners_/$partnerId'
-      path: '/partners/$partnerId'
-      fullPath: '/partners/$partnerId'
-      preLoaderRoute: typeof AuthPartnersPartnerIdRouteImport
-      parentRoute: typeof AuthRoute
-    }
-    '/_auth/cotations_/simulation': {
-      id: '/_auth/cotations_/simulation'
-      path: '/cotations/simulation'
-      fullPath: '/cotations/simulation'
-      preLoaderRoute: typeof AuthCotationsSimulationRouteImport
-      parentRoute: typeof AuthRoute
-    }
-    '/_auth/commissions/wallets': {
-      id: '/_auth/commissions/wallets'
-      path: '/commissions/wallets'
-      fullPath: '/commissions/wallets'
-      preLoaderRoute: typeof AuthCommissionsWalletsRouteImport
-      parentRoute: typeof AuthRoute
-    }
-    '/_auth/commissions/schemes': {
-      id: '/_auth/commissions/schemes'
-      path: '/commissions/schemes'
-      fullPath: '/commissions/schemes'
-      preLoaderRoute: typeof AuthCommissionsSchemesRouteImport
-      parentRoute: typeof AuthRoute
-    }
-    '/_auth/commissions/distributions': {
-      id: '/_auth/commissions/distributions'
-      path: '/commissions/distributions'
-      fullPath: '/commissions/distributions'
-      preLoaderRoute: typeof AuthCommissionsDistributionsRouteImport
+    '/_auth/users': {
+      id: '/_auth/users'
+      path: '/users'
+      fullPath: '/users'
+      preLoaderRoute: typeof AuthUsersRouteImport
       parentRoute: typeof AuthRoute
     }
     '/_auth/clients_/$clientId': {
@@ -586,11 +509,81 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthClientsClientIdRouteImport
       parentRoute: typeof AuthRoute
     }
-    '/_auth/products_/grille-tarifaire_/$rateTableId': {
-      id: '/_auth/products_/grille-tarifaire_/$rateTableId'
-      path: '/products/grille-tarifaire/$rateTableId'
-      fullPath: '/products/grille-tarifaire/$rateTableId'
-      preLoaderRoute: typeof AuthProductsGrilleTarifaireRateTableIdRouteImport
+    '/_auth/commissions/distributions': {
+      id: '/_auth/commissions/distributions'
+      path: '/commissions/distributions'
+      fullPath: '/commissions/distributions'
+      preLoaderRoute: typeof AuthCommissionsDistributionsRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/commissions/schemes': {
+      id: '/_auth/commissions/schemes'
+      path: '/commissions/schemes'
+      fullPath: '/commissions/schemes'
+      preLoaderRoute: typeof AuthCommissionsSchemesRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/commissions/wallets': {
+      id: '/_auth/commissions/wallets'
+      path: '/commissions/wallets'
+      fullPath: '/commissions/wallets'
+      preLoaderRoute: typeof AuthCommissionsWalletsRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/cotations_/simulation': {
+      id: '/_auth/cotations_/simulation'
+      path: '/cotations/simulation'
+      fullPath: '/cotations/simulation'
+      preLoaderRoute: typeof AuthCotationsSimulationRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/partners_/$partnerId': {
+      id: '/_auth/partners_/$partnerId'
+      path: '/partners/$partnerId'
+      fullPath: '/partners/$partnerId'
+      preLoaderRoute: typeof AuthPartnersPartnerIdRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/products_/$productId': {
+      id: '/_auth/products_/$productId'
+      path: '/products/$productId'
+      fullPath: '/products/$productId'
+      preLoaderRoute: typeof AuthProductsProductIdRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/products_/accessoires': {
+      id: '/_auth/products_/accessoires'
+      path: '/products/accessoires'
+      fullPath: '/products/accessoires'
+      preLoaderRoute: typeof AuthProductsAccessoiresRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/products_/categories': {
+      id: '/_auth/products_/categories'
+      path: '/products/categories'
+      fullPath: '/products/categories'
+      preLoaderRoute: typeof AuthProductsCategoriesRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/products_/grille-tarifaire': {
+      id: '/_auth/products_/grille-tarifaire'
+      path: '/products/grille-tarifaire'
+      fullPath: '/products/grille-tarifaire'
+      preLoaderRoute: typeof AuthProductsGrilleTarifaireRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/sinistres_/$claimId': {
+      id: '/_auth/sinistres_/$claimId'
+      path: '/sinistres/$claimId'
+      fullPath: '/sinistres/$claimId'
+      preLoaderRoute: typeof AuthSinistresClaimIdRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/sinistres_/types': {
+      id: '/_auth/sinistres_/types'
+      path: '/sinistres/types'
+      fullPath: '/sinistres/types'
+      preLoaderRoute: typeof AuthSinistresTypesRouteImport
       parentRoute: typeof AuthRoute
     }
     '/_auth/commissions/schemes_/new': {
@@ -598,6 +591,13 @@ declare module '@tanstack/react-router' {
       path: '/commissions/schemes/new'
       fullPath: '/commissions/schemes/new'
       preLoaderRoute: typeof AuthCommissionsSchemesNewRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/products_/grille-tarifaire_/$rateTableId': {
+      id: '/_auth/products_/grille-tarifaire_/$rateTableId'
+      path: '/products/grille-tarifaire/$rateTableId'
+      fullPath: '/products/grille-tarifaire/$rateTableId'
+      preLoaderRoute: typeof AuthProductsGrilleTarifaireRateTableIdRouteImport
       parentRoute: typeof AuthRoute
     }
     '/_auth/commissions/schemes_/$schemeId/edit': {

@@ -13,10 +13,7 @@ export const QUOTATION_STATUS_META: Record<
 }
 
 export function QuotationStatusBadge({ status }: { status: QuotationStatus }) {
-  const meta = QUOTATION_STATUS_META[status] ?? {
-    label: status,
-    cls: 'bg-[#f0f1f4] text-[#6b7585]',
-  }
+  const meta = QUOTATION_STATUS_META[status]
   return (
     <Badge
       className={cn(

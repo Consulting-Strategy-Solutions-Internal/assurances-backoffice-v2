@@ -1,4 +1,5 @@
-import { Toaster as Sonner, type ToasterProps } from 'sonner'
+import { Toaster as Sonner } from 'sonner'
+import type { ToasterProps } from 'sonner'
 
 /**
  * App is light-only, so the toaster is pinned to the light theme (no next-themes

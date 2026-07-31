@@ -12,7 +12,6 @@
  *   TTC             = PNT + accessoire + taxe
  */
 import {
-  type AccessoryBracket,
   PremiumError,
   findAccessory,
   money,
@@ -20,6 +19,7 @@ import {
   perMille,
   percent,
 } from '#/lib/premium/math'
+import type { AccessoryBracket } from '#/lib/premium/math'
 
 export type PropertyBasis = 'BATIMENT' | 'LOCATIVE' | 'AUCUN'
 export type PremiumType = 'POURCENTAGE' | 'FORFAIT'

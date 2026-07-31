@@ -42,7 +42,7 @@ export function UsersTable({ users }: UsersTableProps) {
                 <div className="flex items-center gap-[11px]">
                   <Avatar className="size-9">
                     <AvatarFallback className="bg-primary/10 text-[13px] font-bold text-primary">
-                      {`${user.firstName[0] ?? ''}${user.lastName[0] ?? ''}`.toUpperCase()}
+                      {`${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="leading-[1.3]">

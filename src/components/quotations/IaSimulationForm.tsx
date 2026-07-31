@@ -16,7 +16,8 @@ import {
 } from '#/components/ui/select'
 import { cn, formatFcfa } from '#/lib/utils'
 import { PremiumError } from '#/lib/premium/math'
-import { type IaModifierLine, type IaResult, computeIa } from '#/lib/premium/ia'
+import { computeIa } from '#/lib/premium/ia'
+import type { IaModifierLine, IaResult } from '#/lib/premium/ia'
 import {
   getPremiumModifiers,
   getPremiumRateByRiskClass,
@@ -97,10 +98,20 @@ export function IaSimulationForm({ product }: { product: ProductResponse }) {
 
   const ageModifiers = modifiers.filter((m) => m.triggerType === 'AGE')
   const manualModifiers = modifiers.filter((m) => m.triggerType === 'MANUAL')
+  const parsedDuration = num(durationMonths)
+  const durationError =
+    durationMonths === ''
+      ? 'La durée est requise.'
+      : !Number.isInteger(parsedDuration) || parsedDuration < 1
+        ? 'Saisissez un nombre entier de mois supérieur ou égal à 1.'
+        : undefined
 
-  const computation = useMemo<
-    { result?: IaResult; error?: string; ready: boolean }
-  >(() => {
+  const computation = useMemo<{
+    result?: IaResult
+    error?: string
+    message?: string
+    ready: boolean
+  }>(() => {
     if (!selectedRc) return { ready: false }
     if (rateQuery.data === null) {
       return {
@@ -109,6 +120,16 @@ export function IaSimulationForm({ product }: { product: ProductResponse }) {
       }
     }
     if (!rateQuery.data || !modifiersQuery.data) return { ready: false }
+    if (prorationQuery.isLoading) {
+      return { ready: false, message: 'Chargement des règles de prorata…' }
+    }
+    if (prorationQuery.error) {
+      return {
+        ready: false,
+        error: 'Impossible de charger les règles de prorata de ce produit.',
+      }
+    }
+    if (!prorationQuery.data) return { ready: false }
 
     if (
       !reqPositive(deathCapital) ||
@@ -117,10 +138,7 @@ export function IaSimulationForm({ product }: { product: ProductResponse }) {
     ) {
       return { ready: false }
     }
-    const duration = num(durationMonths)
-    if (durationMonths === '' || Number.isNaN(duration) || duration < 1) {
-      return { ready: false }
-    }
+    if (durationError) return { ready: false }
     const age = insuredAge === '' ? undefined : num(insuredAge)
 
     try {
@@ -134,14 +152,14 @@ export function IaSimulationForm({ product }: { product: ProductResponse }) {
         insuredAge: age,
         appliedModifierCodes: appliedCodes,
         reductionRate: num(reductionRate) || 0,
-        durationMonths: duration,
+        durationMonths: parsedDuration,
         modifiers,
         accessories: (accessoriesQuery.data?.content ?? []).map((a) => ({
           minPremium: a.minPremium,
           maxPremium: a.maxPremium,
           amount: a.amount,
         })),
-        prorationBrackets: (prorationQuery.data?.content ?? []).map((p) => ({
+        prorationBrackets: prorationQuery.data.content.map((p) => ({
           minMonths: p.minMonths,
           maxMonths: p.maxMonths,
           coefficient: p.coefficient,
@@ -149,7 +167,8 @@ export function IaSimulationForm({ product }: { product: ProductResponse }) {
       })
       return { result, ready: true }
     } catch (err) {
-      if (err instanceof PremiumError) return { ready: false, error: err.message }
+      if (err instanceof PremiumError)
+        return { ready: false, error: err.message }
       return { ready: false, error: 'Erreur de calcul.' }
     }
   }, [
@@ -166,6 +185,10 @@ export function IaSimulationForm({ product }: { product: ProductResponse }) {
     modifiers,
     accessoriesQuery.data,
     prorationQuery.data,
+    prorationQuery.isLoading,
+    prorationQuery.error,
+    durationError,
+    parsedDuration,
   ])
 
   const toggle = (code: string) =>
@@ -257,6 +280,8 @@ export function IaSimulationForm({ product }: { product: ProductResponse }) {
                 required
                 value={durationMonths}
                 onChange={setDurationMonths}
+                error={durationError}
+                hint="Le coefficient est sélectionné automatiquement selon la tranche configurée pour le produit."
               />
               <FormField
                 id="reductionRate"
@@ -369,10 +394,15 @@ function IaResultPanel({
   computation,
   hasRc,
 }: {
-  computation: { result?: IaResult; error?: string; ready: boolean }
+  computation: {
+    result?: IaResult
+    error?: string
+    message?: string
+    ready: boolean
+  }
   hasRc: boolean
 }) {
-  const { result, error } = computation
+  const { result, error, message } = computation
   return (
     <Card className="h-fit gap-0 overflow-hidden p-0 lg:sticky lg:top-4">
       <div className="flex items-center gap-2.5 border-b bg-[linear-gradient(150deg,#013a8f_0%,#00255e_100%)] px-5 py-4 text-white">
@@ -382,6 +412,8 @@ function IaResultPanel({
       <div className="p-5">
         {error ? (
           <p className="text-[13px] text-destructive">{error}</p>
+        ) : message ? (
+          <p className="text-[13px] text-muted-foreground">{message}</p>
         ) : !result ? (
           <p className="text-[13px] text-muted-foreground">
             {hasRc
@@ -392,7 +424,10 @@ function IaResultPanel({
           <div className="flex flex-col gap-3">
             <Row label="Prime décès (PD)" value={formatFcfa(result.pd)} />
             <Row label="Prime IPP (PIP)" value={formatFcfa(result.pip)} />
-            <Row label="Prime frais méd. (PFM)" value={formatFcfa(result.pfm)} />
+            <Row
+              label="Prime frais méd. (PFM)"
+              value={formatFcfa(result.pfm)}
+            />
             <Separator />
             <Row
               label="Majoration (TMaj)"
@@ -409,10 +444,26 @@ function IaResultPanel({
             <Row label="Prime TTC" value={formatFcfa(result.pttc)} />
             <Separator />
             <Row
-              label={`Prorata court terme (${result.durationMonths} mois)`}
-              value={`× ${result.coefficient}`}
+              label="Durée déclarée"
+              value={`${result.durationMonths} mois`}
             />
-            <Row label="Prime TTC due" value={formatFcfa(result.pttcDue)} strong />
+            <Row
+              label="Tranche de prorata"
+              value={
+                result.prorationBracket
+                  ? `${result.prorationBracket.minMonths}–${result.prorationBracket.maxMonths ?? '∞'} mois`
+                  : 'Aucune tranche configurée'
+              }
+            />
+            <Row
+              label="Coefficient appliqué"
+              value={`× ${result.coefficient.toLocaleString('fr-FR')}`}
+            />
+            <Row
+              label="Prime TTC due"
+              value={formatFcfa(result.pttcDue)}
+              strong
+            />
           </div>
         )}
       </div>

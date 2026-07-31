@@ -1,2 +1,4 @@
 allowBuilds:
-  unrs-resolver: false
+  esbuild: true
+  lightningcss: true
+  unrs-resolver: true

@@ -3,7 +3,8 @@ import { toast } from 'sonner'
 import { Input } from '#/components/ui/input'
 import { Button } from '#/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '#/components/ui/tabs'
-import { useShell, type Period } from './shell'
+import { useShell } from './shell'
+import type { Period } from './shell'
 
 const PERIODS: Period[] = ['Jour', 'Mois', 'Trimestre', 'Année']
 

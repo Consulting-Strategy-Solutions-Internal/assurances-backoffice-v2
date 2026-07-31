@@ -1,0 +1,10 @@
+.git
+.github
+.output
+context
+deploy
+dist
+node_modules
+*.local
+.env
+README.md

@@ -22,10 +22,8 @@ import { Pagination } from '#/components/ui/Pagination'
 import { cn, formatDate } from '#/lib/utils'
 import { PageHeader } from '#/components/dashboard/PageHeader'
 import { QuotationStatusBadge } from '#/components/quotations/QuotationStatusBadge'
-import {
-  useDistributionDirectory,
-  type Attribution,
-} from '#/components/quotations/useDistributionDirectory'
+import { useDistributionDirectory } from '#/components/quotations/useDistributionDirectory'
+import type { Attribution } from '#/components/quotations/useDistributionDirectory'
 import { getQuotations } from '#/services/quotations'
 
 export const Route = createFileRoute('/_auth/cotations')({

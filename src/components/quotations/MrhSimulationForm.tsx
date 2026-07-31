@@ -16,11 +16,8 @@ import {
 } from '#/components/ui/select'
 import { cn, formatFcfa } from '#/lib/utils'
 import { PremiumError } from '#/lib/premium/math'
-import {
-  type MrhResult,
-  type MrhWarrantyTariff,
-  computeMrh,
-} from '#/lib/premium/mrh'
+import { computeMrh } from '#/lib/premium/mrh'
+import type { MrhResult, MrhWarrantyTariff } from '#/lib/premium/mrh'
 import {
   getBaseRateByLegalQuality,
   getLegalQualities,

@@ -119,22 +119,13 @@ function SimulationPage() {
             >
               {calcType === 'MRH'
                 ? 'Multirisque Habitation'
-                : calcType === 'IA'
-                  ? 'Individuel Accident'
-                  : calcType}
+                : 'Individuel Accident'}
             </Badge>
           </div>
           {calcType === 'MRH' ? (
             <MrhSimulationForm product={selectedProduct} />
-          ) : calcType === 'IA' ? (
-            <IaSimulationForm product={selectedProduct} />
           ) : (
-            <Card className="gap-0 py-0">
-              <div className="p-9 text-center text-[13.5px] text-muted-foreground">
-                Modèle de calcul « {calcType} » non pris en charge par la
-                simulation.
-              </div>
-            </Card>
+            <IaSimulationForm product={selectedProduct} />
           )}
         </>
       )}
