@@ -1,8 +1,15 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { useMemo, useState } from 'react'
-import { toast } from 'sonner'
+import { useState } from 'react'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { useQuery } from '@tanstack/react-query'
+import { z } from 'zod'
+import { Button } from '#/components/ui/button'
 import { Card } from '#/components/ui/card'
-import { Tabs, TabsList, TabsTrigger } from '#/components/ui/tabs'
+import { Pagination } from '#/components/ui/Pagination'
+import { FormSelect } from '#/components/forms/FormSelect'
+import { PageHeader } from '#/components/dashboard/PageHeader'
+import { ClaimStatusBadge } from '#/components/claims/ClaimStatusBadge'
+import { ClaimsAdminGate } from '#/components/claims/ClaimsAdminGate'
+import { CreateClaimDialog } from '#/components/claims/CreateClaimDialog'
 import {
   Table,
   TableBody,
@@ -11,152 +18,304 @@ import {
   TableHeader,
   TableRow,
 } from '#/components/ui/table'
-import { cn } from '#/lib/utils'
-import { clickableRow, matchesQuery } from '#/lib/dashboard-theme'
-import { useShell } from '#/components/dashboard/shell'
-import { StatusPill } from '#/components/dashboard/StatusPill'
 import {
-  DetailDrawer,
-  type DrawerContent,
-} from '#/components/dashboard/DetailDrawer'
-import { sinistreDrawer } from '#/components/dashboard/drawers'
-import { SINISTRES } from '#/components/dashboard/mock-data'
-import { PageHeader } from '#/components/dashboard/PageHeader'
+  availableActions,
+  CLAIM_STATUS_LABELS,
+  formatClaimDate,
+} from '#/lib/claims'
+import { cn } from '#/lib/utils'
+import { getClaimTypes } from '#/services/claim-types'
+import { getClients } from '#/services/clients'
+import { CLAIM_STATUSES, claimsKeys, getClaims } from '#/services/claims'
+import type { ClaimFilters, ClaimStatus } from '#/services/claims'
 
-export const Route = createFileRoute('/_auth/sinistres')({
-  component: SinistresPage,
+const searchSchema = z.object({
+  status: z.enum(CLAIM_STATUSES).optional().catch(undefined),
+  clientId: z.coerce.number().int().positive().optional().catch(undefined),
+  claimTypeId: z.coerce.number().int().positive().optional().catch(undefined),
+  page: z.coerce.number().int().min(0).catch(0),
+  size: z.coerce.number().int().min(1).max(100).catch(20),
+  sort: z
+    .enum([
+      'createdAt,desc',
+      'createdAt,asc',
+      'occurredOn,desc',
+      'occurredOn,asc',
+      'claimNumber,asc',
+      'claimNumber,desc',
+    ])
+    .catch('createdAt,desc'),
 })
 
-const TABS = ['Tous', 'Déclarés', 'En expertise', 'Réglés'] as const
-type Tab = (typeof TABS)[number]
+export const Route = createFileRoute('/_auth/sinistres')({
+  validateSearch: searchSchema,
+  component: SinistresRoute,
+})
 
-const STATS = [
-  { value: '327', label: 'En cours de traitement' },
-  { value: '68', label: 'En expertise' },
-  { value: '1 942', label: 'Réglés (cumul année)', accent: true },
-  { value: '11,2', unit: 'j', label: 'Délai moyen de règlement' },
-] as const
+const headCls =
+  'h-auto bg-[#fafbfc] px-3 py-3 text-[11px] font-bold uppercase tracking-[0.05em] text-muted-foreground'
 
-const headCls = 'h-auto bg-[#fafbfc] px-3 py-3 text-[11px] font-bold uppercase tracking-[0.05em] text-muted-foreground'
+function MessageRow({ children }: { children: React.ReactNode }) {
+  return (
+    <TableRow className="hover:bg-transparent">
+      <TableCell
+        colSpan={9}
+        className="py-10 text-center text-sm text-muted-foreground"
+      >
+        {children}
+      </TableCell>
+    </TableRow>
+  )
+}
 
-function SinistresPage() {
-  const { search } = useShell()
-  const [tab, setTab] = useState<Tab>('Tous')
-  const [drawer, setDrawer] = useState<DrawerContent | null>(null)
-
-  const rows = useMemo(() => {
-    let base: readonly (typeof SINISTRES)[number][] = SINISTRES
-    if (tab === 'Déclarés') base = base.filter((r) => r.statut === 'Déclaré')
-    else if (tab === 'En expertise')
-      base = base.filter((r) => r.statut === 'En expertise')
-    else if (tab === 'Réglés')
-      base = base.filter((r) => r.statut === 'Réglé' || r.statut === 'Validé')
-    return base.filter((r) => matchesQuery(r, search))
-  }, [tab, search])
+export function ClaimsListContent() {
+  const search = Route.useSearch()
+  const navigate = useNavigate({ from: Route.fullPath })
+  const [showCreate, setShowCreate] = useState(false)
+  const filters: ClaimFilters = search
+  const { data, isLoading, error } = useQuery({
+    queryKey: claimsKeys.list(filters),
+    queryFn: () => getClaims(filters),
+    retry: false,
+  })
+  const { data: types } = useQuery({
+    queryKey: ['claimTypes', 'filters'],
+    queryFn: () => getClaimTypes({ page: 0, size: 100, sort: 'name,asc' }),
+    retry: false,
+  })
+  const { data: clients } = useQuery({
+    queryKey: ['clients', 'claim-filters'],
+    queryFn: () => getClients(),
+    retry: false,
+  })
+  const hasFilters =
+    search.status !== undefined ||
+    search.clientId !== undefined ||
+    search.claimTypeId !== undefined
+  const updateSearch = (patch: Partial<typeof search>) =>
+    navigate({
+      search: (previous) => ({ ...previous, ...patch, page: patch.page ?? 0 }),
+    })
 
   return (
     <>
       <PageHeader
         title="Sinistres"
-        subtitle="Gestion et suivi des déclarations de sinistre"
+        subtitle="Gestion et instruction des déclarations"
         action="Déclarer un sinistre"
-        onAction={() => toast("Déclaration d'un sinistre")}
-      />
-
-      <div className="mb-[18px] grid grid-cols-4 gap-4">
-        {STATS.map((s) => (
-          <Card key={s.label} className="gap-0 px-[19px] py-[17px]">
-            <div
-              className={cn(
-                'text-[27px] font-extrabold tracking-[-0.035em]',
-                'accent' in s && s.accent && 'text-[#1c8a57]',
-              )}
-            >
-              {s.value}
-              {'unit' in s && s.unit && (
-                <span className="text-sm text-muted-foreground"> {s.unit}</span>
-              )}
-            </div>
-            <div className="mt-1.5 text-[12.5px] font-medium text-muted-foreground">
-              {s.label}
-            </div>
-          </Card>
-        ))}
-      </div>
-
-      <Card className="gap-0 overflow-hidden py-0">
-        <div className="flex items-center gap-1.5 border-b px-[18px] py-3.5">
-          <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
-            <TabsList className="h-auto gap-1.5 bg-transparent p-0">
-              {TABS.map((t) => (
-                <TabsTrigger
-                  key={t}
-                  value={t}
-                  className="rounded-[9px] px-3.5 py-[7px] text-[12.5px] font-semibold text-muted-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-none"
-                >
-                  {t}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
+        onAction={() => setShowCreate(true)}
+      >
+        <Button asChild variant="outline" className="rounded-[11px]">
+          <Link
+            to="/sinistres/types"
+            search={{ page: 0, size: 20, sort: 'name,asc' }}
+          >
+            Types de sinistre
+          </Link>
+        </Button>
+      </PageHeader>
+      {showCreate && <CreateClaimDialog onClose={() => setShowCreate(false)} />}
+      <Card className="mb-4 gap-4 p-4">
+        <div className="grid gap-3 md:grid-cols-4">
+          <FormSelect
+            id="status-filter"
+            label="Statut"
+            value={search.status ?? ''}
+            includeNone
+            noneLabel="Tous les statuts"
+            options={CLAIM_STATUSES.map((status) => ({
+              value: status,
+              label: CLAIM_STATUS_LABELS[status],
+            }))}
+            onChange={(value) =>
+              updateSearch({
+                status: value ? (value as ClaimStatus) : undefined,
+              })
+            }
+          />
+          <FormSelect
+            id="type-filter"
+            label="Type"
+            value={search.claimTypeId ? String(search.claimTypeId) : ''}
+            includeNone
+            noneLabel="Tous les types"
+            options={(types?.content ?? []).map((type) => ({
+              value: String(type.id),
+              label: type.name,
+            }))}
+            onChange={(value) =>
+              updateSearch({ claimTypeId: value ? Number(value) : undefined })
+            }
+          />
+          <FormSelect
+            id="client-filter"
+            label="Client"
+            value={search.clientId ? String(search.clientId) : ''}
+            includeNone
+            noneLabel="Tous les clients"
+            options={(clients?.content ?? []).map((client) => ({
+              value: String(client.id),
+              label: `${client.lastName} ${client.firstName}`,
+            }))}
+            onChange={(value) =>
+              updateSearch({ clientId: value ? Number(value) : undefined })
+            }
+          />
+          <FormSelect
+            id="sort-filter"
+            label="Tri"
+            value={search.sort}
+            options={[
+              { value: 'createdAt,desc', label: 'Plus récents' },
+              { value: 'createdAt,asc', label: 'Plus anciens' },
+              { value: 'occurredOn,desc', label: 'Survenance décroissante' },
+              { value: 'occurredOn,asc', label: 'Survenance croissante' },
+              { value: 'claimNumber,asc', label: 'Numéro A–Z' },
+              { value: 'claimNumber,desc', label: 'Numéro Z–A' },
+            ]}
+            onChange={(value) =>
+              updateSearch({ sort: value as typeof search.sort })
+            }
+          />
         </div>
+        {hasFilters && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="self-start"
+            onClick={() =>
+              navigate({
+                search: { page: 0, size: search.size, sort: 'createdAt,desc' },
+              })
+            }
+          >
+            Réinitialiser les filtres
+          </Button>
+        )}
+      </Card>
+      <Card className="gap-0 overflow-x-auto py-0">
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead className={cn(headCls, 'pl-[22px]')}>Référence</TableHead>
-              <TableHead className={headCls}>Assuré</TableHead>
-              <TableHead className={headCls}>Branche</TableHead>
-              <TableHead className={headCls}>Date</TableHead>
-              <TableHead className={cn(headCls, 'text-right')}>Montant (FCFA)</TableHead>
-              <TableHead className={cn(headCls, 'pr-[22px]')}>Statut</TableHead>
+              {[
+                'Numéro',
+                'Statut',
+                'Client',
+                'Type',
+                'Produit',
+                'Survenance',
+                'Déclaré par',
+                'Créé le',
+                'Actions',
+              ].map((label) => (
+                <TableHead
+                  key={label}
+                  className={cn(headCls, label === 'Numéro' && 'pl-[22px]')}
+                >
+                  {label}
+                </TableHead>
+              ))}
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rows.map((r) => (
-              <TableRow
-                key={r.ref}
-                className="cursor-pointer"
-                {...clickableRow(() => setDrawer(sinistreDrawer(r)))}
-              >
-                <TableCell className="py-[14px] pl-[22px] text-[13.5px] font-bold text-primary">
-                  {r.ref}
-                </TableCell>
-                <TableCell className="py-[14px] text-[13.5px] font-medium">
-                  {r.client}
-                </TableCell>
-                <TableCell className="py-[14px] text-[13px] text-muted-foreground">
-                  {r.branche}
-                </TableCell>
-                <TableCell className="py-[14px] text-[13px] text-muted-foreground">
-                  {r.date}
-                </TableCell>
-                <TableCell className="py-[14px] text-right text-[13.5px] font-semibold tabular-nums">
-                  {r.montant}
-                </TableCell>
-                <TableCell className="py-[14px] pr-[22px]">
-                  <StatusPill status={r.statut} />
-                </TableCell>
-              </TableRow>
-            ))}
-            {rows.length === 0 && (
-              <TableRow className="hover:bg-transparent">
-                <TableCell colSpan={6} className="py-9 text-center text-[13.5px] text-muted-foreground">
-                  Aucun sinistre ne correspond à votre recherche.
-                </TableCell>
-              </TableRow>
+            {isLoading ? (
+              <MessageRow>Chargement des sinistres…</MessageRow>
+            ) : error ? (
+              <MessageRow>Impossible de charger les sinistres.</MessageRow>
+            ) : !data?.content.length ? (
+              <MessageRow>
+                {hasFilters ? (
+                  <span>
+                    Aucun résultat pour ces filtres.{' '}
+                    <button
+                      className="font-semibold text-primary underline"
+                      onClick={() =>
+                        navigate({
+                          search: {
+                            page: 0,
+                            size: search.size,
+                            sort: 'createdAt,desc',
+                          },
+                        })
+                      }
+                    >
+                      Réinitialiser
+                    </button>
+                  </span>
+                ) : (
+                  'Aucun sinistre pour le moment.'
+                )}
+              </MessageRow>
+            ) : (
+              data.content.map((claim) => (
+                <TableRow key={claim.id}>
+                  <TableCell className="pl-[22px] font-bold text-primary">
+                    <Link
+                      to="/sinistres/$claimId"
+                      params={{ claimId: String(claim.id) }}
+                      className="hover:underline"
+                    >
+                      {claim.claimNumber}
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    <ClaimStatusBadge status={claim.status} />
+                  </TableCell>
+                  <TableCell>
+                    {claim.clientName?.trim() ? (
+                      <Link
+                        to="/clients/$clientId"
+                        params={{ clientId: String(claim.clientId) }}
+                        className="font-semibold text-primary hover:underline"
+                      >
+                        {claim.clientName}
+                      </Link>
+                    ) : (
+                      `Client supprimé (#${claim.clientId})`
+                    )}
+                  </TableCell>
+                  <TableCell>{claim.claimTypeName}</TableCell>
+                  <TableCell>{claim.productLabel}</TableCell>
+                  <TableCell>{formatClaimDate(claim.occurredOn)}</TableCell>
+                  <TableCell>
+                    {claim.declaredBy === 'CLIENT' ? 'Client' : 'Back-office'}
+                  </TableCell>
+                  <TableCell>
+                    {formatClaimDate(claim.createdAt, true)}
+                  </TableCell>
+                  <TableCell>
+                    <Button asChild variant="outline" size="sm">
+                      <Link
+                        to="/sinistres/$claimId"
+                        params={{ claimId: String(claim.id) }}
+                      >
+                        {availableActions(claim.status).length
+                          ? 'Instruire'
+                          : 'Consulter'}
+                      </Link>
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
             )}
           </TableBody>
         </Table>
       </Card>
-
-      <DetailDrawer
-        content={drawer}
-        onClose={() => setDrawer(null)}
-        onAction={(c) => {
-          toast(c.actionLabel + ' (démo)')
-          setDrawer(null)
-        }}
+      <Pagination
+        page={search.page}
+        totalPages={data?.totalPages ?? 0}
+        isLast={data?.last ?? true}
+        onPrev={() => updateSearch({ page: search.page - 1 })}
+        onNext={() => updateSearch({ page: search.page + 1 })}
       />
     </>
+  )
+}
+
+function SinistresRoute() {
+  return (
+    <ClaimsAdminGate>
+      <ClaimsListContent />
+    </ClaimsAdminGate>
   )
 }

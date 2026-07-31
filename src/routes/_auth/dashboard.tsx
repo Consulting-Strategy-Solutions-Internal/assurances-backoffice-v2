@@ -25,10 +25,8 @@ import { CHART, clickableRow, matchesQuery } from '#/lib/dashboard-theme'
 import { useShell } from '#/components/dashboard/shell'
 import { KpiCard } from '#/components/dashboard/KpiCard'
 import { StatusPill } from '#/components/dashboard/StatusPill'
-import {
-  DetailDrawer,
-  type DrawerContent,
-} from '#/components/dashboard/DetailDrawer'
+import { DetailDrawer } from '#/components/dashboard/DetailDrawer'
+import type { DrawerContent } from '#/components/dashboard/DetailDrawer'
 import {
   renouvelerDrawer,
   sinistreDrawer,
@@ -45,8 +43,10 @@ export const Route = createFileRoute('/_auth/dashboard')({
   component: DashboardPage,
 })
 
-const headCls = 'h-auto px-3 py-2.5 text-[11px] font-bold uppercase tracking-[0.05em] text-muted-foreground'
-const moreLink = 'text-[13px] font-semibold text-primary whitespace-nowrap hover:underline'
+const headCls =
+  'h-auto px-3 py-2.5 text-[11px] font-bold uppercase tracking-[0.05em] text-muted-foreground'
+const moreLink =
+  'text-[13px] font-semibold text-primary whitespace-nowrap hover:underline'
 
 function DashboardPage() {
   const { search } = useShell()
@@ -122,7 +122,8 @@ function DashboardPage() {
           iconClass="bg-white/10"
           value={
             <>
-              2,84 <span className="text-base font-bold text-[#FFC61E]">Mds</span>
+              2,84{' '}
+              <span className="text-base font-bold text-[#FFC61E]">Mds</span>
             </>
           }
           label="Primes encaissées · FCFA"
@@ -140,7 +141,10 @@ function DashboardPage() {
           iconClass="bg-[#1c8a57]/10"
           value={
             <>
-              42,8<span className="text-base font-bold text-muted-foreground">%</span>
+              42,8
+              <span className="text-base font-bold text-muted-foreground">
+                %
+              </span>
             </>
           }
           label="Taux de sinistralité"
@@ -160,18 +164,28 @@ function DashboardPage() {
                 {sinTraiter.length}
               </span>
             </div>
-            <Link to="/sinistres" className={moreLink}>
+            <Link
+              to="/sinistres"
+              search={{ page: 0, size: 20, sort: 'createdAt,desc' }}
+              className={moreLink}
+            >
               Tout voir →
             </Link>
           </div>
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
-                <TableHead className={cn(headCls, 'pl-[22px]')}>Référence</TableHead>
+                <TableHead className={cn(headCls, 'pl-[22px]')}>
+                  Référence
+                </TableHead>
                 <TableHead className={headCls}>Client</TableHead>
                 <TableHead className={headCls}>Branche</TableHead>
-                <TableHead className={cn(headCls, 'text-right')}>Montant</TableHead>
-                <TableHead className={cn(headCls, 'pr-[22px]')}>Statut</TableHead>
+                <TableHead className={cn(headCls, 'text-right')}>
+                  Montant
+                </TableHead>
+                <TableHead className={cn(headCls, 'pr-[22px]')}>
+                  Statut
+                </TableHead>
                 <TableHead className="w-5" />
               </TableRow>
             </TableHeader>
@@ -204,7 +218,10 @@ function DashboardPage() {
               ))}
               {sinTraiter.length === 0 && (
                 <TableRow className="hover:bg-transparent">
-                  <TableCell colSpan={6} className="py-9 text-center text-[13.5px] text-muted-foreground">
+                  <TableCell
+                    colSpan={6}
+                    className="py-9 text-center text-[13.5px] text-muted-foreground"
+                  >
                     Aucun sinistre ne correspond à votre recherche.
                   </TableCell>
                 </TableRow>
@@ -283,7 +300,10 @@ function DashboardPage() {
               {[0, 1, 2, 3, 4].map((i) => (
                 <div
                   key={i}
-                  className={cn('border-t', i === 4 ? 'border-[#e7eaf0]' : 'border-[#eef0f4]')}
+                  className={cn(
+                    'border-t',
+                    i === 4 ? 'border-[#e7eaf0]' : 'border-[#eef0f4]',
+                  )}
                 />
               ))}
             </div>
@@ -325,17 +345,25 @@ function DashboardPage() {
             <span className="text-base font-bold tracking-[-0.01em]">
               Contrats à renouveler
             </span>
-            <Link to="/clients" className={moreLink}>
+            <Link
+              to="/clients"
+              search={{ page: 0, size: 20, sort: 'lastName,asc' }}
+              className={moreLink}
+            >
               Tout voir →
             </Link>
           </div>
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
-                <TableHead className={cn(headCls, 'pl-[22px]')}>Client</TableHead>
+                <TableHead className={cn(headCls, 'pl-[22px]')}>
+                  Client
+                </TableHead>
                 <TableHead className={headCls}>Police</TableHead>
                 <TableHead className={headCls}>Échéance</TableHead>
-                <TableHead className={cn(headCls, 'pr-[22px] text-right')}>Prime</TableHead>
+                <TableHead className={cn(headCls, 'pr-[22px] text-right')}>
+                  Prime
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -361,7 +389,10 @@ function DashboardPage() {
               ))}
               {renouveler.length === 0 && (
                 <TableRow className="hover:bg-transparent">
-                  <TableCell colSpan={4} className="py-9 text-center text-[13.5px] text-muted-foreground">
+                  <TableCell
+                    colSpan={4}
+                    className="py-9 text-center text-[13.5px] text-muted-foreground"
+                  >
                     Aucun contrat ne correspond à votre recherche.
                   </TableCell>
                 </TableRow>

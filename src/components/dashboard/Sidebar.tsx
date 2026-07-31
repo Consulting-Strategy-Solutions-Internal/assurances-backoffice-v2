@@ -13,8 +13,8 @@ import {
   User,
   UserCog,
   Users,
-  type LucideIcon,
 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { Avatar, AvatarFallback } from '#/components/ui/avatar'
 import { Badge } from '#/components/ui/badge'
 import { Button } from '#/components/ui/button'
@@ -140,6 +140,7 @@ export function Sidebar({
   onLogout: () => void
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
+  const isAdmin = user?.role.toUpperCase() === 'ADMIN'
 
   const isActive = (item: NavItem) =>
     pathname.startsWith(item.to) ||
@@ -147,7 +148,7 @@ export function Sidebar({
 
   const fullName = user ? `${user.firstName} ${user.lastName}` : 'Utilisateur'
   const initials = user
-    ? `${user.firstName[0] ?? ''}${user.lastName[0] ?? ''}`.toUpperCase()
+    ? `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase()
     : ''
 
   const renderItem = (item: NavItem) => {
@@ -204,7 +205,9 @@ export function Sidebar({
         PILOTAGE
       </div>
       <nav className="flex flex-col gap-[3px]">
-        {PILOTAGE.map(renderItem)}
+        {PILOTAGE.filter((item) => item.to !== '/sinistres' || isAdmin).map(
+          renderItem,
+        )}
 
         <CollapsibleNavGroup
           icon={FileText}
