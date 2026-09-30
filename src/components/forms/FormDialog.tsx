@@ -9,6 +9,8 @@ import {
   DialogTitle,
 } from '#/components/ui/dialog'
 import { Button } from '#/components/ui/button'
+import { cn } from '#/lib/utils'
+import { useConfirmDiscard } from './unsaved-changes'
 
 interface FormDialogProps {
   onClose: () => void
@@ -21,6 +23,14 @@ interface FormDialogProps {
   /** Disables the primary submit (e.g. when a required picker has no options). */
   submitDisabled?: boolean
   error?: string | null
+  /**
+   * The form holds unsaved edits: closing (overlay, Échap, Annuler, ×) then
+   * asks « Abandonner les modifications ? ». Pass `form.state.isDirty`
+   * (via `useStore(form.store, s => s.isDirty)`).
+   */
+  dirty?: boolean
+  /** `wide` (760 px, taller body) for dense two-column forms. */
+  size?: 'default' | 'wide'
   children: ReactNode
 }
 
@@ -39,16 +49,24 @@ export function FormDialog({
   pending,
   submitDisabled,
   error,
+  dirty = false,
+  size = 'default',
   children,
 }: FormDialogProps) {
+  const { requestClose, dialog } = useConfirmDiscard(dirty && !pending)
   return (
     <Dialog
       open
       onOpenChange={(open) => {
-        if (!open) onClose()
+        if (!open) requestClose(onClose)
       }}
     >
-      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-[460px]">
+      <DialogContent
+        className={cn(
+          'gap-0 overflow-hidden p-0',
+          size === 'wide' ? 'sm:max-w-[760px]' : 'sm:max-w-[460px]',
+        )}
+      >
         <DialogHeader className="gap-0 border-b p-6 text-left">
           <div className="mb-[7px] text-[11.5px] font-bold tracking-[0.06em] text-muted-foreground uppercase">
             {eyebrow}
@@ -69,7 +87,12 @@ export function FormDialog({
             onSubmit()
           }}
         >
-          <div className="flex max-h-[60vh] flex-col gap-4 overflow-y-auto p-6">
+          <div
+            className={cn(
+              'flex flex-col gap-4 overflow-y-auto p-6',
+              size === 'wide' ? 'max-h-[68vh]' : 'max-h-[60vh]',
+            )}
+          >
             {children}
             {error && (
               <p className="rounded-lg bg-destructive/10 px-3 py-2.5 text-[13px] font-medium text-destructive">
@@ -96,6 +119,7 @@ export function FormDialog({
             </Button>
           </DialogFooter>
         </form>
+        {dialog}
       </DialogContent>
     </Dialog>
   )

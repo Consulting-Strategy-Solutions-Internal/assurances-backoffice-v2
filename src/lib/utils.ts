@@ -21,11 +21,26 @@ export function formatDate(iso?: string): string {
 }
 
 const numberFormatter = new Intl.NumberFormat('fr-FR', {
-  maximumFractionDigits: 2,
+  maximumFractionDigits: 0,
 })
 
-/** Formats a number as an FCFA amount (e.g. "10 007,5 FCFA"); '' if undefined. */
+/** Regular no-break space (U+00A0): visible grouping, never wraps. */
+const NBSP = '\u00a0'
+
+/**
+ * Formats a number as an FCFA amount, without decimals (the franc CFA has no
+ * cents) and with a visible no-break space as thousands separator
+ * (e.g. "10 008 FCFA"); '' if undefined.
+ */
 export function formatFcfa(value?: number | null): string {
   if (value == null) return ''
-  return `${numberFormatter.format(value)} FCFA`
+  return `${formatInteger(value)}${NBSP}FCFA`
+}
+
+/**
+ * Integer with no-break-space grouping (FCFA-style, no unit, no decimals).
+ * Not for rates, percentages or coefficients: use `src/lib/format.ts`.
+ */
+export function formatInteger(value: number): string {
+  return numberFormatter.format(value).replace(/[\u202f\u00a0]/g, NBSP)
 }

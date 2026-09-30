@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { Card } from '#/components/ui/card'
 
 const AUTH_BG = '/login-bg.jpg'
 
@@ -57,3 +58,36 @@ export function AuthShell({ children }: { children: ReactNode }) {
     </div>
   )
 }
+
+/** White card holding an auth form (login, forgot/reset password). */
+export function AuthCard({ children }: { children: ReactNode }) {
+  return (
+    <Card className="w-full max-w-[400px] gap-0 rounded-2xl p-8 shadow-[0_20px_60px_rgba(0,20,60,0.35)]">
+      {children}
+    </Card>
+  )
+}
+
+/** Heading block of an auth card: H2 title + muted description. */
+export function AuthHeading({
+  title,
+  description,
+}: {
+  title: string
+  description?: string
+}) {
+  return (
+    <div className="mb-6">
+      <h2 className="text-[22px] font-extrabold tracking-[-0.02em]">{title}</h2>
+      {description && (
+        <p className="mt-1.5 text-[13.5px] text-muted-foreground">
+          {description}
+        </p>
+      )}
+    </div>
+  )
+}
+
+/** Class for the small text links under an auth form (visible focus ring). */
+export const AUTH_LINK_CLASS =
+  'rounded-sm text-[13px] font-semibold text-primary outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50'

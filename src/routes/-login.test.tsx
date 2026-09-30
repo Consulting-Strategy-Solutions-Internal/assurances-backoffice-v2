@@ -1,7 +1,13 @@
 // @vitest-environment jsdom
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { LoginPage } from '#/components/auth/LoginPage'
 
@@ -57,9 +63,7 @@ describe('LoginPage', () => {
     ).toBe('alert')
     expect(email.getAttribute('aria-required')).toBe('true')
     expect(email.getAttribute('aria-describedby')).toBe('email-error')
-    expect(password.getAttribute('aria-describedby')).toBe(
-      'password-error',
-    )
+    expect(password.getAttribute('aria-describedby')).toBe('password-error')
 
     fireEvent.change(email, { target: { value: 'admin@nsia.ci' } })
     fireEvent.change(password, { target: { value: 'password123' } })

@@ -4,8 +4,11 @@ import { Button } from '#/components/ui/button'
 
 interface PageHeaderProps {
   title: string
-  subtitle: string
+  /** One-sentence description of the page, in French. */
+  subtitle?: string
   action?: string
+  /** Icon of the primary action (default `Plus`). */
+  actionIcon?: ReactNode
   onAction?: () => void
   /** Disables the primary action (e.g. when the user lacks the permission). */
   actionDisabled?: boolean
@@ -20,6 +23,7 @@ export function PageHeader({
   title,
   subtitle,
   action,
+  actionIcon,
   onAction,
   actionDisabled,
   actionTitle,
@@ -31,7 +35,9 @@ export function PageHeader({
         <h1 className="text-[26px] font-extrabold tracking-[-0.03em]">
           {title}
         </h1>
-        <p className="mt-[7px] text-sm text-muted-foreground">{subtitle}</p>
+        {subtitle && (
+          <p className="mt-[7px] text-sm text-muted-foreground">{subtitle}</p>
+        )}
       </div>
       {(children || action) && (
         <div className="flex flex-wrap items-center gap-2.5">
@@ -43,7 +49,7 @@ export function PageHeader({
               disabled={actionDisabled}
               title={actionTitle}
             >
-              <Plus />
+              {actionIcon ?? <Plus />}
               {action}
             </Button>
           )}

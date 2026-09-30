@@ -36,5 +36,11 @@ export function usePermissions() {
      */
     can: (authority: string) =>
       permissions === null || permissions.has(authority),
+    /**
+     * True only if the permission set is known AND grants the authority. Use
+     * it (not `can`) when the answer decides what to hide or force (L-005):
+     * unknown permissions count as denied.
+     */
+    canKnown: (authority: string) => permissions?.has(authority) === true,
   }
 }
