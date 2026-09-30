@@ -3,10 +3,13 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { z } from 'zod'
+import { ChangePartnerDialog } from '#/components/clients/ChangePartnerDialog'
 import { ContractDrawer } from '#/components/clients/ContractDrawer'
+import { usePermissions } from '#/components/dashboard/use-permissions'
 import {
   CalendarClock,
   ChevronRight,
+  Handshake,
   FileWarning,
   Hourglass,
   Mail,
@@ -219,6 +222,9 @@ function ClientDetail({ client }: { client: ClientResponse }) {
   const recent = claims.slice(0, 5)
   const lastClaim = claims.at(0)
   const [declaring, setDeclaring] = useState(false)
+  const [changingPartner, setChangingPartner] = useState(false)
+  // An action the server guards: shown unless the role is known to lack it (L-005).
+  const { can } = usePermissions()
   const subscriptionsQuery = useQuery({
     queryKey: subscriptionsAllKey,
     queryFn: getAllSubscriptions,
@@ -246,6 +252,13 @@ function ClientDetail({ client }: { client: ClientResponse }) {
         <CreateClaimDialog
           defaultClientId={clientId}
           onClose={() => setDeclaring(false)}
+        />
+      )}
+      {changingPartner && (
+        <ChangePartnerDialog
+          clientId={clientId}
+          clientName={name}
+          onClose={() => setChangingPartner(false)}
         />
       )}
       <BackLink to="/clients" search={backSearch}>
@@ -289,6 +302,16 @@ function ClientDetail({ client }: { client: ClientResponse }) {
                   <Mail />
                   Envoyer un email
                 </a>
+              </Button>
+            )}
+            {can('backoffice:admin') && (
+              <Button
+                variant="outline"
+                className="rounded-[11px]"
+                onClick={() => setChangingPartner(true)}
+              >
+                <Handshake />
+                Changer de partenaire
               </Button>
             )}
             <Button asChild className="rounded-[11px]">

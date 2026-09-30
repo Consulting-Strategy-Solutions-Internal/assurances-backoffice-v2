@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   cleanup,
   fireEvent,
@@ -12,7 +12,7 @@ import {
 import type { ReactNode } from 'react'
 import type * as SubscriptionsByClient from '#/services/subscriptions-by-client'
 import type { ClientResponse } from '#/services/clients'
-import { ClientsPage } from './_auth/clients'
+import { ClientsPage, Route as ClientsRoute } from './_auth/clients'
 import { ClientDetailContent } from './_auth/clients_.$clientId'
 
 const mocks = vi.hoisted(() => {
@@ -27,7 +27,9 @@ const mocks = vi.hoisted(() => {
     getAllSubscriptions: vi.fn(),
     getClient: vi.fn(),
     getClaims: vi.fn(),
+    getAllPartners: vi.fn(),
     navigate: vi.fn(),
+    permissions: null as Set<string> | null,
   }
 })
 
@@ -81,9 +83,57 @@ vi.mock('#/components/clients/ContractDrawer', () => ({
   ),
 }))
 
+vi.mock('#/components/layout/SearchableSelect', () => ({
+  SearchableSelect: (props: {
+    label: string
+    value: string
+    allLabel: string
+    options: Array<{ value: string; label: string }>
+    onChange: (v: string) => void
+  }) => (
+    <select
+      aria-label={props.label}
+      value={props.value}
+      onChange={(e) => props.onChange(e.target.value)}
+    >
+      <option value="">{props.allLabel}</option>
+      {props.options.map((o) => (
+        <option key={o.value} value={o.value}>
+          {o.label}
+        </option>
+      ))}
+    </select>
+  ),
+}))
+
+vi.mock('#/services/partners', () => ({
+  partnersAllKey: ['partners', 'all-pages'],
+  getAllPartners: mocks.getAllPartners,
+}))
+
+vi.mock('#/components/dashboard/use-permissions', () => ({
+  usePermissions: () => ({
+    permissions: mocks.permissions,
+    can: (code: string) =>
+      mocks.permissions === null || mocks.permissions.has(code),
+  }),
+}))
+
+vi.mock('#/components/clients/ChangePartnerDialog', () => ({
+  ChangePartnerDialog: ({ clientId }: { clientId: number }) => (
+    <div data-testid="change-partner">{clientId}</div>
+  ),
+}))
+
 vi.mock('#/services/clients', () => ({
   clientsKeys: {
-    everyone: (sort: string) => ['clients', 'all', sort],
+    all: ['clients'],
+    everyone: (sort: string, partner: unknown = null) => [
+      'clients',
+      'all',
+      sort,
+      partner,
+    ],
     detail: (id: number) => ['client', id],
   },
   getAllClients: mocks.getAllClients,
@@ -117,6 +167,25 @@ function renderWithQuery(children: ReactNode) {
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
+  delete mocks.search.partner
+  mocks.permissions = null
+})
+
+beforeEach(() => {
+  mocks.getAllPartners.mockResolvedValue({
+    items: [
+      {
+        id: 7,
+        name: 'Sunu Distribution',
+        distributorCode: 'SUNU',
+        idSite: 1,
+        createdAt: '2026-01-01T00:00:00',
+        updatedAt: '2026-01-01T00:00:00',
+      },
+    ],
+    total: 1,
+    capped: false,
+  })
 })
 
 it('renders clients returned by GET /clients', async () => {
@@ -292,5 +361,110 @@ describe('fiche client — documents des contrats', () => {
       name: /Ouvrir le contrat IA-2026-000005/,
     })
     expect(row.querySelector('svg.lucide-chevron-right')).toBeTruthy()
+  })
+})
+
+describe('cloisonnement par partenaire', () => {
+  const allClients = { items: [client], total: 1, capped: false }
+  const emptyClaims = {
+    content: [],
+    page: 0,
+    size: 100,
+    totalElements: 0,
+    totalPages: 0,
+    last: true,
+  }
+
+  it('AC-1 : ?partner garde un id ou none, ignore le reste (jamais de 400)', () => {
+    const schema = (ClientsRoute as unknown as { validateSearch: unknown })
+      .validateSearch as {
+      parse: (value: unknown) => { partner?: unknown }
+    }
+    expect(schema.parse({ partner: '7' }).partner).toBe(7)
+    expect(schema.parse({ partner: 'none' }).partner).toBe('none')
+    expect(schema.parse({ partner: 'abc' }).partner).toBeUndefined()
+    expect(schema.parse({}).partner).toBeUndefined()
+  })
+
+  it('AC-1 : le sélecteur Partenaire écrit ?partner (id, none, ou rien) et revient page 0', async () => {
+    mocks.getAllClients.mockResolvedValue(allClients)
+    renderWithQuery(<ClientsPage />)
+    const select = screen.getByLabelText('Partenaire')
+    await screen.findByRole('option', { name: 'Sunu Distribution' })
+    const nextSearch = () => {
+      const call = mocks.navigate.mock.lastCall?.[0] as {
+        search: (previous: object) => Record<string, unknown>
+      }
+      return call.search({ page: 3, size: 20, sort: 'lastName,asc' })
+    }
+    fireEvent.change(select, { target: { value: '7' } })
+    expect(nextSearch()).toEqual(
+      expect.objectContaining({ partner: 7, page: 0 }),
+    )
+    fireEvent.change(select, { target: { value: 'none' } })
+    expect(nextSearch()).toEqual(
+      expect.objectContaining({ partner: 'none', page: 0 }),
+    )
+    fireEvent.change(select, { target: { value: '' } })
+    expect(nextSearch().partner).toBeUndefined()
+  })
+
+  it('AC-1 : sans filtre, charge tous les clients', async () => {
+    mocks.getAllClients.mockResolvedValue(allClients)
+    renderWithQuery(<ClientsPage />)
+    expect(await screen.findByText('1 client')).toBeTruthy()
+    expect(mocks.getAllClients).toHaveBeenCalledWith('lastName,asc', null)
+  })
+
+  it('AC-1/AC-2 : ?partner=7 filtre côté serveur et nomme le partenaire', async () => {
+    mocks.search.partner = 7
+    mocks.getAllClients.mockResolvedValue(allClients)
+    renderWithQuery(<ClientsPage />)
+    expect(
+      await screen.findByText('1 client · partenaire Sunu Distribution'),
+    ).toBeTruthy()
+    expect(mocks.getAllClients).toHaveBeenCalledWith('lastName,asc', 7)
+  })
+
+  it('AC-1/AC-2 : ?partner=none liste les clients sans partenaire', async () => {
+    mocks.search.partner = 'none'
+    mocks.getAllClients.mockResolvedValue(allClients)
+    renderWithQuery(<ClientsPage />)
+    expect(await screen.findByText('1 client · sans partenaire')).toBeTruthy()
+    expect(mocks.getAllClients).toHaveBeenCalledWith('lastName,asc', 'none')
+  })
+
+  function renderDetail() {
+    mocks.getClient.mockResolvedValue(client)
+    mocks.getAllSubscriptions.mockResolvedValue({
+      items: [],
+      total: 0,
+      capped: false,
+    })
+    mocks.getClaims.mockResolvedValue(emptyClaims)
+    renderWithQuery(<ClientDetailContent clientId={42} />)
+  }
+
+  it('AC-3 : « Changer de partenaire » ouvre le dialogue d’arbitrage', async () => {
+    mocks.permissions = new Set(['backoffice:admin'])
+    renderDetail()
+    fireEvent.click(
+      await screen.findByRole('button', { name: /Changer de partenaire/ }),
+    )
+    expect(screen.getByTestId('change-partner').textContent).toBe('42')
+  })
+
+  it('bouton visible tant que les droits sont inconnus (L-009), masqué sans backoffice:admin', async () => {
+    renderDetail()
+    expect(
+      await screen.findByRole('button', { name: /Changer de partenaire/ }),
+    ).toBeTruthy()
+    cleanup()
+    mocks.permissions = new Set(['client:read'])
+    renderDetail()
+    await screen.findByRole('heading', { name: 'Awa Koné' })
+    expect(
+      screen.queryByRole('button', { name: /Changer de partenaire/ }),
+    ).toBeNull()
   })
 })
