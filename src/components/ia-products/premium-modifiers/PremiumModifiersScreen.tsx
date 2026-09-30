@@ -7,13 +7,14 @@ import { StatusPill } from '#/components/dashboard/StatusPill'
 import { usePermissions } from '#/components/dashboard/use-permissions'
 import {
   DataTableCard,
+  DataTableCell,
   DataTableHead,
-  FIRST_CELL_CLASS,
   TableEmptyState,
   TableErrorState,
   TableSkeletonRows,
 } from '#/components/layout/DataTable'
-import { ResultCount, Toolbar } from '#/components/layout/Toolbar'
+import { MobileCardList } from '#/components/layout/MobileCardList'
+import { ResultCount } from '#/components/layout/Toolbar'
 import { TruncatedText } from '#/components/layout/TruncatedText'
 import { Button } from '#/components/ui/button'
 import { Pagination } from '#/components/ui/Pagination'
@@ -26,12 +27,13 @@ import {
 } from '#/components/ui/table'
 import { formatSignedPercent } from '#/lib/format'
 import { parseIaErrorList } from '#/lib/ia-errors'
-import { cn } from '#/lib/utils'
 import {
   deletePremiumModifier,
   getPremiumModifiers,
 } from '#/services/ia-standard'
 import type { PremiumModifierResponse } from '#/services/ia-standard'
+import { CardActionsMenu } from '../shared/CardActionsMenu'
+import { HeaderActionPortal } from '../shared/header-action'
 import {
   isForbidden,
   noWriteTitle,
@@ -98,20 +100,18 @@ export function PremiumModifiersScreen({
 
   return (
     <>
-      <Toolbar
-        actions={
-          <span title={noWriteTitle('Majorations & réductions', canWrite)}>
-            <Button
-              className="rounded-[11px]"
-              disabled={!canWrite}
-              onClick={() => setEditing(null)}
-            >
-              <Plus />
-              Nouvelle règle
-            </Button>
-          </span>
-        }
-      />
+      <HeaderActionPortal>
+        <span title={noWriteTitle('Majorations & réductions', canWrite)}>
+          <Button
+            className="rounded-[11px]"
+            disabled={!canWrite}
+            onClick={() => setEditing(null)}
+          >
+            <Plus />
+            Nouvelle règle
+          </Button>
+        </span>
+      </HeaderActionPortal>
 
       <ResultCount
         note={partial ? 'Détails calculés sur la page affichée.' : undefined}
@@ -121,23 +121,102 @@ export function PremiumModifiersScreen({
           : `${data?.totalElements ?? 0} règle${(data?.totalElements ?? 0) > 1 ? 's' : ''} · ${active} active${active > 1 ? 's' : ''} · ${surcharges} majoration${surcharges > 1 ? 's' : ''} · ${discounts} réduction${discounts > 1 ? 's' : ''}`}
       </ResultCount>
 
-      <DataTableCard>
+      <DataTableCard
+        mobileCards={
+          <MobileCardList
+            items={modifiers}
+            getKey={(m) => m.id}
+            isLoading={loading}
+            skeletonCount={5}
+            error={isError}
+            forbidden={isForbidden(error)}
+            errorTitle="Impossible de charger les majorations et réductions."
+            errorAction={<RetryAction onRetry={() => void refetch()} />}
+            empty={{
+              icon: Percent,
+              title: 'Aucune majoration ni réduction.',
+              description: 'Créez une règle pour l’appliquer aux cotations.',
+            }}
+            renderCard={(m) => (
+              <div className="flex items-start gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <p className="font-mono text-[13px] font-semibold">
+                      {m.code}
+                    </p>
+                    <p className="text-[14px] font-bold tabular-nums">
+                      {formatSignedPercent(m.rate, m.modifierType)}
+                    </p>
+                  </div>
+                  <div className="text-[12.5px] text-muted-foreground">
+                    <TruncatedText lines={2}>{m.label}</TruncatedText>
+                  </div>
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    <StatusPill
+                      tone={m.modifierType === 'SURCHARGE' ? 'warning' : 'info'}
+                    >
+                      {MODIFIER_TYPE_LABELS[m.modifierType]}
+                    </StatusPill>
+                    <StatusPill tone={m.isActive ? 'success' : 'neutral'}>
+                      {m.isActive ? 'Actif' : 'Inactif'}
+                    </StatusPill>
+                  </div>
+                </div>
+                <CardActionsMenu
+                  label={`Actions de la règle ${m.code}`}
+                  disabled={!canWrite}
+                  title={noWriteTitle('Majorations & réductions', canWrite)}
+                  actions={[
+                    {
+                      label: 'Modifier',
+                      icon: Pencil,
+                      onSelect: () => setEditing(m),
+                    },
+                    {
+                      label: 'Supprimer',
+                      icon: Trash2,
+                      destructive: true,
+                      onSelect: () => {
+                        setDeleteErrors([])
+                        setDeleting(m)
+                      },
+                    },
+                  ]}
+                />
+              </div>
+            )}
+          />
+        }
+      >
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <DataTableHead first>Code</DataTableHead>
+              <DataTableHead first sticky="left">
+                Code
+              </DataTableHead>
               <DataTableHead>Libellé</DataTableHead>
-              <DataTableHead>Type</DataTableHead>
+              <DataTableHead hideBelow="lg">Type</DataTableHead>
               <DataTableHead className="text-right">Taux</DataTableHead>
               <DataTableHead>Statut</DataTableHead>
-              <DataTableHead className="pr-[22px] text-right">
+              <DataTableHead sticky="right" className="pr-[22px] text-right">
                 Actions
               </DataTableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableSkeletonRows rows={5} columns={[20, 48, 20, 12, 14, 16]} />
+              <TableSkeletonRows
+                rows={5}
+                columns={[20, 48, 20, 12, 14, 16]}
+                hideBelow={[
+                  undefined,
+                  undefined,
+                  'lg',
+                  undefined,
+                  undefined,
+                  undefined,
+                ]}
+              />
             ) : isError ? (
               <TableErrorState
                 colSpan={6}
@@ -155,24 +234,23 @@ export function PremiumModifiersScreen({
             ) : (
               modifiers.map((m) => (
                 <TableRow key={m.id} className="hover:bg-[#f6f8fc]">
-                  <TableCell
-                    className={cn(
-                      FIRST_CELL_CLASS,
-                      'font-mono text-[13px] font-semibold',
-                    )}
+                  <DataTableCell
+                    first
+                    sticky="left"
+                    className="font-mono text-[13px] font-semibold"
                   >
                     {m.code}
-                  </TableCell>
+                  </DataTableCell>
                   <TableCell className="max-w-[300px] text-[13.5px]">
                     <TruncatedText lines={2}>{m.label}</TruncatedText>
                   </TableCell>
-                  <TableCell>
+                  <DataTableCell hideBelow="lg">
                     <StatusPill
                       tone={m.modifierType === 'SURCHARGE' ? 'warning' : 'info'}
                     >
                       {MODIFIER_TYPE_LABELS[m.modifierType]}
                     </StatusPill>
-                  </TableCell>
+                  </DataTableCell>
                   <TableCell className="text-right text-[13.5px] font-semibold tabular-nums">
                     {formatSignedPercent(m.rate, m.modifierType)}
                   </TableCell>
@@ -181,7 +259,10 @@ export function PremiumModifiersScreen({
                       {m.isActive ? 'Actif' : 'Inactif'}
                     </StatusPill>
                   </TableCell>
-                  <TableCell className="pr-[22px] text-right">
+                  <DataTableCell
+                    sticky="right"
+                    className="pr-[22px] text-right"
+                  >
                     <span
                       className="inline-flex items-center justify-end gap-1"
                       title={noWriteTitle('Majorations & réductions', canWrite)}
@@ -209,7 +290,7 @@ export function PremiumModifiersScreen({
                         <Trash2 />
                       </Button>
                     </span>
-                  </TableCell>
+                  </DataTableCell>
                 </TableRow>
               ))
             )}

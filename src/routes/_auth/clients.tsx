@@ -10,14 +10,18 @@ import { KpiCard } from '#/components/dashboard/KpiCard'
 import {
   ClickableRow,
   DataTableCard,
+  DataTableCell,
   DataTableHead,
-  FIRST_CELL_CLASS,
   RowChevron,
   TableEmptyState,
   TableErrorState,
   TableSkeletonRows,
 } from '#/components/layout/DataTable'
 import { KpiRow } from '#/components/layout/KpiRow'
+import {
+  MobileCardContent,
+  MobileCardList,
+} from '#/components/layout/MobileCardList'
 import { TruncatedText } from '#/components/layout/TruncatedText'
 import { SegmentedPills } from '#/components/layout/SegmentedPills'
 import {
@@ -34,13 +38,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '#/components/ui/select'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHeader,
-  TableRow,
-} from '#/components/ui/table'
+import { Table, TableBody, TableHeader, TableRow } from '#/components/ui/table'
 import {
   clientAddress,
   clientEmail,
@@ -129,7 +127,7 @@ export function ClientsPage() {
         subtitle="Assurés inscrits sur l’application : coordonnées, vérifications et historique de sinistres."
       />
 
-      <KpiRow className="lg:grid-cols-4">
+      <KpiRow>
         <KpiCard
           icon={<Users className="size-5 text-primary" />}
           iconClass="bg-primary/[0.08]"
@@ -201,7 +199,7 @@ export function ClientsPage() {
             >
               <SelectTrigger
                 aria-label="Tri"
-                className="h-10 w-[170px] rounded-[10px] bg-card"
+                className="h-10 rounded-[10px] bg-card @xl/main:w-[170px]"
               >
                 <SelectValue />
               </SelectTrigger>
@@ -230,15 +228,67 @@ export function ClientsPage() {
           : `${filtered.length} client${filtered.length > 1 ? 's' : ''}${filtering ? ` sur ${clients.length}` : ''}`}
       </ResultCount>
 
-      <DataTableCard>
+      <DataTableCard
+        mobileCards={
+          <MobileCardList
+            items={rows}
+            getKey={(client) => client.id}
+            onActivate={(client) =>
+              void navigate({
+                to: '/clients/$clientId',
+                params: { clientId: String(client.id) },
+              })
+            }
+            isLoading={isLoading}
+            error={!!error}
+            forbidden={forbidden}
+            errorTitle="Impossible de charger les clients."
+            errorAction={
+              <Button
+                variant="outline"
+                className="rounded-[11px]"
+                onClick={() => void refetch()}
+              >
+                Réessayer
+              </Button>
+            }
+            empty={{
+              icon: UserRound,
+              title: filtering
+                ? 'Aucun client ne correspond à votre recherche.'
+                : 'Aucun client pour le moment.',
+              action: filtering ? (
+                <button
+                  type="button"
+                  onClick={reset}
+                  className="text-[13px] font-semibold text-primary hover:underline"
+                >
+                  Réinitialiser les filtres
+                </button>
+              ) : undefined,
+            }}
+            renderCard={(client) => (
+              <MobileCardContent
+                leading={<ClientAvatar client={client} />}
+                title={clientFullName(client)}
+                subtitle={formatPhone(client.phoneNumber)}
+                status={<VerificationIcons client={client} />}
+                meta={clientEmail(client) || `Client #${client.id}`}
+              />
+            )}
+          />
+        }
+      >
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <DataTableHead first>Client</DataTableHead>
+              <DataTableHead first sticky="left">
+                Client
+              </DataTableHead>
               <DataTableHead>Téléphone</DataTableHead>
-              <DataTableHead>Email</DataTableHead>
-              <DataTableHead>Adresse</DataTableHead>
-              <DataTableHead>Inscrit le</DataTableHead>
+              <DataTableHead hideBelow="md">Email</DataTableHead>
+              <DataTableHead hideBelow="xl">Adresse</DataTableHead>
+              <DataTableHead hideBelow="lg">Inscrit le</DataTableHead>
               <DataTableHead>Vérifications</DataTableHead>
               <DataTableHead className="w-10" />
             </TableRow>
@@ -247,6 +297,7 @@ export function ClientsPage() {
             {isLoading ? (
               <TableSkeletonRows
                 columns={[36, 28, 32, 40, 20, 16]}
+                hideBelow={[undefined, undefined, 'md', 'xl', 'lg']}
                 leading="avatar"
                 trailing
               />
@@ -299,46 +350,54 @@ export function ClientsPage() {
                       })
                     }
                   >
-                    <TableCell className={FIRST_CELL_CLASS}>
+                    <DataTableCell first sticky="left">
                       <div className="flex items-center gap-3">
                         <ClientAvatar client={client} />
-                        <div>
+                        <div className="min-w-0">
                           <div className="font-semibold">
                             {clientFullName(client)}
                           </div>
                           <div className="text-[12px] text-muted-foreground">
                             Client #{client.id}
                           </div>
+                          {email && (
+                            <TruncatedText className="max-w-[13rem] text-[12px] text-muted-foreground @2xl/main:hidden">
+                              {email}
+                            </TruncatedText>
+                          )}
                         </div>
                       </div>
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap tabular-nums">
+                    </DataTableCell>
+                    <DataTableCell className="whitespace-nowrap tabular-nums">
                       {formatPhone(client.phoneNumber)}
-                    </TableCell>
-                    <TableCell>
+                    </DataTableCell>
+                    <DataTableCell hideBelow="md">
                       {email ? (
-                        <TruncatedText className="max-w-[220px]">
+                        <TruncatedText className="max-w-[14rem]">
                           {email}
                         </TruncatedText>
                       ) : (
                         <span className="text-muted-foreground">—</span>
                       )}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    </DataTableCell>
+                    <DataTableCell
+                      hideBelow="xl"
+                      className="text-muted-foreground"
+                    >
                       {clientAddress(client) ? (
-                        <TruncatedText className="max-w-[260px]">
+                        <TruncatedText className="max-w-[16rem]">
                           {clientAddress(client)}
                         </TruncatedText>
                       ) : (
                         '—'
                       )}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
+                    </DataTableCell>
+                    <DataTableCell hideBelow="lg" className="whitespace-nowrap">
                       {formatClaimDate(client.createdAt)}
-                    </TableCell>
-                    <TableCell>
+                    </DataTableCell>
+                    <DataTableCell>
                       <VerificationIcons client={client} />
-                    </TableCell>
+                    </DataTableCell>
                     <RowChevron />
                   </ClickableRow>
                 )

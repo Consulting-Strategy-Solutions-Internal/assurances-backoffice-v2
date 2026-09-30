@@ -10,10 +10,10 @@ import { usePermissions } from '#/components/dashboard/use-permissions'
 import { StatusPill } from '#/components/dashboard/StatusPill'
 import { BackLink } from '#/components/layout/BackLink'
 import { DetailHeaderCard } from '#/components/layout/DetailHeaderCard'
+import { DetailSkeleton } from '#/components/layout/DetailSkeleton'
 import { EmptyState } from '#/components/layout/EmptyState'
 import { EntityAvatar } from '#/components/layout/EntityAvatar'
 import { Button } from '#/components/ui/button'
-import { Skeleton } from '#/components/ui/skeleton'
 import { mapClaimError } from '#/lib/claims'
 
 export const Route = createFileRoute('/_auth/partners_/$partnerId')({
@@ -61,17 +61,7 @@ function PartnerDetailPage() {
   })
 
   if (isLoading) {
-    return (
-      <div className="flex flex-col gap-[18px]">
-        <Skeleton className="h-36 rounded-xl" />
-        <div className="grid grid-cols-3 gap-4">
-          <Skeleton className="h-[122px] rounded-2xl" />
-          <Skeleton className="h-[122px] rounded-2xl" />
-          <Skeleton className="h-[122px] rounded-2xl" />
-        </div>
-        <Skeleton className="h-64 rounded-xl" />
-      </div>
-    )
+    return <DetailSkeleton kpis={3} />
   }
   if (error || !partner) {
     const kind = error ? mapClaimError(error).kind : 'not-found'

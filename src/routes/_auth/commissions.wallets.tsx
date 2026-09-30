@@ -14,6 +14,7 @@ import { KpiCard } from '#/components/dashboard/KpiCard'
 import { StatusPill } from '#/components/dashboard/StatusPill'
 import {
   DataTableCard,
+  DataTableCell,
   DataTableHead,
   FIRST_CELL_CLASS,
   TableEmptyState,
@@ -44,7 +45,7 @@ import {
 import { mapClaimError } from '#/lib/claims'
 import { fetchAllPages } from '#/lib/fetch-all-pages'
 import { formatPersonName } from '#/lib/people'
-import { formatDate, formatFcfa } from '#/lib/utils'
+import { formatDate, formatFcfa, formatInteger } from '#/lib/utils'
 import type { CommissionOwnerType } from '#/services/commission-distributions'
 import {
   getAllAgencySellers,
@@ -210,7 +211,8 @@ function WalletsPage() {
         <KpiCard
           icon={<Banknote className="size-5 text-[#167347]" />}
           iconClass="bg-[#1c8a57]/10"
-          value={kpi(formatFcfa(pageBalance))}
+          value={kpi(formatInteger(pageBalance))}
+          unit={loading || failure ? undefined : 'FCFA'}
           label="Solde cumulé"
         />
         <KpiCard
@@ -279,7 +281,7 @@ function WalletsPage() {
                 label="Rattachement du vendeur"
                 value={sellerScope}
                 allLabel="Directement au partenaire"
-                className="w-[220px]"
+                fluid
                 options={[
                   { value: 'DIRECT', label: 'Directement au partenaire' },
                   { value: 'AGENCY', label: 'Dans une agence' },
@@ -367,18 +369,23 @@ function WalletsPage() {
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <DataTableHead first>Propriétaire</DataTableHead>
+              <DataTableHead first sticky="left" stickyFrom="sm">
+                Propriétaire
+              </DataTableHead>
               <DataTableHead>Type</DataTableHead>
-              <DataTableHead>Identifiant</DataTableHead>
+              <DataTableHead hideBelow="md">Identifiant</DataTableHead>
               <DataTableHead className="text-right">Solde</DataTableHead>
-              <DataTableHead className="pr-[22px] text-right">
+              <DataTableHead sticky="right" className="pr-[22px] text-right">
                 Relevé
               </DataTableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableSkeletonRows columns={[40, 20, 14, 24, 28]} />
+              <TableSkeletonRows
+                columns={[40, 20, 14, 24, 28]}
+                hideBelow={[undefined, undefined, 'md']}
+              />
             ) : failure ? (
               <TableErrorState
                 colSpan={COLUMNS}
@@ -423,9 +430,14 @@ function WalletsPage() {
                   key={wallet.id ?? `empty-${index}`}
                   className="hover:bg-[#f6f8fc]"
                 >
-                  <TableCell className={`${FIRST_CELL_CLASS} font-semibold`}>
+                  <DataTableCell
+                    first
+                    sticky="left"
+                    stickyFrom="sm"
+                    className="font-semibold"
+                  >
                     {walletOwnerLabel(wallet)}
-                  </TableCell>
+                  </DataTableCell>
                   <TableCell>
                     {wallet.ownerType ? (
                       <StatusPill tone="info">
@@ -435,18 +447,24 @@ function WalletsPage() {
                       <span className="text-muted-foreground">—</span>
                     )}
                   </TableCell>
-                  <TableCell className="text-muted-foreground tabular-nums">
+                  <DataTableCell
+                    hideBelow="md"
+                    className="text-muted-foreground tabular-nums"
+                  >
                     {wallet.ownerId === null ? '—' : `#${wallet.ownerId}`}
-                  </TableCell>
+                  </DataTableCell>
                   <TableCell className="text-right text-[15px] font-extrabold whitespace-nowrap tabular-nums">
                     {formatFcfa(wallet.balance)}
                   </TableCell>
-                  <TableCell className="pr-[22px] text-right">
+                  <DataTableCell
+                    sticky="right"
+                    className="pr-[22px] text-right"
+                  >
                     <WalletStatementAction
                       wallet={wallet}
                       onOpen={() => setSelectedWallet(wallet)}
                     />
-                  </TableCell>
+                  </DataTableCell>
                 </TableRow>
               ))
             )}
@@ -492,7 +510,7 @@ function WalletTransactionsDialog({
         if (!open) onClose()
       }}
     >
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-4xl">
+      <DialogContent size="xl" className="max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <p className="text-[11.5px] font-bold tracking-[0.06em] text-muted-foreground uppercase">
             Relevé du portefeuille

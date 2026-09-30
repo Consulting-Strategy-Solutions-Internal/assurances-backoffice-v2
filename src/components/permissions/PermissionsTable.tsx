@@ -3,23 +3,17 @@ import type { PermissionResponse } from '#/services/roles'
 import {
   ClickableRow,
   DataTableCard,
+  DataTableCell,
   DataTableHead,
-  FIRST_CELL_CLASS,
   RowChevron,
   TableEmptyState,
   TableErrorState,
   TableSkeletonRows,
 } from '#/components/layout/DataTable'
+import { TruncatedText } from '#/components/layout/TruncatedText'
 import { Button } from '#/components/ui/button'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHeader,
-  TableRow,
-} from '#/components/ui/table'
+import { Table, TableBody, TableHeader, TableRow } from '#/components/ui/table'
 import { permissionDescription, permissionLabel } from '#/lib/permission-labels'
-import { cn } from '#/lib/utils'
 
 interface PermissionsTableProps {
   permissions: PermissionResponse[]
@@ -52,13 +46,17 @@ export function PermissionsTable({
         <TableHeader>
           <TableRow className="hover:bg-transparent">
             <DataTableHead first>Permission</DataTableHead>
-            <DataTableHead>Ce que ça autorise</DataTableHead>
+            <DataTableHead hideBelow="md">Ce que ça autorise</DataTableHead>
             {onSelect && <DataTableHead className="w-10" />}
           </TableRow>
         </TableHeader>
         <TableBody>
           {isLoading ? (
-            <TableSkeletonRows columns={[48, 96]} trailing={!!onSelect} />
+            <TableSkeletonRows
+              columns={[48, 96]}
+              hideBelow={[undefined, 'md']}
+              trailing={!!onSelect}
+            />
           ) : error ? (
             <TableErrorState
               colSpan={cols}
@@ -97,8 +95,9 @@ export function PermissionsTable({
             permissions.map((permission) => {
               const cells = (
                 <>
-                  <TableCell
-                    className={cn(FIRST_CELL_CLASS, 'w-[300px] align-top')}
+                  <DataTableCell
+                    first
+                    className="align-top @2xl/main:w-[300px]"
                   >
                     <div className="font-semibold">
                       {permissionLabel(permission.name)}
@@ -106,10 +105,18 @@ export function PermissionsTable({
                     <div className="mt-0.5 font-mono text-[12px] text-muted-foreground">
                       {permission.name}
                     </div>
-                  </TableCell>
-                  <TableCell className="align-top leading-relaxed whitespace-normal text-muted-foreground">
+                    <div className="mt-1 text-[12.5px] leading-snug whitespace-normal text-muted-foreground @2xl/main:hidden">
+                      <TruncatedText lines={2}>
+                        {permissionDescription(permission.name)}
+                      </TruncatedText>
+                    </div>
+                  </DataTableCell>
+                  <DataTableCell
+                    hideBelow="md"
+                    className="align-top leading-relaxed whitespace-normal text-muted-foreground"
+                  >
                     {permissionDescription(permission.name)}
-                  </TableCell>
+                  </DataTableCell>
                 </>
               )
               return onSelect ? (
@@ -117,7 +124,7 @@ export function PermissionsTable({
                   key={permission.id}
                   aria-label={`Modifier la permission ${permission.name}`}
                   onActivate={() => onSelect(permission)}
-                  className={cn(selectedId === permission.id && 'bg-primary/5')}
+                  selected={selectedId === permission.id}
                 >
                   {cells}
                   <RowChevron />

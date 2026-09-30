@@ -5,13 +5,17 @@ import { EntityAvatar } from '#/components/layout/EntityAvatar'
 import {
   ClickableRow,
   DataTableCard,
+  DataTableCell,
   DataTableHead,
-  FIRST_CELL_CLASS,
   RowChevron,
   TableEmptyState,
   TableErrorState,
   TableSkeletonRows,
 } from '#/components/layout/DataTable'
+import {
+  MobileCardContent,
+  MobileCardList,
+} from '#/components/layout/MobileCardList'
 import { Button } from '#/components/ui/button'
 import {
   Table,
@@ -20,7 +24,6 @@ import {
   TableHeader,
   TableRow,
 } from '#/components/ui/table'
-import { cn } from '#/lib/utils'
 import { formatPersonName } from '#/lib/people'
 import { formatPhone } from '#/lib/clients'
 import { formatRoleName, isPlaceholderPhone } from '#/lib/admin-roles'
@@ -52,14 +55,70 @@ export function UsersTable({
   onRetry,
 }: UsersTableProps) {
   return (
-    <DataTableCard>
+    <DataTableCard
+      mobileCards={
+        <MobileCardList
+          items={users}
+          getKey={(u) => u.id}
+          onActivate={onSelect}
+          isLoading={isLoading}
+          error={!!error}
+          forbidden={forbidden}
+          errorTitle="Impossible de charger les administrateurs."
+          errorAction={
+            onRetry && (
+              <Button variant="outline" size="sm" onClick={onRetry}>
+                Réessayer
+              </Button>
+            )
+          }
+          empty={{
+            icon: ShieldUser,
+            title: filtering
+              ? 'Aucun administrateur ne correspond à votre recherche.'
+              : 'Aucun administrateur pour le moment.',
+            action:
+              filtering && onReset ? (
+                <button
+                  type="button"
+                  onClick={onReset}
+                  className="text-[13px] font-semibold text-primary hover:underline"
+                >
+                  Réinitialiser les filtres
+                </button>
+              ) : undefined,
+          }}
+          renderCard={(u) => (
+            <MobileCardContent
+              leading={
+                <EntityAvatar
+                  name={formatPersonName(u.firstName, u.lastName)}
+                />
+              }
+              title={formatPersonName(u.firstName, u.lastName)}
+              subtitle={u.email}
+              status={
+                <StatusPill tone="info">{formatRoleName(u.role)}</StatusPill>
+              }
+              meta={
+                <StatusPill tone={u.emailVerified ? 'success' : 'warning'}>
+                  {u.emailVerified ? 'Vérifié' : 'Non vérifié'}
+                </StatusPill>
+              }
+            />
+          )}
+        />
+      }
+    >
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
-            <DataTableHead first>Administrateur</DataTableHead>
+            <DataTableHead first sticky="left">
+              Administrateur
+            </DataTableHead>
             <DataTableHead>Rôle</DataTableHead>
             <DataTableHead>Téléphone</DataTableHead>
-            <DataTableHead>Email vérifié</DataTableHead>
+            <DataTableHead hideBelow="lg">Email vérifié</DataTableHead>
             <DataTableHead className="w-10" />
           </TableRow>
         </TableHeader>
@@ -67,6 +126,7 @@ export function UsersTable({
           {isLoading ? (
             <TableSkeletonRows
               columns={[44, 20, 28, 20]}
+              hideBelow={[undefined, undefined, undefined, 'lg']}
               leading="avatar"
               trailing
             />
@@ -110,14 +170,14 @@ export function UsersTable({
                 key={user.id}
                 aria-label={`Voir ${formatPersonName(user.firstName, user.lastName)}`}
                 onActivate={() => onSelect(user)}
-                className={cn(selectedId === user.id && 'bg-primary/5')}
+                selected={selectedId === user.id}
               >
-                <TableCell className={FIRST_CELL_CLASS}>
+                <DataTableCell first sticky="left">
                   <div className="flex items-center gap-3">
                     <EntityAvatar
                       name={formatPersonName(user.firstName, user.lastName)}
                     />
-                    <div className="min-w-0 max-w-[280px]">
+                    <div className="min-w-0 max-w-[200px] @4xl/main:max-w-[280px]">
                       <TruncatedText className="font-semibold">
                         {formatPersonName(user.firstName, user.lastName)}
                       </TruncatedText>
@@ -126,7 +186,7 @@ export function UsersTable({
                       </TruncatedText>
                     </div>
                   </div>
-                </TableCell>
+                </DataTableCell>
                 <TableCell>
                   <StatusPill tone="info">
                     {formatRoleName(user.role)}
@@ -139,11 +199,11 @@ export function UsersTable({
                     formatPhone(user.phoneNumber)
                   )}
                 </TableCell>
-                <TableCell>
+                <DataTableCell hideBelow="lg">
                   <StatusPill tone={user.emailVerified ? 'success' : 'warning'}>
                     {user.emailVerified ? 'Vérifié' : 'Non vérifié'}
                   </StatusPill>
-                </TableCell>
+                </DataTableCell>
                 <RowChevron />
               </ClickableRow>
             ))

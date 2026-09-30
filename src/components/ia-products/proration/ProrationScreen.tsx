@@ -20,9 +20,10 @@ import {
   TableErrorState,
   TableSkeletonRows,
 } from '#/components/layout/DataTable'
-import { ResultCount, Toolbar } from '#/components/layout/Toolbar'
+import { ResultCount } from '#/components/layout/Toolbar'
 import { SectionCard } from '#/components/layout/SectionCard'
 import { WarningBanner } from '#/components/ia-products/shared/WarningBanner'
+import { HeaderActionPortal } from '../shared/header-action'
 import { isForbidden, RetryAction } from '../shared/screen-kit'
 import { apiErrorMessage } from '#/lib/api-error'
 import { parseIaErrorList } from '#/lib/ia-errors'
@@ -135,20 +136,18 @@ export function ProrationScreen() {
 
   return (
     <div>
-      <Toolbar
-        actions={
-          <span title={writeTitle}>
-            <Button
-              className="rounded-[11px]"
-              disabled={!canWrite}
-              onClick={() => setEditing('new')}
-            >
-              <Plus className="size-4" />
-              Ajouter une tranche
-            </Button>
-          </span>
-        }
-      />
+      <HeaderActionPortal>
+        <span title={writeTitle}>
+          <Button
+            className="rounded-[11px]"
+            disabled={!canWrite}
+            onClick={() => setEditing('new')}
+          >
+            <Plus className="size-4" />
+            Ajouter une tranche
+          </Button>
+        </span>
+      </HeaderActionPortal>
 
       <ResultCount>
         {isError

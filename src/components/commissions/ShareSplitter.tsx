@@ -234,7 +234,7 @@ export function ShareSplitter({
 
       <div className="flex justify-between gap-2 text-[11.5px] text-muted-foreground tabular-nums">
         <span>0 %</span>
-        <span className="text-center">
+        <span className="hidden text-center sm:inline">
           Glissez {thumbs.length > 1 ? 'les curseurs' : 'le curseur'} · ←/→ 0,5
           % · Maj+←/→ 0,01 % · Page ↑/↓ 5 %
         </span>
@@ -243,7 +243,7 @@ export function ShareSplitter({
 
       {!confirmed && (
         <div className="flex flex-wrap items-center gap-3 rounded-lg bg-[#fef3da] px-3.5 py-2.5 text-[12.5px] text-[#8a6600]">
-          <span className="min-w-0 flex-1">
+          <span className="min-w-0 basis-full sm:basis-0 sm:flex-1">
             Répartition par défaut : ajustez-la avec le curseur ou confirmez-la
             telle quelle pour pouvoir enregistrer.
           </span>

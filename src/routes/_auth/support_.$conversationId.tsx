@@ -14,6 +14,7 @@ import { Button } from '#/components/ui/button'
 import { ConfirmDialog } from '#/components/dashboard/ConfirmDialog'
 import { StatusPill } from '#/components/dashboard/StatusPill'
 import { BackLink } from '#/components/layout/BackLink'
+import { DetailSkeleton } from '#/components/layout/DetailSkeleton'
 import {
   DetailHeaderCard,
   IconTile,
@@ -272,14 +273,7 @@ export function SupportConversationContent({
     }
   }
 
-  if (isLoading)
-    return (
-      <div className="flex flex-col gap-[18px]">
-        <Skeleton className="h-8 w-56 rounded-lg" />
-        <Skeleton className="h-32 rounded-xl" />
-        <Skeleton className="h-[420px] rounded-xl" />
-      </div>
-    )
+  if (isLoading) return <DetailSkeleton kpis={0} />
   if (error || !conversation)
     return (
       <div className="flex flex-col gap-[18px]">
@@ -396,6 +390,10 @@ export function SupportConversationContent({
       )}
       <SectionCard
         flush
+        // Sous 672 px de contenu : la carte tient dans l'écran (100dvh moins
+        // barre du haut et marges) — fil défilant + zone de réponse collée en bas.
+        className="@max-2xl/main:h-[calc(100dvh-7rem)] @max-2xl/main:min-h-[26rem]"
+        bodyClassName="flex min-h-0 flex-1 flex-col"
         title="Fil de discussion"
         action={
           <span className="flex items-center gap-1.5 text-[12px] font-semibold text-muted-foreground">
@@ -411,7 +409,7 @@ export function SupportConversationContent({
       >
         <div
           ref={threadRef}
-          className="max-h-[52vh] min-h-[280px] space-y-4 overflow-y-auto bg-[#f7f8fb] px-6 py-5"
+          className="min-h-0 flex-1 space-y-4 overflow-y-auto bg-[#f7f8fb] px-4 py-5 sm:px-6 @2xl/main:max-h-[52vh] @2xl/main:min-h-[280px] @2xl/main:flex-none"
         >
           {messages === undefined ? (
             <div className="space-y-4">
@@ -435,10 +433,10 @@ export function SupportConversationContent({
           )}
         </div>
         {replyEnabled && (
-          <div className="border-t px-6 py-4">
+          <div className="shrink-0 border-t px-4 py-3 sm:px-6 sm:py-4">
             <textarea
               aria-label="Réponse au client"
-              rows={3}
+              rows={2}
               maxLength={MAX_SUPPORT_MESSAGE_LENGTH}
               value={draft}
               placeholder="Écrivez votre réponse…"

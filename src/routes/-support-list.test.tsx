@@ -2,7 +2,13 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from '@testing-library/react'
 import type * as SupportService from '#/services/support'
 import { SupportListRoute } from './_auth/support'
 
@@ -74,7 +80,9 @@ describe('Support — « Mes tickets »', () => {
   it('ne garde que les tickets pris en charge par l’agent connecté (getMe)', async () => {
     mocks.search = { agent: 'me', page: 0, size: 20 }
     renderList()
-    expect(await screen.findByText('Ticket de moi')).toBeTruthy()
+    expect(
+      await within(screen.getByRole('table')).findByText('Ticket de moi'),
+    ).toBeTruthy()
     expect(screen.queryByText('Ticket de Jean')).toBeNull()
     expect(screen.queryByText('Ticket libre')).toBeNull()
     expect(mocks.getMe).toHaveBeenCalled()
@@ -83,13 +91,25 @@ describe('Support — « Mes tickets »', () => {
   it('pousse agent=me dans l’URL au clic sur « Mes tickets »', async () => {
     mocks.search = { page: 0, size: 20 }
     renderList()
-    await screen.findByText('Ticket de Jean')
+    await within(screen.getByRole('table')).findByText('Ticket de Jean')
     fireEvent.click(screen.getByText('Mes tickets'))
     expect(mocks.navigate).toHaveBeenCalled()
     const arg = mocks.navigate.mock.calls[0][0] as {
       search: (p: object) => object
     }
     expect(arg.search({})).toMatchObject({ agent: 'me', page: 0 })
+  })
+
+  it('affiche une carte par ticket sous md et ouvre le ticket', async () => {
+    mocks.search = { page: 0, size: 20 }
+    renderList()
+    const cards = within(screen.getByRole('list'))
+    const card = await cards.findByText('Ticket de Jean')
+    fireEvent.click(card.closest('[role="button"]') as HTMLElement)
+    expect(mocks.navigate).toHaveBeenCalledWith({
+      to: '/support/$conversationId',
+      params: { conversationId: '2' },
+    })
   })
 
   it('signale la limite quand la file est plafonnée', async () => {

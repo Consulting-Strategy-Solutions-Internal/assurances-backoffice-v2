@@ -2,7 +2,13 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from '@testing-library/react'
 import type { ReactNode } from 'react'
 import type { ClaimResponse, PageResponse } from '#/services/claims'
 import { ClaimsListContent } from './_auth/sinistres'
@@ -143,6 +149,10 @@ function renderList() {
   )
 }
 
+// The list renders a table (≥ 672 px) AND a card list (below): scope queries.
+const inTable = () => within(screen.getByRole('table'))
+const inCards = () => within(screen.getByRole('list'))
+
 beforeEach(() => {
   mocks.search = { page: 0, size: 20, sort: 'createdAt,desc' }
   mocks.getClaimTypes.mockResolvedValue(page([]))
@@ -167,7 +177,7 @@ describe('ClaimsListContent', () => {
     renderList()
 
     expect(
-      await screen.findByText('Aucun sinistre pour le moment.'),
+      await inTable().findByText('Aucun sinistre pour le moment.'),
     ).toBeTruthy()
   })
 
@@ -176,7 +186,7 @@ describe('ClaimsListContent', () => {
     renderList()
 
     expect(
-      await screen.findByText('Impossible de charger les sinistres.'),
+      await inTable().findByText('Impossible de charger les sinistres.'),
     ).toBeTruthy()
   })
 
@@ -184,19 +194,21 @@ describe('ClaimsListContent', () => {
     mocks.getClaims.mockResolvedValue(page([listedClaim]))
     renderList()
 
-    expect(await screen.findByText('SIN-2026-0042')).toBeTruthy()
-    expect(screen.getByText('Accident')).toBeTruthy()
-    expect(screen.getByText('Auto')).toBeTruthy()
-    // filter option + KPI label + status pill
-    expect(screen.getAllByText('En instruction')).toHaveLength(3)
-    expect(screen.getByText('Awa Koné')).toBeTruthy()
+    expect(await inTable().findByText('SIN-2026-0042')).toBeTruthy()
+    expect(inTable().getByText('Accident')).toBeTruthy()
+    expect(inTable().getByText('Auto')).toBeTruthy()
+    // filter option + KPI label + status pill (table) + status pill (card)
+    expect(screen.getAllByText('En instruction')).toHaveLength(4)
+    expect(inTable().getByText('Awa Koné')).toBeTruthy()
   })
 
   it('opens the claim detail when a row is activated', async () => {
     mocks.getClaims.mockResolvedValue(page([listedClaim]))
     renderList()
 
-    fireEvent.click((await screen.findByText('SIN-2026-0042')).closest('tr')!)
+    fireEvent.click(
+      (await inTable().findByText('SIN-2026-0042')).closest('tr')!,
+    )
 
     expect(mocks.navigate).toHaveBeenCalledWith({
       to: '/sinistres/$claimId',
@@ -218,10 +230,10 @@ describe('ClaimsListContent', () => {
     )
     mocks.search = { ...mocks.search, q: 'jean' } as typeof mocks.search
     renderList()
-    await screen.findByText('SIN-2026-0043')
+    await inTable().findByText('SIN-2026-0043')
 
-    expect(screen.queryByText('SIN-2026-0042')).toBeNull()
-    expect(screen.getByText('SIN-2026-0043')).toBeTruthy()
+    expect(inTable().queryByText('SIN-2026-0042')).toBeNull()
+    expect(inTable().getByText('SIN-2026-0043')).toBeTruthy()
   })
 
   it('renders each client and falls back when a client was deleted', async () => {
@@ -239,15 +251,30 @@ describe('ClaimsListContent', () => {
     )
     renderList()
 
-    expect(await screen.findByText('Awa Koné')).toBeTruthy()
-    expect(screen.getByText('Client supprimé (#99)')).toBeTruthy()
+    expect(await inTable().findByText('Awa Koné')).toBeTruthy()
+    expect(inTable().getByText('Client supprimé (#99)')).toBeTruthy()
     expect(screen.queryByText('null')).toBeNull()
+  })
+
+  it('renders a tappable card per claim below md and opens the detail', async () => {
+    mocks.getClaims.mockResolvedValue(page([listedClaim]))
+    renderList()
+
+    const card = await inCards().findByText('SIN-2026-0042')
+    expect(inCards().getByText('Awa Koné')).toBeTruthy()
+    expect(inCards().getByText('En instruction')).toBeTruthy()
+    fireEvent.click(card.closest('[role="button"]')!)
+
+    expect(mocks.navigate).toHaveBeenCalledWith({
+      to: '/sinistres/$claimId',
+      params: { claimId: '42' },
+    })
   })
 
   it('moves a server filter into route search parameters', async () => {
     mocks.getClaims.mockResolvedValue(page([]))
     renderList()
-    await screen.findByText('Aucun sinistre pour le moment.')
+    await inTable().findByText('Aucun sinistre pour le moment.')
 
     fireEvent.change(screen.getByLabelText('Client'), {
       target: { value: '42' },

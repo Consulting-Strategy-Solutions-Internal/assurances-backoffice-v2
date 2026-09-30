@@ -14,14 +14,15 @@ import { usePermissions } from '#/components/dashboard/use-permissions'
 import { ConfirmDialog } from '#/components/dashboard/ConfirmDialog'
 import {
   DataTableCard,
+  DataTableCell,
   DataTableHead,
-  FIRST_CELL_CLASS,
   TableEmptyState,
   TableErrorState,
   TableSkeletonRows,
 } from '#/components/layout/DataTable'
+import { MobileCardList } from '#/components/layout/MobileCardList'
 import { TruncatedText } from '#/components/layout/TruncatedText'
-import { ResultCount, Toolbar } from '#/components/layout/Toolbar'
+import { ResultCount } from '#/components/layout/Toolbar'
 import { Button } from '#/components/ui/button'
 import {
   Table,
@@ -31,6 +32,7 @@ import {
   TableRow,
 } from '#/components/ui/table'
 import { Switch } from '#/components/ia-products/shared/Switch'
+import { HeaderActionPortal } from '../shared/header-action'
 import { isForbidden, RetryAction } from '../shared/screen-kit'
 import { FormulaDialog } from './FormulaDialog'
 import type { FormulaFormValues } from './formula-logic'
@@ -52,6 +54,60 @@ function Amounts({ lines }: { lines: [string, number][] }) {
       ))}
     </div>
   )
+}
+
+function FormulaStatusSwitch({
+  formula,
+  canWrite,
+  pending,
+  onActivate,
+  onDeactivate,
+}: {
+  formula: FormulaResponse
+  canWrite: boolean
+  pending: boolean
+  onActivate: () => void
+  onDeactivate: () => void
+}) {
+  const active = formula.status === 'ACTIVE'
+  return (
+    <div className="flex items-center gap-2.5">
+      <span title={canWrite ? undefined : NO_WRITE}>
+        <Switch
+          checked={active}
+          disabled={!canWrite || pending}
+          aria-label={`${active ? 'Désactiver' : 'Activer'} la formule ${formula.label}`}
+          onCheckedChange={(next) => (next ? onActivate() : onDeactivate())}
+        />
+      </span>
+      <span
+        className={cn(
+          'text-[13px] font-semibold',
+          active ? 'text-[#167347]' : 'text-muted-foreground',
+        )}
+      >
+        {active ? 'Active' : 'Inactive'}
+      </span>
+    </div>
+  )
+}
+
+function guaranteeLines(f: FormulaResponse): [string, number][] {
+  return [
+    ['Décès', f.deathCapital],
+    ['Invalidité perm.', f.permanentDisabilityCapital],
+    ['Frais médicaux', f.medicalExpenses],
+    ['Indemnité jour.', f.dailyAllowance],
+  ]
+}
+
+function premiumLines(f: FormulaResponse): [string, number][] {
+  return [
+    ['Nette', f.netPremium],
+    ['Frais accessoires', f.fees],
+    ['Taxe', f.tax],
+    ['TTC', f.grossPremium],
+  ]
 }
 
 export function FormulasScreen() {
@@ -91,38 +147,113 @@ export function FormulasScreen() {
 
   return (
     <>
-      <Toolbar
-        actions={
-          <span title={canWrite ? undefined : NO_WRITE}>
-            <Button
-              disabled={!canWrite}
-              onClick={() => openCreate()}
-              className="rounded-[11px]"
-            >
-              <Plus className="size-4" />
-              Nouvelle formule
-            </Button>
-          </span>
-        }
-      />
+      <HeaderActionPortal>
+        <span title={canWrite ? undefined : NO_WRITE}>
+          <Button
+            disabled={!canWrite}
+            onClick={() => openCreate()}
+            className="rounded-[11px]"
+          >
+            <Plus className="size-4" />
+            Nouvelle formule
+          </Button>
+        </span>
+      </HeaderActionPortal>
       <ResultCount>
         {isLoading
           ? 'Chargement…'
           : `${formulas.length} formule${formulas.length > 1 ? 's' : ''} · ${activeCount} active${activeCount > 1 ? 's' : ''} · ${formulas.length - activeCount} inactive${formulas.length - activeCount > 1 ? 's' : ''}`}
       </ResultCount>
 
-      <DataTableCard>
+      <DataTableCard
+        mobileCards={
+          <MobileCardList
+            items={formulas}
+            getKey={(f) => f.id}
+            isLoading={isLoading}
+            skeletonCount={3}
+            error={isError}
+            forbidden={isForbidden(error)}
+            errorTitle="Impossible de charger les formules."
+            errorAction={<RetryAction onRetry={() => void refetch()} />}
+            empty={{
+              icon: Package,
+              title: 'Aucune formule pour le moment.',
+              action: canWrite ? (
+                <Button className="rounded-[11px]" onClick={() => openCreate()}>
+                  <Plus className="size-4" />
+                  Nouvelle formule
+                </Button>
+              ) : undefined,
+            }}
+            renderCard={(f) => (
+              <div className="flex flex-col gap-3">
+                <div className="flex items-start gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[14px] font-semibold">
+                      <TruncatedText lines={2}>{f.label}</TruncatedText>
+                    </p>
+                    {f.displayOrder != null && (
+                      <p className="text-[12px] text-muted-foreground">
+                        Ordre {f.displayOrder}
+                      </p>
+                    )}
+                  </div>
+                  <span title={canWrite ? undefined : NO_WRITE}>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      className="size-9"
+                      disabled={!canWrite}
+                      aria-label={`Modifier la formule ${f.label}`}
+                      onClick={() =>
+                        setDialog({ kind: 'edit', formula: f, key: f.id })
+                      }
+                    >
+                      <Pencil className="size-4" />
+                    </Button>
+                  </span>
+                </div>
+                <FormulaStatusSwitch
+                  formula={f}
+                  canWrite={canWrite}
+                  pending={toggle.isPending}
+                  onActivate={() => toggle.mutate({ id: f.id, activate: true })}
+                  onDeactivate={() => setToDeactivate(f)}
+                />
+                <div className="grid gap-3 rounded-lg bg-muted/40 p-3">
+                  <div>
+                    <p className="mb-1 text-[11px] font-bold tracking-[0.05em] text-muted-foreground uppercase">
+                      Garanties
+                    </p>
+                    <Amounts lines={guaranteeLines(f)} />
+                  </div>
+                  <div>
+                    <p className="mb-1 text-[11px] font-bold tracking-[0.05em] text-muted-foreground uppercase">
+                      Primes
+                    </p>
+                    <Amounts lines={premiumLines(f)} />
+                  </div>
+                </div>
+              </div>
+            )}
+          />
+        }
+      >
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <DataTableHead first className="w-16">
+              <DataTableHead first sticky="left" className="w-16">
                 Ordre
               </DataTableHead>
               <DataTableHead>Libellé</DataTableHead>
               <DataTableHead>Statut</DataTableHead>
               <DataTableHead>Garanties</DataTableHead>
               <DataTableHead>Primes</DataTableHead>
-              <DataTableHead className="w-16 pr-[22px] text-right">
+              <DataTableHead
+                sticky="right"
+                className="w-16 pr-[22px] text-right"
+              >
                 Actions
               </DataTableHead>
             </TableRow>
@@ -156,60 +287,35 @@ export function FormulasScreen() {
               />
             ) : (
               formulas.map((f) => {
-                const active = f.status === 'ACTIVE'
                 return (
                   <TableRow key={f.id} className="hover:bg-[#f6f8fc]">
-                    <TableCell className={cn(FIRST_CELL_CLASS, 'tabular-nums')}>
+                    <DataTableCell first sticky="left" className="tabular-nums">
                       {f.displayOrder ?? '—'}
-                    </TableCell>
+                    </DataTableCell>
                     <TableCell className="max-w-[220px] font-semibold">
                       <TruncatedText lines={2}>{f.label}</TruncatedText>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2.5">
-                        <span title={canWrite ? undefined : NO_WRITE}>
-                          <Switch
-                            checked={active}
-                            disabled={!canWrite || toggle.isPending}
-                            aria-label={`${active ? 'Désactiver' : 'Activer'} la formule ${f.label}`}
-                            onCheckedChange={(next) => {
-                              if (next)
-                                toggle.mutate({ id: f.id, activate: true })
-                              else setToDeactivate(f)
-                            }}
-                          />
-                        </span>
-                        <span
-                          className={cn(
-                            'text-[13px] font-semibold',
-                            active ? 'text-[#167347]' : 'text-muted-foreground',
-                          )}
-                        >
-                          {active ? 'Active' : 'Inactive'}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="min-w-[250px]">
-                      <Amounts
-                        lines={[
-                          ['Décès', f.deathCapital],
-                          ['Invalidité perm.', f.permanentDisabilityCapital],
-                          ['Frais médicaux', f.medicalExpenses],
-                          ['Indemnité jour.', f.dailyAllowance],
-                        ]}
+                      <FormulaStatusSwitch
+                        formula={f}
+                        canWrite={canWrite}
+                        pending={toggle.isPending}
+                        onActivate={() =>
+                          toggle.mutate({ id: f.id, activate: true })
+                        }
+                        onDeactivate={() => setToDeactivate(f)}
                       />
                     </TableCell>
-                    <TableCell className="min-w-[260px]">
-                      <Amounts
-                        lines={[
-                          ['Nette', f.netPremium],
-                          ['Frais accessoires', f.fees],
-                          ['Taxe', f.tax],
-                          ['TTC', f.grossPremium],
-                        ]}
-                      />
+                    <TableCell className="md:min-w-[250px]">
+                      <Amounts lines={guaranteeLines(f)} />
                     </TableCell>
-                    <TableCell className="pr-[22px] text-right">
+                    <TableCell className="md:min-w-[260px]">
+                      <Amounts lines={premiumLines(f)} />
+                    </TableCell>
+                    <DataTableCell
+                      sticky="right"
+                      className="pr-[22px] text-right"
+                    >
                       <span title={canWrite ? undefined : NO_WRITE}>
                         <Button
                           variant="ghost"
@@ -223,7 +329,7 @@ export function FormulasScreen() {
                           <Pencil className="size-4" />
                         </Button>
                       </span>
-                    </TableCell>
+                    </DataTableCell>
                   </TableRow>
                 )
               })

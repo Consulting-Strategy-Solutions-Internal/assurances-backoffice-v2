@@ -33,8 +33,8 @@ import { usePermissions } from '#/components/dashboard/use-permissions'
 import {
   ClickableRow,
   DataTableCard,
+  DataTableCell,
   DataTableHead,
-  FIRST_CELL_CLASS,
   TableEmptyState,
   TableErrorState,
   TableSkeletonRows,
@@ -54,7 +54,7 @@ import {
 import { apiErrorMessage } from '#/lib/api-error'
 import { mapClaimError } from '#/lib/claims'
 import { formatPercent2 } from '#/lib/commission-format'
-import { formatDate, formatFcfa } from '#/lib/utils'
+import { formatDate, formatFcfa, formatInteger } from '#/lib/utils'
 import {
   getCommissionDistributions,
   retryCommissionDistribution,
@@ -182,7 +182,8 @@ function CommissionDistributionsPage() {
         <KpiCard
           icon={<Coins className="size-5 text-[#167347]" />}
           iconClass="bg-[#1c8a57]/10"
-          value={kpi(hasPot ? formatFcfa(pagePot) : '—')}
+          value={kpi(hasPot ? formatInteger(pagePot) : '—')}
+          unit={loading || failure || !hasPot ? undefined : 'FCFA'}
           label={`Pot des ${content.length} lignes affichées`}
         />
         <KpiCard
@@ -211,7 +212,8 @@ function CommissionDistributionsPage() {
                 label="Partenaire bénéficiaire"
                 value={partnerId}
                 allLabel="Tous les partenaires"
-                className="w-[240px]"
+                fluid
+                className="@xl/main:w-[240px]"
                 loading={partners.isLoading}
                 options={(partners.data ?? []).map((partner) => ({
                   value: String(partner.id),
@@ -267,21 +269,39 @@ function CommissionDistributionsPage() {
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <DataTableHead first>Paiement</DataTableHead>
+              <DataTableHead first sticky="left" stickyFrom="sm">
+                Paiement
+              </DataTableHead>
               <DataTableHead>Cotation</DataTableHead>
               <DataTableHead>Distributeur</DataTableHead>
               <DataTableHead>Niveau</DataTableHead>
-              <DataTableHead className="text-right">Pot</DataTableHead>
-              <DataTableHead>Créée le</DataTableHead>
+              <DataTableHead hideBelow="lg" className="text-right">
+                Pot
+              </DataTableHead>
+              <DataTableHead hideBelow="lg">Créée le</DataTableHead>
               <DataTableHead>Statut</DataTableHead>
-              <DataTableHead className="pr-[22px] text-right">
+              <DataTableHead
+                sticky="right"
+                stickyFrom="sm"
+                className="pr-[22px] text-right"
+              >
                 Action
               </DataTableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableSkeletonRows columns={[36, 14, 24, 10, 20, 24, 24, 24]} />
+              <TableSkeletonRows
+                columns={[36, 14, 24, 10, 20, 24, 24, 24]}
+                hideBelow={[
+                  undefined,
+                  undefined,
+                  undefined,
+                  undefined,
+                  'lg',
+                  'lg',
+                ]}
+              />
             ) : failure ? (
               <TableErrorState
                 colSpan={COLUMNS}
@@ -329,7 +349,7 @@ function CommissionDistributionsPage() {
                       label={item.paymentReference}
                       onToggle={() => setExpanded(open ? null : item.id)}
                     >
-                      <TableCell className={FIRST_CELL_CLASS}>
+                      <DataTableCell first sticky="left" stickyFrom="sm">
                         <div className="flex items-center gap-2">
                           {canExpand &&
                             (open ? (
@@ -346,7 +366,7 @@ function CommissionDistributionsPage() {
                             </div>
                           </div>
                         </div>
-                      </TableCell>
+                      </DataTableCell>
                       <TableCell className="tabular-nums">
                         #{item.quotationId}
                       </TableCell>
@@ -361,12 +381,18 @@ function CommissionDistributionsPage() {
                       <TableCell>
                         <AppliedCommissionLevel level={item.appliedLevel} />
                       </TableCell>
-                      <TableCell className="text-right font-semibold whitespace-nowrap tabular-nums">
+                      <DataTableCell
+                        hideBelow="lg"
+                        className="text-right font-semibold whitespace-nowrap tabular-nums"
+                      >
                         {distributionNullableValue(item.potAmount)}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap text-muted-foreground">
+                      </DataTableCell>
+                      <DataTableCell
+                        hideBelow="lg"
+                        className="whitespace-nowrap text-muted-foreground"
+                      >
                         {formatDate(item.createdAt)}
-                      </TableCell>
+                      </DataTableCell>
                       <TableCell>
                         {item.status === 'ON_HOLD' ? (
                           <StatusPill tone="warning">En attente</StatusPill>
@@ -376,10 +402,14 @@ function CommissionDistributionsPage() {
                           <StatusPill tone="success">Distribuée</StatusPill>
                         )}
                       </TableCell>
-                      <TableCell className="pr-[22px] text-right">
+                      <DataTableCell
+                        sticky="right"
+                        stickyFrom="sm"
+                        className="pr-[22px] text-right"
+                      >
                         {item.status === 'ON_HOLD' ? (
                           <div className="flex flex-col items-end gap-2">
-                            <span className="w-56 whitespace-normal rounded-md bg-[#fbe9e9] px-2 py-1 text-left text-[12px] font-medium text-[#c0392b]">
+                            <span className="w-32 whitespace-normal sm:w-56 rounded-md bg-[#fbe9e9] px-2 py-1 text-left text-[12px] font-medium text-[#c0392b]">
                               {item.holdReason
                                 ? translateBackendMessage(item.holdReason)
                                 : 'Motif non renseigné'}
@@ -410,7 +440,7 @@ function CommissionDistributionsPage() {
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
-                      </TableCell>
+                      </DataTableCell>
                     </RowShell>
                     {open && <DistributionLines distribution={item} />}
                   </Fragment>

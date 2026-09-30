@@ -18,7 +18,7 @@ import { BackLink } from '#/components/layout/BackLink'
 import {
   DataTableCard,
   DataTableHead,
-  FIRST_CELL_CLASS,
+  DataTableCell,
   TableEmptyState,
   TableErrorState,
   TableSkeletonRows,
@@ -31,13 +31,7 @@ import {
   Toolbar,
   ToolbarSearch,
 } from '#/components/layout/Toolbar'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHeader,
-  TableRow,
-} from '#/components/ui/table'
+import { Table, TableBody, TableHeader, TableRow } from '#/components/ui/table'
 import { formatClaimDate, mapClaimError } from '#/lib/claims'
 import { fetchAllPages } from '#/lib/fetch-all-pages'
 import { normalizeText } from '#/lib/clients'
@@ -264,19 +258,24 @@ export function ClaimTypesContent() {
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <DataTableHead first>Nom</DataTableHead>
-              <DataTableHead>Produit</DataTableHead>
-              <DataTableHead>Description</DataTableHead>
+              <DataTableHead first sticky="left">
+                Nom
+              </DataTableHead>
+              <DataTableHead hideBelow="md">Produit</DataTableHead>
+              <DataTableHead hideBelow="lg">Description</DataTableHead>
               <DataTableHead>Statut</DataTableHead>
-              <DataTableHead>Mis à jour</DataTableHead>
-              <DataTableHead className="pr-[22px] text-right">
+              <DataTableHead hideBelow="lg">Mis à jour</DataTableHead>
+              <DataTableHead sticky="right" className="pr-[22px] text-right">
                 Actions
               </DataTableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableSkeletonRows columns={[36, 28, 48, 16, 28, 32]} />
+              <TableSkeletonRows
+                columns={[36, 28, 48, 16, 28, 32]}
+                hideBelow={[undefined, 'md', 'lg', undefined, 'lg']}
+              />
             ) : error ? (
               <TableErrorState
                 colSpan={6}
@@ -321,11 +320,16 @@ export function ClaimTypesContent() {
             ) : (
               rows.map((type) => (
                 <TableRow key={type.id} className="hover:bg-[#f6f8fc]">
-                  <TableCell className={`${FIRST_CELL_CLASS} font-semibold`}>
+                  <DataTableCell first sticky="left" className="font-semibold">
                     {type.name}
-                  </TableCell>
-                  <TableCell>{type.productLabel}</TableCell>
-                  <TableCell className="text-muted-foreground">
+                  </DataTableCell>
+                  <DataTableCell hideBelow="md">
+                    {type.productLabel}
+                  </DataTableCell>
+                  <DataTableCell
+                    hideBelow="lg"
+                    className="text-muted-foreground"
+                  >
                     {type.description ? (
                       <TruncatedText lines={2} className="max-w-[320px]">
                         {type.description}
@@ -333,16 +337,19 @@ export function ClaimTypesContent() {
                     ) : (
                       '—'
                     )}
-                  </TableCell>
-                  <TableCell>
+                  </DataTableCell>
+                  <DataTableCell>
                     <StatusPill tone={type.active ? 'success' : 'neutral'}>
                       {type.active ? 'Actif' : 'Inactif'}
                     </StatusPill>
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap text-muted-foreground">
+                  </DataTableCell>
+                  <DataTableCell
+                    hideBelow="lg"
+                    className="whitespace-nowrap text-muted-foreground"
+                  >
                     {formatClaimDate(type.updatedAt, true)}
-                  </TableCell>
-                  <TableCell className="pr-[22px]">
+                  </DataTableCell>
+                  <DataTableCell sticky="right" className="pr-[22px]">
                     <div className="flex justify-end gap-2">
                       <Button
                         variant="outline"
@@ -362,7 +369,7 @@ export function ClaimTypesContent() {
                         Archiver
                       </Button>
                     </div>
-                  </TableCell>
+                  </DataTableCell>
                 </TableRow>
               ))
             )}

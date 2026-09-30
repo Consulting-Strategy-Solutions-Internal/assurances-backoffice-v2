@@ -18,7 +18,7 @@ import {
 import { toast } from 'sonner'
 import { Button } from '#/components/ui/button'
 import { Label } from '#/components/ui/label'
-import { Skeleton } from '#/components/ui/skeleton'
+import { DetailSkeleton } from '#/components/layout/DetailSkeleton'
 import { KpiCard } from '#/components/dashboard/KpiCard'
 import { StatusPill } from '#/components/dashboard/StatusPill'
 import { BackLink } from '#/components/layout/BackLink'
@@ -230,18 +230,7 @@ export function ClaimDetailContent({ claimId }: { claimId: number }) {
     }
   }
 
-  if (isLoading)
-    return (
-      <div className="flex flex-col gap-[18px]" aria-busy="true">
-        <Skeleton className="h-36 rounded-xl" />
-        <div className="grid grid-cols-3 gap-4">
-          <Skeleton className="h-[122px] rounded-2xl" />
-          <Skeleton className="h-[122px] rounded-2xl" />
-          <Skeleton className="h-[122px] rounded-2xl" />
-        </div>
-        <Skeleton className="h-64 rounded-xl" />
-      </div>
-    )
+  if (isLoading) return <DetailSkeleton kpis={3} />
   if (error || !claim) {
     const kind = error ? mapClaimError(error).kind : 'not-found'
     if (kind === 'forbidden')
@@ -362,7 +351,7 @@ export function ClaimDetailContent({ claimId }: { claimId: number }) {
         </p>
       )}
 
-      <div className="grid items-start gap-[18px] xl:grid-cols-[1fr_1.15fr]">
+      <div className="grid items-start gap-[18px] @5xl/main:grid-cols-[1fr_1.15fr]">
         <div className="flex flex-col gap-[18px]">
           <SectionCard title="Déclaration">
             <InfoList columns={2}>

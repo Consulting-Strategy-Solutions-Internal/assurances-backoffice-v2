@@ -45,14 +45,14 @@ export function PremiumsChart() {
       description="12 derniers mois · date d’activation des contrats · en FCFA"
     >
       {isLoading ? (
-        <BlockSkeleton height="h-[280px]" />
+        <BlockSkeleton height="h-[220px] sm:h-[280px]" />
       ) : error ? (
         <BlockError error={error} />
       ) : (
         <div className="relative">
           <ChartContainer
             config={config}
-            className="aspect-auto h-[280px] w-full"
+            className="aspect-auto h-[220px] w-full sm:h-[280px]"
             label={`Primes activées (FCFA, barres) et nombre de contrats activés (courbe) par mois sur les 12 derniers mois : ${months.map((m) => `${m.label} ${m.year}, ${formatFcfa(m.premium)}, ${m.count} contrat${m.count > 1 ? 's' : ''}`).join(' ; ')}`}
           >
             <ComposedChart
@@ -66,7 +66,8 @@ export function PremiumsChart() {
                 tickLine={false}
                 axisLine={{ stroke: '#e7eaf0' }}
                 tickMargin={10}
-                interval={0}
+                interval="preserveStartEnd"
+                minTickGap={6}
                 fontSize={11.5}
               />
               <YAxis
@@ -143,7 +144,7 @@ export function PremiumsChart() {
             </ComposedChart>
           </ChartContainer>
           {empty && (
-            <div className="pointer-events-none absolute inset-x-0 top-0 flex h-[230px] items-center justify-center text-[13px] font-semibold text-muted-foreground">
+            <div className="pointer-events-none absolute inset-x-0 top-0 flex h-[170px] px-4 text-center sm:h-[230px] items-center justify-center text-[13px] font-semibold text-muted-foreground">
               Aucun contrat activé sur les 12 derniers mois.
             </div>
           )}

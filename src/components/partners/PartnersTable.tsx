@@ -6,13 +6,17 @@ import { TruncatedText } from '#/components/layout/TruncatedText'
 import {
   ClickableRow,
   DataTableCard,
+  DataTableCell,
   DataTableHead,
-  FIRST_CELL_CLASS,
   RowChevron,
   TableEmptyState,
   TableErrorState,
   TableSkeletonRows,
 } from '#/components/layout/DataTable'
+import {
+  MobileCardContent,
+  MobileCardList,
+} from '#/components/layout/MobileCardList'
 import { Button } from '#/components/ui/button'
 import {
   Table,
@@ -45,15 +49,65 @@ export function PartnersTable({
   onRetry,
 }: PartnersTableProps) {
   const navigate = useNavigate()
+  const open = (partner: PartnerResponse) =>
+    navigate({
+      to: '/partners/$partnerId',
+      params: { partnerId: String(partner.id) },
+    })
   return (
-    <DataTableCard>
+    <DataTableCard
+      mobileCards={
+        <MobileCardList
+          items={partners}
+          getKey={(p) => p.id}
+          onActivate={open}
+          isLoading={isLoading}
+          error={!!error}
+          forbidden={forbidden}
+          errorTitle="Impossible de charger les partenaires."
+          errorAction={
+            onRetry && (
+              <Button variant="outline" size="sm" onClick={onRetry}>
+                Réessayer
+              </Button>
+            )
+          }
+          empty={{
+            icon: Share2,
+            title: filtering
+              ? 'Aucun partenaire ne correspond à votre recherche.'
+              : 'Aucun partenaire pour le moment.',
+            action:
+              filtering && onReset ? (
+                <button
+                  type="button"
+                  onClick={onReset}
+                  className="text-[13px] font-semibold text-primary hover:underline"
+                >
+                  Réinitialiser les filtres
+                </button>
+              ) : undefined,
+          }}
+          renderCard={(p) => (
+            <MobileCardContent
+              leading={<EntityAvatar name={p.name} />}
+              title={p.name}
+              subtitle={p.email || p.location || `Partenaire #${p.id}`}
+              meta={`Code ${p.distributorCode}`}
+            />
+          )}
+        />
+      }
+    >
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
-            <DataTableHead first>Partenaire</DataTableHead>
+            <DataTableHead first sticky="left">
+              Partenaire
+            </DataTableHead>
             <DataTableHead>Code distributeur</DataTableHead>
-            <DataTableHead>Localisation</DataTableHead>
-            <DataTableHead>Email</DataTableHead>
+            <DataTableHead hideBelow="lg">Localisation</DataTableHead>
+            <DataTableHead hideBelow="md">Email</DataTableHead>
             <DataTableHead className="w-10" />
           </TableRow>
         </TableHeader>
@@ -61,6 +115,7 @@ export function PartnersTable({
           {isLoading ? (
             <TableSkeletonRows
               columns={[40, 20, 28, 40]}
+              hideBelow={[undefined, undefined, 'lg', 'md']}
               leading="avatar"
               trailing
             />
@@ -103,14 +158,9 @@ export function PartnersTable({
               <ClickableRow
                 key={partner.id}
                 aria-label={`Voir le partenaire ${partner.name}`}
-                onActivate={() =>
-                  navigate({
-                    to: '/partners/$partnerId',
-                    params: { partnerId: String(partner.id) },
-                  })
-                }
+                onActivate={() => open(partner)}
               >
-                <TableCell className={FIRST_CELL_CLASS}>
+                <DataTableCell first sticky="left">
                   <div className="flex items-center gap-3">
                     <EntityAvatar name={partner.name} />
                     <div>
@@ -120,25 +170,31 @@ export function PartnersTable({
                       </div>
                     </div>
                   </div>
-                </TableCell>
+                </DataTableCell>
                 <TableCell className="font-semibold whitespace-nowrap text-muted-foreground tabular-nums">
                   <span className="mr-1 text-[12px] font-medium">Code</span>
                   {partner.distributorCode}
                 </TableCell>
-                <TableCell className="max-w-[200px] text-muted-foreground">
+                <DataTableCell
+                  hideBelow="lg"
+                  className="max-w-[200px] text-muted-foreground"
+                >
                   {partner.location ? (
                     <TruncatedText>{partner.location}</TruncatedText>
                   ) : (
                     '—'
                   )}
-                </TableCell>
-                <TableCell className="max-w-[240px] text-muted-foreground">
+                </DataTableCell>
+                <DataTableCell
+                  hideBelow="md"
+                  className="max-w-[240px] text-muted-foreground"
+                >
                   {partner.email ? (
                     <TruncatedText>{partner.email}</TruncatedText>
                   ) : (
                     '—'
                   )}
-                </TableCell>
+                </DataTableCell>
                 <RowChevron />
               </ClickableRow>
             ))

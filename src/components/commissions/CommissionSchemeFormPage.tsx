@@ -14,6 +14,7 @@ import { BackLink } from '#/components/layout/BackLink'
 import { EmptyState } from '#/components/layout/EmptyState'
 import { SectionCard } from '#/components/layout/SectionCard'
 import { Card } from '#/components/ui/card'
+import { Stepper } from '#/components/ui/Stepper'
 import { Skeleton } from '#/components/ui/skeleton'
 import { mapClaimError } from '#/lib/claims'
 import { cn } from '#/lib/utils'
@@ -415,40 +416,9 @@ export function CommissionSchemeFormPage({
           }
         />
       </div>
-      <ol className="mb-[18px] grid grid-cols-3 gap-2">
-        {steps.map((label, index) => {
-          const current = step === index + 1
-          const done = step > index + 1
-          return (
-            <li
-              key={label}
-              aria-current={current ? 'step' : undefined}
-              className={cn(
-                'flex items-center gap-2 rounded-[10px] border px-3 py-2 text-[12.5px] font-semibold',
-                current
-                  ? 'border-primary bg-primary/5 text-primary'
-                  : done
-                    ? 'border-[#1c8a57]/30 bg-[#e7f6ee] text-[#167347]'
-                    : 'bg-card text-muted-foreground',
-              )}
-            >
-              <span
-                className={cn(
-                  'flex size-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold',
-                  current
-                    ? 'bg-primary text-primary-foreground'
-                    : done
-                      ? 'bg-[#1c8a57] text-white'
-                      : 'bg-[#f0f1f4]',
-                )}
-              >
-                {done ? <Check className="size-3" /> : index + 1}
-              </span>
-              {label}
-            </li>
-          )
-        })}
-      </ol>
+      <div className="mb-[18px]">
+        <Stepper steps={steps} current={step - 1} />
+      </div>
       <div className="flex flex-col gap-[18px]">
         {step === 1 && (
           <>
@@ -708,7 +678,7 @@ export function CommissionSchemeFormPage({
             )}
           </div>
         )}
-        <Card className="flex-row flex-wrap items-center justify-between gap-3 p-4">
+        <Card className="grid grid-cols-2 items-center gap-3 p-4 sm:flex sm:flex-row sm:flex-wrap sm:justify-between">
           <Button
             type="button"
             variant="outline"
@@ -722,7 +692,7 @@ export function CommissionSchemeFormPage({
           {blockReason && (
             <p
               role="status"
-              className="min-w-0 flex-1 text-right text-[12.5px] text-muted-foreground"
+              className="order-first col-span-2 min-w-0 text-left text-[12.5px] text-muted-foreground sm:order-none sm:col-span-1 sm:flex-1 sm:text-right"
             >
               {blockReason}
             </p>
@@ -740,7 +710,7 @@ export function CommissionSchemeFormPage({
           ) : (
             <Button
               type="button"
-              className="rounded-[11px] shadow-[0_4px_14px_rgba(0,51,127,0.22)]"
+              className="h-auto min-h-9 rounded-[11px] py-2 whitespace-normal shadow-[0_4px_14px_rgba(0,51,127,0.22)]"
               disabled={
                 !validation.valid ||
                 unconfirmedBlocks.length > 0 ||

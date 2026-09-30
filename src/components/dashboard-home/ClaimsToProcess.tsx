@@ -10,6 +10,7 @@ import {
 } from '#/components/ui/table'
 import {
   ClickableRow,
+  DataTableCell,
   DataTableHead,
   FIRST_CELL_CLASS,
   RowChevron,
@@ -21,7 +22,8 @@ import { isForbidden } from '#/lib/api-error'
 import { SectionCard } from '#/components/layout/SectionCard'
 import { formatClaimDate } from '#/lib/claims'
 import { useDashboardClaims } from './queries'
-import { moreLink } from './LatestContracts'
+import { ACTION_LINK_CLASS } from '#/lib/dashboard-theme'
+import { cn } from '#/lib/utils'
 
 export function ClaimsToProcess() {
   const navigate = useNavigate()
@@ -33,7 +35,7 @@ export function ClaimsToProcess() {
       title="Sinistres à traiter"
       description="Déclarés ou en instruction · les plus anciens d’abord"
       action={
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {data && data.toProcessCount > 0 && (
             <span className="rounded-full bg-[#ffc61e]/[0.22] px-2 py-px text-[11.5px] font-bold text-[#8a6600]">
               {data.toProcessCount}
@@ -42,7 +44,7 @@ export function ClaimsToProcess() {
           <Link
             to="/sinistres"
             search={{ page: 0, size: 20, sort: 'createdAt,desc' }}
-            className={moreLink}
+            className={cn(ACTION_LINK_CLASS, 'whitespace-nowrap')}
           >
             Tout voir →
           </Link>
@@ -54,9 +56,9 @@ export function ClaimsToProcess() {
           <TableRow className="hover:bg-transparent">
             <DataTableHead first>Référence</DataTableHead>
             <DataTableHead>Client</DataTableHead>
-            <DataTableHead>Produit</DataTableHead>
+            <DataTableHead hideBelow="md">Produit</DataTableHead>
             <DataTableHead>Statut</DataTableHead>
-            <DataTableHead>Déclaré le</DataTableHead>
+            <DataTableHead hideBelow="md">Déclaré le</DataTableHead>
             <DataTableHead className="w-10" />
           </TableRow>
         </TableHeader>
@@ -65,6 +67,7 @@ export function ClaimsToProcess() {
             <TableSkeletonRows
               rows={3}
               columns={[28, 28, 24, 24, 22]}
+              hideBelow={[undefined, undefined, 'md', undefined, 'md']}
               trailing
             />
           ) : error ? (
@@ -99,15 +102,18 @@ export function ClaimsToProcess() {
                 <TableCell className="font-semibold">
                   {c.clientName ?? `Client n° ${c.clientId}`}
                 </TableCell>
-                <TableCell className="text-muted-foreground">
+                <DataTableCell hideBelow="md" className="text-muted-foreground">
                   {c.productLabel}
-                </TableCell>
+                </DataTableCell>
                 <TableCell>
                   <ClaimStatusBadge status={c.status} />
                 </TableCell>
-                <TableCell className="whitespace-nowrap text-muted-foreground">
+                <DataTableCell
+                  hideBelow="md"
+                  className="whitespace-nowrap text-muted-foreground"
+                >
                   {formatClaimDate(c.createdAt)}
-                </TableCell>
+                </DataTableCell>
                 <RowChevron />
               </ClickableRow>
             ))

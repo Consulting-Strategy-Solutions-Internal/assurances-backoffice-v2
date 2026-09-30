@@ -65,7 +65,8 @@ export function AdminDetailDrawer({ user, onClose }: AdminDetailDrawerProps) {
       <SheetContent
         side="right"
         showCloseButton={false}
-        className="w-[480px] gap-0 p-0 sm:max-w-[480px]"
+        size="md"
+        className="gap-0 p-0"
       >
         {data && (
           <>

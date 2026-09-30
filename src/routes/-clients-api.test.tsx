@@ -2,7 +2,13 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { afterEach, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from '@testing-library/react'
 import type { ReactNode } from 'react'
 import type * as SubscriptionsByClient from '#/services/subscriptions-by-client'
 import type { ClientResponse } from '#/services/clients'
@@ -96,9 +102,29 @@ it('renders clients returned by GET /clients', async () => {
     capped: false,
   })
   renderWithQuery(<ClientsPage />)
-  expect(await screen.findByText('Awa Koné')).toBeTruthy()
-  expect(screen.getByText('+225 01 02 03 04 05')).toBeTruthy()
+  // Table (≥ 672 px) and card list (below) are both in the DOM: scope.
+  const table = within(screen.getByRole('table'))
+  expect(await table.findByText('Awa Koné')).toBeTruthy()
+  expect(table.getByText('+225 01 02 03 04 05')).toBeTruthy()
   expect(screen.queryByText('Jean Kouassi')).toBeNull()
+})
+
+it('renders a tappable client card below md that opens the detail', async () => {
+  mocks.getAllClients.mockResolvedValue({
+    items: [client],
+    total: 1,
+    capped: false,
+  })
+  renderWithQuery(<ClientsPage />)
+  const cards = within(screen.getByRole('list'))
+  const card = await cards.findByText('Awa Koné')
+  expect(cards.getByText('+225 01 02 03 04 05')).toBeTruthy()
+  expect(cards.getByLabelText(/Téléphone/)).toBeTruthy()
+  fireEvent.click(card.closest('[role="button"]') as HTMLElement)
+  expect(mocks.navigate).toHaveBeenCalledWith({
+    to: '/clients/$clientId',
+    params: { clientId: String(client.id) },
+  })
 })
 
 it('renders the API client detail and verification states', async () => {

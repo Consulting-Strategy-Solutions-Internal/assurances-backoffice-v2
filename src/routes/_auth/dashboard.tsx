@@ -30,14 +30,14 @@ function DashboardPage() {
       />
       <KpiSection />
 
-      <div className="mb-[18px] grid gap-[18px] xl:grid-cols-[1.7fr_1fr]">
+      <div className="mb-[18px] grid gap-[18px] xl:grid-cols-[2fr_1fr]">
         <LatestContracts />
         <PortfolioDonut />
       </div>
 
       <PremiumsChart />
 
-      <div className="grid gap-[18px] xl:grid-cols-[1.7fr_1fr]">
+      <div className="grid gap-[18px] xl:grid-cols-[2fr_1fr]">
         <ClaimsToProcess />
         <AttentionCard />
       </div>

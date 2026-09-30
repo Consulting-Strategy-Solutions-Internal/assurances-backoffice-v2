@@ -31,7 +31,8 @@ export function CreateRoleDrawer({ open, onClose }: CreateRoleDrawerProps) {
       <SheetContent
         side="right"
         showCloseButton={false}
-        className="w-[480px] gap-0 p-0 sm:max-w-[480px]"
+        size="md"
+        className="gap-0 p-0"
       >
         {dialog}
         <SheetHeader className="flex-row items-start justify-between gap-3.5 border-b p-[26px] py-[22px]">

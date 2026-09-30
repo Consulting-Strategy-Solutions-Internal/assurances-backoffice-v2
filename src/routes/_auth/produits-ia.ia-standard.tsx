@@ -5,6 +5,7 @@ import {
   useRouterState,
 } from '@tanstack/react-router'
 import { PageHeader } from '#/components/dashboard/PageHeader'
+import { HeaderActionSlot } from '#/components/ia-products/shared/header-action'
 import { ScrollShadow } from '#/components/layout/ScrollShadow'
 import { Tabs, TabsList, TabsTrigger } from '#/components/ui/tabs'
 
@@ -72,7 +73,9 @@ function IaStandardLayout() {
       <PageHeader
         title={current.title}
         subtitle={`Individuel Accidents · IA Standard — ${current.description}`}
-      />
+      >
+        <HeaderActionSlot />
+      </PageHeader>
       <Tabs value={active} className="gap-4">
         <ScrollShadow>
           <TabsList className="h-11 gap-1 bg-[#e6ebf3] p-1">

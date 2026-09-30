@@ -16,6 +16,7 @@ import type { PartnerResponse } from '#/services/partners'
 import { PartnerManagerList } from '#/components/partners/PartnerManagerList'
 import { KpiCard } from '#/components/dashboard/KpiCard'
 import {
+  DataTableCell,
   DataTableHead,
   FIRST_CELL_CLASS,
   TableEmptyState,
@@ -245,9 +246,9 @@ function AgenciesSection({
                 <span className="sr-only">Déplier</span>
               </DataTableHead>
               <DataTableHead>Nom</DataTableHead>
-              <DataTableHead>Code distributeur</DataTableHead>
-              <DataTableHead>Email</DataTableHead>
-              <DataTableHead>Localisation</DataTableHead>
+              <DataTableHead hideBelow="md">Code distributeur</DataTableHead>
+              <DataTableHead hideBelow="lg">Email</DataTableHead>
+              <DataTableHead hideBelow="lg">Localisation</DataTableHead>
               <DataTableHead className="pr-[22px] text-right">
                 Agents
               </DataTableHead>
@@ -255,7 +256,11 @@ function AgenciesSection({
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableSkeletonRows rows={3} columns={[8, 36, 20, 36, 24, 8]} />
+              <TableSkeletonRows
+                rows={3}
+                columns={[8, 36, 20, 36, 24, 8]}
+                hideBelow={[undefined, undefined, 'md', 'lg', 'lg']}
+              />
             ) : error ? (
               <TableErrorState
                 colSpan={6}
@@ -298,15 +303,24 @@ function AgenciesSection({
                           <span className="font-semibold">{agency.name}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="font-semibold text-muted-foreground">
+                      <DataTableCell
+                        hideBelow="md"
+                        className="font-semibold text-muted-foreground"
+                      >
                         {agency.distributorCode}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
+                      </DataTableCell>
+                      <DataTableCell
+                        hideBelow="lg"
+                        className="text-muted-foreground"
+                      >
                         {agency.email || '—'}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
+                      </DataTableCell>
+                      <DataTableCell
+                        hideBelow="lg"
+                        className="text-muted-foreground"
+                      >
                         {agency.location || '—'}
-                      </TableCell>
+                      </DataTableCell>
                       <TableCell className="pr-[22px] text-right font-semibold tabular-nums">
                         {agencySellers.isLoading
                           ? '…'
@@ -413,9 +427,11 @@ function DirectSellersSection({
             <TableRow className="hover:bg-transparent">
               <DataTableHead first>Agent</DataTableHead>
               <DataTableHead>Téléphone</DataTableHead>
-              <DataTableHead>Code distributeur</DataTableHead>
-              <DataTableHead>Email</DataTableHead>
-              <DataTableHead className="pr-[22px]">Créé le</DataTableHead>
+              <DataTableHead hideBelow="md">Code distributeur</DataTableHead>
+              <DataTableHead hideBelow="lg">Email</DataTableHead>
+              <DataTableHead hideBelow="lg" className="pr-[22px]">
+                Créé le
+              </DataTableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -423,6 +439,7 @@ function DirectSellersSection({
               <TableSkeletonRows
                 rows={3}
                 columns={[40, 28, 20, 36, 20]}
+                hideBelow={[undefined, undefined, 'md', 'lg', 'lg']}
                 leading="avatar"
               />
             ) : error ? (
@@ -453,15 +470,24 @@ function DirectSellersSection({
                   <TableCell className="whitespace-nowrap tabular-nums">
                     {formatPhone(s.phoneNumber)}
                   </TableCell>
-                  <TableCell className="font-semibold text-muted-foreground">
+                  <DataTableCell
+                    hideBelow="md"
+                    className="font-semibold text-muted-foreground"
+                  >
                     {s.distributorCode}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
+                  </DataTableCell>
+                  <DataTableCell
+                    hideBelow="lg"
+                    className="text-muted-foreground"
+                  >
                     {s.email || '—'}
-                  </TableCell>
-                  <TableCell className="pr-[22px] whitespace-nowrap text-muted-foreground">
+                  </DataTableCell>
+                  <DataTableCell
+                    hideBelow="lg"
+                    className="pr-[22px] whitespace-nowrap text-muted-foreground"
+                  >
                     {formatClaimDate(s.createdAt)}
-                  </TableCell>
+                  </DataTableCell>
                 </TableRow>
               ))
             )}

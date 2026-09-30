@@ -9,14 +9,18 @@ import { StatusPill } from '#/components/dashboard/StatusPill'
 import {
   ClickableRow,
   DataTableCard,
+  DataTableCell,
   DataTableHead,
-  FIRST_CELL_CLASS,
   RowChevron,
   TableEmptyState,
   TableErrorState,
   TableSkeletonRows,
 } from '#/components/layout/DataTable'
 import { EntityAvatar } from '#/components/layout/EntityAvatar'
+import {
+  MobileCardContent,
+  MobileCardList,
+} from '#/components/layout/MobileCardList'
 import { SegmentedPills } from '#/components/layout/SegmentedPills'
 import {
   ResultCount,
@@ -34,13 +38,7 @@ import {
 import { SupportStatusBadge } from '#/components/support/SupportStatusBadge'
 import { Button } from '#/components/ui/button'
 import { Pagination } from '#/components/ui/Pagination'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHeader,
-  TableRow,
-} from '#/components/ui/table'
+import { Table, TableBody, TableHeader, TableRow } from '#/components/ui/table'
 import { formatClaimDate, mapClaimError } from '#/lib/claims'
 import {
   filterSupportConversations,
@@ -188,7 +186,7 @@ export function SupportListRoute() {
             >
               <SelectTrigger
                 aria-label="Statut"
-                className="h-10 w-[160px] rounded-[10px] bg-card"
+                className="h-10 rounded-[10px] bg-card @xl/main:w-[160px]"
               >
                 <SelectValue />
               </SelectTrigger>
@@ -247,15 +245,79 @@ export function SupportListRoute() {
               }`}
       </ResultCount>
 
-      <DataTableCard>
+      <DataTableCard
+        mobileCards={
+          <MobileCardList
+            items={conversations}
+            getKey={(conversation) => conversation.id}
+            onActivate={(conversation) => void open(conversation.id)}
+            isLoading={isLoading}
+            skeletonCount={6}
+            error={!!error}
+            forbidden={forbidden}
+            errorTitle="Impossible de charger la file de support."
+            errorAction={
+              <Button
+                variant="outline"
+                className="rounded-[11px]"
+                onClick={() => void refetch()}
+              >
+                Réessayer
+              </Button>
+            }
+            empty={{
+              icon: Headset,
+              title: filtering
+                ? 'Aucun ticket ne correspond à votre recherche.'
+                : 'Aucune demande de support pour le moment.',
+              description: filtering
+                ? undefined
+                : 'Les demandes des clients apparaîtront ici dès leur envoi.',
+              action: filtering ? (
+                <Button
+                  variant="outline"
+                  className="rounded-[11px]"
+                  onClick={resetFilters}
+                >
+                  Réinitialiser les filtres
+                </Button>
+              ) : undefined,
+            }}
+            renderCard={(conversation) => (
+              <MobileCardContent
+                title={conversation.subject}
+                subtitle={`Ticket #${conversation.id}${
+                  conversation.handledByName?.trim()
+                    ? ` · ${conversation.handledByName.trim()}`
+                    : ''
+                }`}
+                status={<SupportStatusBadge status={conversation.status} />}
+                meta={
+                  <>
+                    {conversation.unreadCount > 0 && (
+                      <StatusPill tone="warning">
+                        {conversation.unreadCount} non lu
+                        {conversation.unreadCount > 1 ? 's' : ''}
+                      </StatusPill>
+                    )}{' '}
+                    {formatClaimDate(conversation.lastMessageAt, true)}
+                  </>
+                }
+              />
+            )}
+          />
+        }
+      >
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <DataTableHead first>Sujet</DataTableHead>
+              <DataTableHead first sticky="left">
+                Sujet
+              </DataTableHead>
               <DataTableHead>Statut</DataTableHead>
-              <DataTableHead>Pris en charge par</DataTableHead>
+              <DataTableHead hideBelow="md">Pris en charge par</DataTableHead>
               <DataTableHead>Dernière activité</DataTableHead>
-              <DataTableHead>Créé le</DataTableHead>
+              <DataTableHead hideBelow="lg">Créé le</DataTableHead>
               <DataTableHead className="w-10" />
             </TableRow>
           </TableHeader>
@@ -263,6 +325,7 @@ export function SupportListRoute() {
             {isLoading ? (
               <TableSkeletonRows
                 columns={[56, 18, 32, 32, 32]}
+                hideBelow={[undefined, undefined, 'md', undefined, 'lg']}
                 trailing
                 rows={6}
               />
@@ -317,8 +380,10 @@ export function SupportListRoute() {
                     onActivate={() => void open(conversation.id)}
                     aria-label={`Ouvrir le ticket ${conversation.subject}`}
                   >
-                    <TableCell
-                      className={cn(FIRST_CELL_CLASS, 'max-w-[340px]')}
+                    <DataTableCell
+                      first
+                      sticky="left"
+                      className="max-w-[16rem] @4xl/main:max-w-[340px]"
                     >
                       <div className="flex items-center gap-2.5">
                         <span
@@ -347,11 +412,11 @@ export function SupportListRoute() {
                           </div>
                         </div>
                       </div>
-                    </TableCell>
-                    <TableCell>
+                    </DataTableCell>
+                    <DataTableCell>
                       <SupportStatusBadge status={conversation.status} />
-                    </TableCell>
-                    <TableCell>
+                    </DataTableCell>
+                    <DataTableCell hideBelow="md">
                       {handler ? (
                         <div className="flex items-center gap-2">
                           <EntityAvatar
@@ -363,13 +428,16 @@ export function SupportListRoute() {
                       ) : (
                         <span className="text-muted-foreground">—</span>
                       )}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap tabular-nums">
+                    </DataTableCell>
+                    <DataTableCell className="whitespace-nowrap tabular-nums">
                       {formatClaimDate(conversation.lastMessageAt, true)}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap text-muted-foreground tabular-nums">
+                    </DataTableCell>
+                    <DataTableCell
+                      hideBelow="lg"
+                      className="whitespace-nowrap text-muted-foreground tabular-nums"
+                    >
                       {formatClaimDate(conversation.createdAt, true)}
-                    </TableCell>
+                    </DataTableCell>
                     <RowChevron />
                   </ClickableRow>
                 )
