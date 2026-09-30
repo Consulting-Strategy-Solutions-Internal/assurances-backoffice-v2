@@ -1,6 +1,6 @@
 # Build plan — Tarif MRH NSIA
 
-- **Status:** in-progress
+- **Status:** done
 - **Created:** 2026-09-30 · **Updated:** 2026-09-30
 - **PR:** —
 - **Branch:** `feat/mrh-tariff` · **Worktree:** `.claude/worktrees/mrh-tariff` · **Ports:** app 3001 · db —
@@ -36,7 +36,7 @@
 
 ## Review findings
 
-- [~] **R2-1** ⚪ Vider « Valeur minimale du contenu » affichait un succès sans effet (l'API ne sait pas l'effacer) — `src/components/mrh-tariff/BaseRateDialog.tsx` (fix: da02293)
+- [x] **R2-1** ⚪ Vider « Valeur minimale du contenu » affichait un succès sans effet (l'API ne sait pas l'effacer) — `src/components/mrh-tariff/BaseRateDialog.tsx` (fix: da02293) (confirmé par l'utilisateur, 2026-09-30 — re-revue remplacée par sa décision)
 
 > Last review: round 2 · 2026-09-30 · base `93bde04` · HEAD `0d074c5` · verdict : prêt après R1-8 et R1-9 (corrigés depuis, à confirmer)
 > Round 1 · 2026-09-30 · base `c38dff8` · HEAD `93bde04` (+ uncommitted: no) · verdict : prêt après le 🟡 (2 relecteurs : grille / accessoires + devis + navigation)
@@ -48,12 +48,25 @@
 - [x] **R1-5** ⚪ Cas « permission connue mais absente » non testé sur la grille (L-009) — `src/components/mrh-tariff/LegalQualitiesScreen.test.tsx:32` (fixed, round 2)
 - [x] **R1-6** ⚪ Mode et Obligatoire masqués sur téléphone sans relais (L-008) — `src/components/mrh-tariff/LineWarrantiesScreen.tsx:84` (fixed, round 2)
 - [x] **R1-7** ⚪ Montant saisi avec espace (« 15 000 ») refusé — `src/lib/mrh-tariff.ts:77` (fixed, round 2)
-- [~] **R1-8** ⚪ Cas « permission connue mais absente » non testé sur les accessoires (L-009) — `src/components/accessories/accessories.test.tsx:31` (fix: da02293)
-- [~] **R1-9** ⚪ Refus de suppression : la confirmation reste ouverte — `src/components/accessories/AccessoriesScreen.tsx:138` (fix: da02293 — l'ancienne « réfutation » était fausse, relevé au round 2)
+- [x] **R1-8** ⚪ Cas « permission connue mais absente » non testé sur les accessoires (L-009) — `src/components/accessories/accessories.test.tsx:31` (fix: da02293) (confirmé par l'utilisateur, 2026-09-30 — re-revue remplacée par sa décision)
+- [x] **R1-9** ⚪ Refus de suppression : la confirmation reste ouverte — `src/components/accessories/AccessoriesScreen.tsx:138` (fix: da02293 — l'ancienne « réfutation » était fausse, relevé au round 2) (confirmé par l'utilisateur, 2026-09-30 — re-revue remplacée par sa décision)
 - [x] **R1-10** ⚪ (hors diff, fichier touché) 422 `ErrorResponse` « File is too large » lu comme `ImportResult` → plantage — `src/services/accessories.ts:97` (fixed, round 2)
 - Écarts au plan, résolus dans la spec (D-7 révisée, D-8) — fix: 0d074c5
 
 ## Acceptance run
+
+> Run: run 1 · 2026-09-30 · HEAD `6751b98` (+ uncommitted: no) · 9 pass · 0 fail · 0 manual — dev (port 3001) + proxy vers la démo `nsia.c2s-demo.cloud` (PR backend #110 déployée : 4 situations, 11 garanties, 39 lignes), compte admin, Playwright
+
+- UC-1 / AC-2 — pass — Situations & taux : 4 cartes dans l'ordre de la grille, taux non nuls seulement (Locataire : locatif 0,35 ‰, × 180, contenu 4 ‰ ; non occupant : bâtiment 0,65 ‰), fenêtre « Modifier les taux » limitée aux champs de la situation.
+- UC-3 / AC-2 — pass — Garanties : 11 lignes, taxe en % ; « Enregistrer » sans changement → `PUT /warranties/101 {"name":"Incendie","taxRate":25}` 200 puis relecture, fenêtre fermée (valeurs inchangées : démo partagée).
+- UC-4 / AC-4 — pass — Garanties par situation : pastilles (situation dans l'URL), Locataire 10 lignes / non occupant 7 ; Incendie → seul « Taux (%) » + case « Garantie obligatoire », `PUT /legal-quality-warranties/101 {"rate":25}` 200 ; Inondation (Capital) → « Taux (‰) » + « Part des capitaux (%) ».
+- UC-5 / AC-5 — pass — Accessoires MRH et IA : 0 tranche sur la démo → bandeau « Aucun accessoire saisi : les devis de ce produit sont refusés. » ; import d'un CSV invalide → vrai 422 `ImportResult`, « Ligne 2 : amount doit être un nombre… », « Ligne 3 : maxPremium doit être supérieur ou égal à minPremium. », rien d'importé.
+- AC-1 — pass — aucun bouton de création/suppression sur les écrans de grille.
+- AC-7 / codes — pass — aucun code technique affiché sur les 4 onglets (demande de l'utilisateur).
+- Navigation — pass — Produits › Multirisque Habitation › MRH Standard → `/produits-mrh/mrh-standard/situations`.
+- Responsive (L-008, L-010) — pass — 0 px de débordement à 360, 390, 1024 px et à 390 px sans JavaScript ; relais « Mode · Obligatoire » visible à 360/390, masqué à 1024.
+- Erreurs console — pass — aucune.
+- Non vérifié en réel : les refus 400 par champ et le 422 `LAST_ACCESSORY_HAS_ACTIVE_CONTRACT` (il faudrait écrire de vraies valeurs sur la démo partagée) — couverts par les tests simulés.
 
 ## Open questions
 
