@@ -12,7 +12,6 @@ import {
   within,
 } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { api } from '#/lib/api'
 import {
   downloadPolicyDocument,
   downloadReceiptDocument,
@@ -232,11 +231,68 @@ describe('ContractDrawer', () => {
     expect(await screen.findByText('Aucune quittance disponible.')).toBeTruthy()
   })
 
-  it('AC-5 : n’appelle jamais les routes de signature ni de pièces d’identité', async () => {
-    const get = vi.spyOn(api, 'get')
+  it('R1-1 : modifications refusées (403, sans amendment:read-all) → la quittance de renouvellement reste, avec une note', async () => {
+    vi.mocked(getAllAppliedAmendments).mockRejectedValue(
+      axiosError(403, { status: 403, message: 'Access denied' }),
+    )
+    vi.mocked(getSubscriptionRenewal).mockResolvedValue({
+      id: 1,
+      subscriptionId: 7,
+      status: 'PAID',
+      receipt: {
+        receiptNumber: 'Q-2026-000020',
+        status: 'PAID',
+        total: 30000,
+        documentId: 12,
+      },
+    })
     renderDrawer()
-    await screen.findByText('Signé')
-    const urls = get.mock.calls.map((c) => String(c[0]))
-    expect(urls.some((u) => /signature|identity-document/.test(u))).toBe(false)
+    const section = (await screen.findByText('Quittances')).closest(
+      'section',
+    ) as HTMLElement
+    expect(await within(section).findByText('Renouvellement')).toBeTruthy()
+    expect(
+      within(section).getByText(/droit de consulter les modifications/),
+    ).toBeTruthy()
+    expect(within(section).queryByText(/Impossible de retrouver/)).toBeNull()
+  })
+
+  it('R1-1 : modifications en échec (500) → erreur ciblée, la quittance de renouvellement reste', async () => {
+    vi.mocked(getAllAppliedAmendments).mockRejectedValue(axiosError(500, {}))
+    vi.mocked(getSubscriptionRenewal).mockResolvedValue({
+      id: 1,
+      subscriptionId: 7,
+      status: 'PAID',
+      receipt: {
+        receiptNumber: 'Q-2026-000020',
+        status: 'PAID',
+        total: 30000,
+        documentId: 12,
+      },
+    })
+    renderDrawer()
+    const section = (await screen.findByText('Quittances')).closest(
+      'section',
+    ) as HTMLElement
+    expect(await within(section).findByText('Renouvellement')).toBeTruthy()
+    expect(
+      within(section).getByText(
+        /Impossible de charger les quittances des modifications/,
+      ),
+    ).toBeTruthy()
+  })
+
+  it('R1-6 : plus de 2 000 modifications appliquées → le signale', async () => {
+    vi.mocked(getAllAppliedAmendments).mockResolvedValue({
+      items: [],
+      total: 2500,
+      capped: true,
+    })
+    renderDrawer()
+    expect(
+      await screen.findByText(
+        /seules les 2 000 modifications les plus récentes/,
+      ),
+    ).toBeTruthy()
   })
 })

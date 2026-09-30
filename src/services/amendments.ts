@@ -23,6 +23,7 @@ export const amendmentsKeys = {
   all: ['amendments'] as const,
   list: (filters: AmendmentFilters) => ['amendments', 'list', filters] as const,
   detail: (id: number) => ['amendments', 'detail', id] as const,
+  allApplied: ['amendments', 'all', 'APPLIED'] as const,
 }
 
 export async function getAmendments(

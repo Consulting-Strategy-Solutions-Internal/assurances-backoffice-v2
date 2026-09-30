@@ -65,8 +65,19 @@ vi.mock('#/components/claims/CreateClaimDialog', () => ({
 }))
 
 vi.mock('#/components/clients/ContractDrawer', () => ({
-  ContractDrawer: ({ subscriptionId }: { subscriptionId: number | null }) => (
-    <div data-testid="contract-drawer">{String(subscriptionId)}</div>
+  ContractDrawer: ({
+    subscriptionId,
+    onClose,
+  }: {
+    subscriptionId: number | null
+    onClose: () => void
+  }) => (
+    <div>
+      <span data-testid="contract-drawer">{String(subscriptionId)}</span>
+      <button type="button" onClick={onClose}>
+        fermer-panneau
+      </button>
+    </div>
   ),
 }))
 
@@ -258,5 +269,28 @@ describe('fiche client — documents des contrats', () => {
     await screen.findByText('IA-2026-000005')
     expect(screen.getByTestId('contract-drawer').textContent).toBe('null')
     mocks.search = { page: 0, size: 20, sort: 'lastName,asc' }
+  })
+
+  it('AC-1 : fermer le panneau retire ?contract de l’URL', async () => {
+    setup()
+    mocks.search = { ...mocks.search, contract: 5 }
+    renderWithQuery(<ClientDetailContent clientId={42} />)
+    await screen.findByText('IA-2026-000005')
+    mocks.navigate.mockClear()
+    fireEvent.click(screen.getByText('fermer-panneau'))
+    const call = mocks.navigate.mock.calls.at(-1)?.[0] as {
+      search: (p: object) => { contract?: number }
+    }
+    expect(call.search({ page: 0, contract: 5 }).contract).toBeUndefined()
+    mocks.search = { page: 0, size: 20, sort: 'lastName,asc' }
+  })
+
+  it('R1-3 : la ligne d’un contrat se termine par un chevron (ligne cliquable)', async () => {
+    setup()
+    renderWithQuery(<ClientDetailContent clientId={42} />)
+    const row = await screen.findByRole('button', {
+      name: /Ouvrir le contrat IA-2026-000005/,
+    })
+    expect(row.querySelector('svg.lucide-chevron-right')).toBeTruthy()
   })
 })

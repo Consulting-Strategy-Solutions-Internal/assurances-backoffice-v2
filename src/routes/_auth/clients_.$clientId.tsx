@@ -58,12 +58,12 @@ import { clientsKeys, getClient } from '#/services/clients'
 import type { ClientResponse } from '#/services/clients'
 import {
   SUBSCRIPTION_STATUS_LABELS,
+  SUBSCRIPTION_TONES,
   getAllSubscriptions,
   shortDate,
   subscriptionsAllKey,
   subscriptionsOfClient,
 } from '#/services/subscriptions-by-client'
-import type { SubscriptionStatus } from '#/services/subscriptions'
 
 const searchSchema = z.object({
   /** Contrat ouvert dans le panneau latéral. */
@@ -77,12 +77,6 @@ export const Route = createFileRoute('/_auth/clients_/$clientId')({
 })
 
 const backSearch = { page: 0, size: 20, sort: 'lastName,asc' } as const
-const SUBSCRIPTION_TONES = {
-  ACTIVE: 'success',
-  PENDING_PAYMENT: 'warning',
-  EXPIRED: 'neutral',
-  CANCELLED: 'danger',
-} as const satisfies Record<SubscriptionStatus, string>
 const OPEN_STATUSES = ['SUBMITTED', 'UNDER_REVIEW', 'INFO_REQUESTED']
 
 function VerificationPill({
@@ -440,6 +434,7 @@ function ClientDetail({ client }: { client: ClientResponse }) {
                   <DataTableHead className="pr-6 text-right">
                     Prime
                   </DataTableHead>
+                  <DataTableHead className="w-10" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -475,6 +470,7 @@ function ClientDetail({ client }: { client: ClientResponse }) {
                     <TableCell className="pr-6 text-right whitespace-nowrap tabular-nums">
                       {formatFcfa(contract.totalPremium)}
                     </TableCell>
+                    <RowChevron />
                   </ClickableRow>
                 ))}
               </TableBody>

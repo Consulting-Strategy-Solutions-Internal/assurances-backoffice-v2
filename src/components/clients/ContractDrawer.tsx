@@ -17,7 +17,8 @@ import {
   mapPolicyDocumentError,
   mapReceiptDocumentError,
 } from '#/lib/amendments'
-import { apiErrorMessage } from '#/lib/api-error'
+import { apiErrorMessage, isForbidden } from '#/lib/api-error'
+import { saveBlob } from '#/lib/download'
 import {
   contractDocuments,
   contractReceipts,
@@ -28,6 +29,7 @@ import { formatFcfa } from '#/lib/utils'
 import {
   downloadPolicyDocument,
   downloadReceiptDocument,
+  amendmentsKeys,
   getAllAppliedAmendments,
 } from '#/services/amendments'
 import {
@@ -35,16 +37,10 @@ import {
   getSubscriptionRenewal,
   subscriptionsKeys,
 } from '#/services/subscriptions'
-import { SUBSCRIPTION_STATUS_LABELS } from '#/services/subscriptions-by-client'
-
-function saveBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = filename
-  link.click()
-  URL.revokeObjectURL(url)
-}
+import {
+  SUBSCRIPTION_STATUS_LABELS,
+  SUBSCRIPTION_TONES,
+} from '#/services/subscriptions-by-client'
 
 function Section({
   title,
@@ -153,7 +149,7 @@ export function ContractDrawer({
     retry: false,
   })
   const applied = useQuery({
-    queryKey: ['amendments', 'all', 'APPLIED'],
+    queryKey: amendmentsKeys.allApplied,
     queryFn: getAllAppliedAmendments,
     enabled: id !== null,
     staleTime: 60_000,
@@ -162,12 +158,15 @@ export function ContractDrawer({
 
   const contract = detail.data
   const documents = contract ? contractDocuments(contract) : []
+  // Chaque source compte seule : un rôle sans `amendment:read-all` (403 sur
+  // les modifications) garde la quittance de renouvellement, et inversement.
   const receipts =
-    id !== null && applied.data
-      ? contractReceipts(id, applied.data.items, renewal.data?.receipt)
+    id !== null
+      ? contractReceipts(id, applied.data?.items ?? [], renewal.data?.receipt)
       : []
   const receiptsLoading = applied.isPending || renewal.isPending
-  const receiptsFailed = applied.isError || renewal.isError
+  const amendmentsForbidden = applied.isError && isForbidden(applied.error)
+  const amendmentsFailed = applied.isError && !amendmentsForbidden
 
   return (
     <Sheet
@@ -194,17 +193,7 @@ export function ContractDrawer({
                 <span>{contract.productSnapshot.productLabel}</span>
               )}
               {contract && (
-                <StatusPill
-                  tone={
-                    contract.status === 'ACTIVE'
-                      ? 'success'
-                      : contract.status === 'PENDING_PAYMENT'
-                        ? 'warning'
-                        : contract.status === 'CANCELLED'
-                          ? 'danger'
-                          : 'neutral'
-                  }
-                >
+                <StatusPill tone={SUBSCRIPTION_TONES[contract.status]}>
                   {SUBSCRIPTION_STATUS_LABELS[contract.status]}
                 </StatusPill>
               )}
@@ -308,10 +297,6 @@ export function ContractDrawer({
             <Section title="Quittances">
               {receiptsLoading ? (
                 <Skeleton className="h-5 w-2/3" />
-              ) : receiptsFailed && receipts.length === 0 ? (
-                <p className="text-[13px] text-destructive">
-                  Impossible de retrouver les quittances de ce contrat.
-                </p>
               ) : receipts.length === 0 ? (
                 <p className="text-[13px] text-muted-foreground">
                   Aucune quittance disponible.
@@ -335,6 +320,35 @@ export function ContractDrawer({
                     />
                   ))}
                 </ul>
+              )}
+              {amendmentsFailed && (
+                <p role="alert" className="mt-3 text-[12.5px] text-destructive">
+                  Impossible de charger les quittances des modifications.{' '}
+                  <button
+                    type="button"
+                    className="font-semibold underline"
+                    onClick={() => void applied.refetch()}
+                  >
+                    Réessayer
+                  </button>
+                </p>
+              )}
+              {renewal.isError && (
+                <p role="alert" className="mt-3 text-[12.5px] text-destructive">
+                  Impossible de charger la quittance de renouvellement.
+                </p>
+              )}
+              {amendmentsForbidden && (
+                <p className="mt-3 text-[12px] text-muted-foreground">
+                  Les quittances des modifications demandent le droit de
+                  consulter les modifications de contrat.
+                </p>
+              )}
+              {applied.data?.capped && (
+                <p className="mt-3 text-[12px] text-muted-foreground">
+                  Au-delà de 2 000 modifications appliquées, seules les 2 000
+                  modifications les plus récentes sont examinées.
+                </p>
               )}
               <p className="mt-3 text-[12px] text-muted-foreground">
                 Quittances des modifications appliquées et du dernier
