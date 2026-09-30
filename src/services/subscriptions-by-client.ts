@@ -32,6 +32,14 @@ export const SUBSCRIPTION_STATUS_LABELS: Record<SubscriptionStatus, string> = {
   CANCELLED: 'Résilié',
 }
 
+/** Teinte de pastille par statut (même lecture partout). */
+export const SUBSCRIPTION_TONES = {
+  ACTIVE: 'success',
+  PENDING_PAYMENT: 'warning',
+  EXPIRED: 'neutral',
+  CANCELLED: 'danger',
+} as const satisfies Record<SubscriptionStatus, string>
+
 export function shortDate(value?: string | null): string {
   if (!value) return ''
   const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value)

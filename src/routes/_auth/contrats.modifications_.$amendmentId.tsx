@@ -1,4 +1,5 @@
 import { pageHead } from '#/lib/page-title'
+import { saveBlob } from '#/lib/download'
 import { useState } from 'react'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -115,15 +116,6 @@ function StateCard({
       }
     />
   )
-}
-
-function saveBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = filename
-  link.click()
-  URL.revokeObjectURL(url)
 }
 
 function BeneficiaryList({ items }: { items: AmendmentBeneficiary[] }) {
