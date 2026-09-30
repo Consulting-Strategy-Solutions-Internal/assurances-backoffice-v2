@@ -8,6 +8,7 @@ import {
   within,
 } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { toast } from 'sonner'
 import {
   getBaseRate,
   getBaseRates,
@@ -29,11 +30,13 @@ import {
   renderWithClient,
 } from './test-kit'
 
+const perms = vi.hoisted(() => ({ granted: null as Set<string> | null }))
 vi.mock('#/components/dashboard/use-permissions', () => ({
+  // Sémantique réelle (L-009) : null = inconnu → can() vrai.
   usePermissions: () => ({
-    permissions: null,
-    can: () => true,
-    canKnown: () => false,
+    permissions: perms.granted,
+    can: (p: string) => perms.granted === null || perms.granted.has(p),
+    canKnown: (p: string) => perms.granted?.has(p) === true,
   }),
 }))
 vi.mock('#/services/mrh-tariff', async (importOriginal) => ({
@@ -45,10 +48,13 @@ vi.mock('#/services/mrh-tariff', async (importOriginal) => ({
   getBaseRate: vi.fn(),
   updateBaseRate: vi.fn(),
 }))
-vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
+vi.mock('sonner', () => ({
+  toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() },
+}))
 
 beforeEach(() => {
   vi.clearAllMocks()
+  perms.granted = null
   // L'API renvoie NON_OCCUPANT d'abord : l'écran suit l'ordre de la grille.
   vi.mocked(getLegalQualities).mockResolvedValue(page([NON_OCCUPANT, TENANT]))
   vi.mocked(getBaseRates).mockResolvedValue(
@@ -237,6 +243,103 @@ describe('LegalQualitiesScreen — situation', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Enregistrer' }))
     expect(
       await within(fieldOf(/Nom/)).findByText('Valeur invalide.'),
+    ).toBeTruthy()
+  })
+})
+
+describe('revue R1', () => {
+  it('R1-5 : droits connus sans écriture → boutons Modifier désactivés avec explication', async () => {
+    perms.granted = new Set(['legalquality:read', 'baserate:read'])
+    renderWithClient(<LegalQualitiesScreen />)
+    const situation = await screen.findByRole('button', {
+      name: 'Modifier la situation Locataire',
+    })
+    const rates = screen.getByRole('button', {
+      name: 'Modifier les taux de Locataire',
+    })
+    expect((situation as HTMLButtonElement).disabled).toBe(true)
+    expect((rates as HTMLButtonElement).disabled).toBe(true)
+    expect(situation.parentElement?.getAttribute('title')).toMatch(
+      /droits requis/,
+    )
+  })
+
+  it('R1-5 : droits inconnus → boutons actifs (le serveur tranche)', async () => {
+    renderWithClient(<LegalQualitiesScreen />)
+    const rates = await screen.findByRole('button', {
+      name: 'Modifier les taux de Locataire',
+    })
+    expect((rates as HTMLButtonElement).disabled).toBe(false)
+  })
+
+  it('R1-1 : description de plus de 255 caractères refusée avant l’envoi', async () => {
+    renderWithClient(<LegalQualitiesScreen />)
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Modifier la situation Locataire',
+      }),
+    )
+    const dialog = await screen.findByRole('dialog')
+    fireEvent.change(within(dialog).getByLabelText(/Description/), {
+      target: { value: 'a'.repeat(256) },
+    })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Enregistrer' }))
+    expect(
+      await within(fieldOf(/Description/)).findByText(
+        '255 caractères maximum.',
+      ),
+    ).toBeTruthy()
+    expect(updateLegalQuality).not.toHaveBeenCalled()
+  })
+
+  it('R1-4 : l’erreur serveur disparaît dès que le champ est corrigé', async () => {
+    vi.mocked(updateLegalQuality).mockRejectedValue(
+      axiosError(400, { errors: { name: 'must not be blank' } }),
+    )
+    renderWithClient(<LegalQualitiesScreen />)
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Modifier la situation Locataire',
+      }),
+    )
+    const dialog = await screen.findByRole('dialog')
+    fireEvent.change(within(dialog).getByLabelText(/Nom/), {
+      target: { value: 'X' },
+    })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Enregistrer' }))
+    await within(fieldOf(/Nom/)).findByText('Valeur invalide.')
+    fireEvent.change(within(dialog).getByLabelText(/Nom/), {
+      target: { value: 'Locataire' },
+    })
+    expect(within(fieldOf(/Nom/)).queryByText('Valeur invalide.')).toBeNull()
+  })
+
+  it('R1-2 : PUT réussi mais relecture en échec → valeur du PUT affichée, pas d’erreur', async () => {
+    vi.mocked(updateBaseRate).mockResolvedValue({
+      ...TENANT_RATE,
+      rentalValuePremiumRate: 0.41,
+    })
+    vi.mocked(getBaseRate).mockRejectedValue(axiosError(503, {}))
+    renderWithClient(<LegalQualitiesScreen />)
+    const dialog = await openRates('Locataire')
+    fireEvent.change(within(dialog).getByLabelText(/Taux risques locatifs/), {
+      target: { value: '0,41' },
+    })
+    vi.mocked(getBaseRates).mockReturnValue(new Promise(() => undefined))
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Enregistrer' }))
+    expect(await screen.findByText(/0,41\s‰/)).toBeTruthy()
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(toast.warning).toHaveBeenCalled()
+  })
+
+  it('D-7 : un taux exigé mais vide en base a son champ', async () => {
+    vi.mocked(getBaseRates).mockResolvedValue(
+      page([{ ...TENANT_RATE, rentMultiplier: null }, NON_OCCUPANT_RATE]),
+    )
+    renderWithClient(<LegalQualitiesScreen />)
+    const dialog = await openRates('Locataire')
+    expect(
+      within(dialog).getByLabelText(/Multiplicateur du loyer/),
     ).toBeTruthy()
   })
 })

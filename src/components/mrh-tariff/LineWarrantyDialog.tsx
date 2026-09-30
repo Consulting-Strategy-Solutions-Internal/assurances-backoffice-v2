@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useForm, useStore } from '@tanstack/react-form'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
 import { FormDialog } from '#/components/forms/FormDialog'
 import { FormField } from '#/components/forms/FormField'
 import { Checkbox } from '#/components/ui/checkbox'
@@ -23,7 +22,13 @@ import type {
   LegalQualityWarrantyResponse,
   WarrantyResponse,
 } from '#/services/mrh-tariff'
-import { MRH_KEYS, splitServerError, writeBack } from './grid-kit'
+import {
+  MRH_KEYS,
+  announceSaved,
+  saveThenReread,
+  splitServerError,
+  writeBack,
+} from './grid-kit'
 
 const ALL_LINE_FIELDS = ['rate', 'flatAmount', 'capitalShare', 'mandatory']
 
@@ -46,16 +51,18 @@ export function LineWarrantyDialog({
   const modeFields = lineFieldsFor(line.premiumType)
 
   const { mutateAsync, isPending } = useMutation({
-    mutationFn: async (values: LineValues) => {
-      await updateLegalQualityWarranty(
-        line.id,
-        buildLineWarrantyPayload(line, values),
-      )
-      return getLegalQualityWarranty(line.id)
-    },
-    onSuccess: (fresh) => {
-      writeBack(queryClient, MRH_KEYS.lines, fresh)
-      toast.success('Garantie mise à jour.')
+    mutationFn: (values: LineValues) =>
+      saveThenReread(
+        () =>
+          updateLegalQualityWarranty(
+            line.id,
+            buildLineWarrantyPayload(line, values),
+          ),
+        () => getLegalQualityWarranty(line.id),
+      ),
+    onSuccess: (saved) => {
+      writeBack(queryClient, MRH_KEYS.lines, saved.entity)
+      announceSaved(saved, 'Garantie mise à jour.')
       onClose()
     },
   })
@@ -81,7 +88,13 @@ export function LineWarrantyDialog({
         )
         const hidden = Object.entries(split.fields)
           .filter(([k]) => !shown.includes(k))
-          .map(([k, msg]) => `Champ « ${k} » : ${msg}`)
+          .map(([k, msg]) => {
+            const label =
+              k === 'rate' || k === 'flatAmount' || k === 'capitalShare'
+                ? lineFieldSpec(line.premiumType, k).label
+                : k
+            return `${label} : ${msg}`
+          })
         setServerFields(visible)
         setServerError(
           [split.banner, ...hidden].filter(Boolean).join(' ') || null,

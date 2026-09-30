@@ -265,9 +265,7 @@ export function DetailBody({
             </>
           )}
           {product?.legalQualityName && (
-            <InfoRow label="Qualité juridique">
-              {product.legalQualityName}
-            </InfoRow>
+            <InfoRow label="Situation">{product.legalQualityName}</InfoRow>
           )}
           {product?.contentsValue != null && (
             <InfoRow label="Valeur du contenu">

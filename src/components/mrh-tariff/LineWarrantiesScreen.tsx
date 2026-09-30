@@ -49,7 +49,7 @@ export function describeLineValue(line: LegalQualityWarrantyResponse): string {
     case 'POURCENTAGE':
       return `${formatPercent(line.rate)} de la prime de base`
     case 'FORFAIT':
-      return formatFcfa(line.flatAmount)
+      return line.flatAmount == null ? '—' : formatFcfa(line.flatAmount)
     case 'CAPITAL':
       return `${formatPermille(line.rate)} sur ${formatPercent(line.capitalShare)} des capitaux`
   }
@@ -181,6 +181,10 @@ export function LineWarrantiesScreen({
                           <CodeTag>{warranty.code}</CodeTag>
                         </div>
                       )}
+                      {/* Relais des colonnes Mode / Obligatoire masquées sous 672 px. */}
+                      <div className="mt-1 text-[12px] text-muted-foreground @2xl/main:hidden">
+                        {`${PREMIUM_TYPE_LABELS[line.premiumType]} · ${line.mandatory ? 'Obligatoire' : 'Optionnelle'}`}
+                      </div>
                     </DataTableCell>
                     <DataTableCell hideBelow="md">
                       <StatusPill tone="neutral">

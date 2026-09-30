@@ -1,13 +1,22 @@
 import { useState } from 'react'
 import { useForm, useStore } from '@tanstack/react-form'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
 import { FormDialog } from '#/components/forms/FormDialog'
 import { FormField } from '#/components/forms/FormField'
-import { parseDecimalInput, validateDecimalInput } from '#/lib/mrh-tariff'
+import {
+  parseDecimalInput,
+  validateDecimalInput,
+  validateTextLength,
+} from '#/lib/mrh-tariff'
 import { getWarranty, updateWarranty } from '#/services/mrh-tariff'
 import type { WarrantyResponse } from '#/services/mrh-tariff'
-import { MRH_KEYS, splitServerError, writeBack } from './grid-kit'
+import {
+  MRH_KEYS,
+  announceSaved,
+  saveThenReread,
+  splitServerError,
+  writeBack,
+} from './grid-kit'
 
 const FORM_FIELDS = ['name', 'taxRate'] as const
 
@@ -23,16 +32,18 @@ export function WarrantyDialog({
   const [serverFields, setServerFields] = useState<Record<string, string>>({})
 
   const { mutateAsync, isPending } = useMutation({
-    mutationFn: async (values: { name: string; taxRate: string }) => {
-      await updateWarranty(warranty.id, {
-        name: values.name.trim(),
-        taxRate: parseDecimalInput(values.taxRate),
-      })
-      return getWarranty(warranty.id)
-    },
-    onSuccess: (fresh) => {
-      writeBack(queryClient, MRH_KEYS.warranties, fresh)
-      toast.success('Garantie mise à jour.')
+    mutationFn: (values: { name: string; taxRate: string }) =>
+      saveThenReread(
+        () =>
+          updateWarranty(warranty.id, {
+            name: values.name.trim(),
+            taxRate: parseDecimalInput(values.taxRate),
+          }),
+        () => getWarranty(warranty.id),
+      ),
+    onSuccess: (saved) => {
+      writeBack(queryClient, MRH_KEYS.warranties, saved.entity)
+      announceSaved(saved, 'Garantie mise à jour.')
       onClose()
     },
   })
@@ -54,9 +65,15 @@ export function WarrantyDialog({
 
   const dirty = useStore(form.store, (s) => !s.isDefaultValue)
   const requireName = ({ value }: { value: string }) =>
-    value.trim() === '' ? 'Le libellé est requis.' : undefined
+    value.trim() === '' ? 'Le libellé est requis.' : validateTextLength(value)
   const validateTax = ({ value }: { value: string }) =>
     validateDecimalInput(value, {})
+  const clearServer = (name: string) =>
+    setServerFields((prev) => {
+      if (!(name in prev)) return prev
+      const { [name]: _removed, ...rest } = prev
+      return rest
+    })
 
   return (
     <FormDialog
@@ -80,7 +97,10 @@ export function WarrantyDialog({
             label="Libellé"
             required
             value={field.state.value}
-            onChange={field.handleChange}
+            onChange={(v) => {
+              clearServer('name')
+              field.handleChange(v)
+            }}
             onBlur={field.handleBlur}
             error={field.state.meta.errors[0] ?? serverFields.name}
           />
@@ -96,7 +116,10 @@ export function WarrantyDialog({
             label="Taux de taxe (%)"
             required
             value={field.state.value}
-            onChange={field.handleChange}
+            onChange={(v) => {
+              clearServer('taxRate')
+              field.handleChange(v)
+            }}
             onBlur={field.handleBlur}
             error={field.state.meta.errors[0] ?? serverFields.taxRate}
           />

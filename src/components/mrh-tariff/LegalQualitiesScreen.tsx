@@ -14,6 +14,7 @@ import {
 } from '#/components/ia-products/shared/screen-kit'
 import { apiErrorMessage } from '#/lib/api-error'
 import { formatPermille } from '#/lib/format'
+import { formatFcfa } from '#/lib/utils'
 import {
   BASE_RATE_FIELDS,
   PROPERTY_BASIS_LABELS,
@@ -48,9 +49,10 @@ function BaseRateValue({
   unit,
 }: {
   rate: number | null
-  unit: 'permille' | 'multiplier'
+  unit: 'permille' | 'multiplier' | 'fcfa'
 }) {
   if (unit === 'permille') return <>{formatPermille(rate)}</>
+  if (unit === 'fcfa') return <>{rate == null ? '—' : formatFcfa(rate)}</>
   return <>{rate == null ? '—' : `× ${multiplierFormatter.format(rate)}`}</>
 }
 
@@ -71,7 +73,9 @@ function SituationCard({
   onEditSituation: () => void
   onEditRates: () => void
 }) {
-  const shown = baseRate ? baseRateFieldsFor(baseRate) : []
+  const shown = baseRate
+    ? baseRateFieldsFor(baseRate, legalQuality.propertyBasis)
+    : []
   return (
     <SectionCard
       title={legalQuality.name}

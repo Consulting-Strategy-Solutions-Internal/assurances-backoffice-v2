@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import type { QueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import type { PageResponse } from '#/lib/page'
 import { orphanBannerMessage, parseIaError } from '#/lib/ia-errors'
 
@@ -31,6 +32,39 @@ export function writeBack<T extends { id: number }>(
       : page,
   )
   void queryClient.invalidateQueries({ queryKey: key })
+}
+
+/** Résultat d'un enregistrement suivi d'une relecture (D-4). */
+export interface Saved<T> {
+  entity: T
+  /** false : la relecture a échoué, `entity` est la réponse du `PUT`. */
+  reread: boolean
+}
+
+/**
+ * `PUT` puis `GET` de la ressource. Si seule la relecture échoue, la valeur
+ * est bien enregistrée : on garde la réponse du `PUT` au lieu d'afficher un
+ * échec (R1-2).
+ */
+export async function saveThenReread<T>(
+  save: () => Promise<T>,
+  read: () => Promise<T>,
+): Promise<Saved<T>> {
+  const saved = await save()
+  try {
+    return { entity: await read(), reread: true }
+  } catch {
+    return { entity: saved, reread: false }
+  }
+}
+
+/** Toast de fin d'enregistrement, avec l'avertissement si la relecture a échoué. */
+export function announceSaved(saved: Saved<unknown>, message: string) {
+  if (saved.reread) toast.success(message)
+  else
+    toast.warning(
+      `${message} La relecture a échoué : la valeur affichée est celle renvoyée à l’enregistrement.`,
+    )
 }
 
 /**

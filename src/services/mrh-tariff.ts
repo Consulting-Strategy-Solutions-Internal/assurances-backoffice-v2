@@ -69,6 +69,7 @@ export type BaseRateField =
   | 'contentsPremiumRate'
   | 'rentalValuePremiumRate'
   | 'rentMultiplier'
+  | 'minimumContentsValue'
 
 /** `UpdateBaseRateDto` : un champ absent garde sa valeur. */
 export type UpdateBaseRatePayload = Partial<Record<BaseRateField, number>>

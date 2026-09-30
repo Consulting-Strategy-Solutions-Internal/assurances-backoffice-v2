@@ -27,11 +27,12 @@ import {
 import type { AccessoryResponse } from '#/services/accessories'
 import type * as AccessoriesService from '#/services/accessories'
 
+const perms = vi.hoisted(() => ({ granted: null as Set<string> | null }))
 vi.mock('#/components/dashboard/use-permissions', () => ({
   usePermissions: () => ({
-    permissions: null,
-    can: () => true,
-    canKnown: () => false,
+    permissions: perms.granted,
+    can: (p: string) => perms.granted === null || perms.granted.has(p),
+    canKnown: (p: string) => perms.granted?.has(p) === true,
   }),
 }))
 vi.mock('#/services/accessories', async (importOriginal) => ({
@@ -145,7 +146,10 @@ function type(label: RegExp, value: string) {
   fireEvent.change(screen.getByLabelText(label), { target: { value } })
 }
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => {
+  vi.clearAllMocks()
+  perms.granted = null
+})
 afterEach(cleanup)
 
 describe('AccessoriesScreen', () => {

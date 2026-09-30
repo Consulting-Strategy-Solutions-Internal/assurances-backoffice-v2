@@ -7,6 +7,7 @@ import {
   lineFieldsFor,
   parseDecimalInput,
   validateDecimalInput,
+  validateTextLength,
 } from './mrh-tariff'
 import type {
   BaseRateResponse,
@@ -141,5 +142,46 @@ describe('lineFieldsFor / buildLineWarrantyPayload', () => {
         { rate: '1,5', flatAmount: '', capitalShare: '25', mandatory: true },
       ),
     ).toEqual({ rate: 1.5, capitalShare: 25 })
+  })
+})
+
+describe('revue R1', () => {
+  it('R1-7 : accepte un montant saisi avec des espaces (« 15 000 »)', () => {
+    expect(validateDecimalInput('15 000', {})).toBeUndefined()
+    expect(validateDecimalInput('15 000,5', {})).toBeUndefined()
+    expect(parseDecimalInput('15 000')).toBe(15000)
+  })
+
+  it('R1-1 : texte limité à 255 caractères (colonne varchar 255)', () => {
+    expect(validateTextLength('a'.repeat(255))).toBeUndefined()
+    expect(validateTextLength('a'.repeat(256))).toBe('255 caractères maximum.')
+  })
+
+  it('D-7 : un taux exigé par la situation reste affiché même vide en base', () => {
+    const empty = {
+      ...tenantRate,
+      rentalValuePremiumRate: null,
+      rentMultiplier: null,
+    }
+    expect(baseRateFieldsFor(empty, 'LOCATIVE')).toEqual([
+      'rentalValuePremiumRate',
+      'rentMultiplier',
+      'contentsPremiumRate',
+    ])
+    expect(
+      baseRateFieldsFor(
+        { ...empty, contentsPremiumRate: null, buildingPremiumRate: null },
+        'BATIMENT',
+      ),
+    ).toEqual(['buildingPremiumRate'])
+  })
+
+  it('minimumContentsValue : optionnel, envoyé seulement s’il est saisi et changé', () => {
+    expect(
+      buildBaseRatePayload(tenantRate, { minimumContentsValue: '' }),
+    ).toEqual({})
+    expect(
+      buildBaseRatePayload(tenantRate, { minimumContentsValue: '2 000 000' }),
+    ).toEqual({ minimumContentsValue: 2000000 })
   })
 })

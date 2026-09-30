@@ -94,9 +94,12 @@ export async function importAccessoriesCsv(
     )
     return response.data
   } catch (err) {
+    // Seul le rejet du CSV renvoie un `ImportResult` ; un autre 422 (fichier
+    // trop volumineux) est un `ErrorResponse` et remonte comme une erreur.
     if (
       isAxiosError<AccessoryImportResult>(err) &&
-      err.response?.status === 422
+      err.response?.status === 422 &&
+      Array.isArray((err.response.data as { errors?: unknown }).errors)
     ) {
       return err.response.data
     }

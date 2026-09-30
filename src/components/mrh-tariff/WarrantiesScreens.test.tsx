@@ -36,11 +36,12 @@ import {
   renderWithClient,
 } from './test-kit'
 
+const perms = vi.hoisted(() => ({ granted: null as Set<string> | null }))
 vi.mock('#/components/dashboard/use-permissions', () => ({
   usePermissions: () => ({
-    permissions: null,
-    can: () => true,
-    canKnown: () => false,
+    permissions: perms.granted,
+    can: (p: string) => perms.granted === null || perms.granted.has(p),
+    canKnown: (p: string) => perms.granted?.has(p) === true,
   }),
 }))
 vi.mock('#/services/mrh-tariff', async (importOriginal) => ({
@@ -67,6 +68,7 @@ vi.stubGlobal(
 
 beforeEach(() => {
   vi.clearAllMocks()
+  perms.granted = null
   vi.mocked(getLegalQualities).mockResolvedValue(page([NON_OCCUPANT, TENANT]))
   vi.mocked(getWarranties).mockResolvedValue(page([THEFT, FLOOD, FIRE]))
   vi.mocked(getLegalQualityWarranties).mockResolvedValue(
@@ -168,7 +170,9 @@ describe('LineWarrantiesScreen', () => {
     expect(rows).toHaveLength(4)
     expect(within(rows[1]).getByText('Incendie')).toBeTruthy()
     expect(within(rows[1]).getByText(/100\s% de la prime de base/)).toBeTruthy()
-    expect(within(rows[1]).getByText('Obligatoire')).toBeTruthy()
+    expect(within(rows[1]).getAllByText('Obligatoire').length).toBeGreaterThan(
+      0,
+    )
     expect(
       within(rows[2]).getByText(/1\s‰ sur 25\s% des capitaux/),
     ).toBeTruthy()
@@ -290,8 +294,94 @@ describe('LineWarrantiesScreen', () => {
     save(dialog)
     expect(
       await within(dialog).findByText(
-        'Champ « capitalShare » : Ce champ ne s’applique pas à ce mode de calcul.',
+        'Part des capitaux (%) : Ce champ ne s’applique pas à ce mode de calcul.',
       ),
     ).toBeTruthy()
+  })
+})
+
+describe('revue R1', () => {
+  it('R1-5 : warranty:write connu et absent → Modifier désactivé', async () => {
+    perms.granted = new Set(['warranty:read'])
+    renderWithClient(<WarrantiesScreen />)
+    const button = await screen.findByRole('button', {
+      name: 'Modifier la garantie Incendie',
+    })
+    expect((button as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('R1-5 : legalquality:write connu et absent → lignes non modifiables', async () => {
+    perms.granted = new Set(['legalquality:read', 'warranty:read'])
+    renderWithClient(
+      <LineWarrantiesScreen situation="TENANT" onSituationChange={vi.fn()} />,
+    )
+    const button = await screen.findByRole('button', {
+      name: 'Modifier Incendie',
+    })
+    expect((button as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('R1-6 : mode et caractère obligatoire relayés sous le nom (colonnes masquées sur téléphone)', async () => {
+    renderWithClient(
+      <LineWarrantiesScreen situation="TENANT" onSituationChange={vi.fn()} />,
+    )
+    const table = await screen.findByRole('table')
+    await within(table).findByText('Incendie')
+    const rows = within(table).getAllByRole('row')
+    expect(within(rows[1]).getByText('Pourcentage · Obligatoire')).toBeTruthy()
+    expect(within(rows[2]).getByText('Capital · Optionnelle')).toBeTruthy()
+  })
+
+  it('R1-1 : libellé de plus de 255 caractères refusé avant l’envoi', async () => {
+    renderWithClient(<WarrantiesScreen />)
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Modifier la garantie Vol' }),
+    )
+    const dialog = await screen.findByRole('dialog')
+    fireEvent.change(within(dialog).getByLabelText(/Libellé/), {
+      target: { value: 'a'.repeat(256) },
+    })
+    save(dialog)
+    expect(
+      await within(fieldOf(/Libellé/)).findByText('255 caractères maximum.'),
+    ).toBeTruthy()
+    expect(updateWarranty).not.toHaveBeenCalled()
+  })
+
+  it('R1-4 : l’erreur serveur sous Taux de taxe disparaît à la correction', async () => {
+    vi.mocked(updateWarranty).mockRejectedValue(
+      axiosError(400, { errors: { taxRate: 'must be >= 0' } }),
+    )
+    renderWithClient(<WarrantiesScreen />)
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Modifier la garantie Vol' }),
+    )
+    const dialog = await screen.findByRole('dialog')
+    save(dialog)
+    await within(fieldOf(/Taux de taxe/)).findByText('Valeur invalide.')
+    fireEvent.change(within(dialog).getByLabelText(/Taux de taxe/), {
+      target: { value: '15' },
+    })
+    expect(
+      within(fieldOf(/Taux de taxe/)).queryByText('Valeur invalide.'),
+    ).toBeNull()
+  })
+
+  it('R1-7 : montant forfaitaire saisi « 20 000 » envoyé comme 20000', async () => {
+    vi.mocked(updateLegalQualityWarranty).mockResolvedValue(TENANT_THEFT)
+    vi.mocked(getLegalQualityWarranty).mockResolvedValue(TENANT_THEFT)
+    renderWithClient(
+      <LineWarrantiesScreen situation="TENANT" onSituationChange={vi.fn()} />,
+    )
+    fireEvent.click(await screen.findByRole('button', { name: 'Modifier Vol' }))
+    const dialog = await screen.findByRole('dialog')
+    fireEvent.change(within(dialog).getByLabelText(/Montant forfaitaire/), {
+      target: { value: '20 000' },
+    })
+    save(dialog)
+    await waitFor(() => expect(updateLegalQualityWarranty).toHaveBeenCalled())
+    expect(vi.mocked(updateLegalQualityWarranty).mock.calls[0][1]).toEqual({
+      flatAmount: 20000,
+    })
   })
 })

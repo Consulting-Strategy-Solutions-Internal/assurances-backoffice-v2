@@ -33,7 +33,7 @@ export const PREMIUM_TYPE_LABELS: Record<PremiumType, string> = {
 export const BASE_RATE_FIELDS: {
   name: BaseRateField
   label: string
-  unit: 'permille' | 'multiplier'
+  unit: 'permille' | 'multiplier' | 'fcfa'
 }[] = [
   {
     name: 'buildingPremiumRate',
@@ -51,18 +51,57 @@ export const BASE_RATE_FIELDS: {
     unit: 'multiplier',
   },
   { name: 'contentsPremiumRate', label: 'Taux contenu (‰)', unit: 'permille' },
+  {
+    name: 'minimumContentsValue',
+    label: 'Valeur minimale du contenu (FCFA)',
+    unit: 'fcfa',
+  },
 ]
 
-/** Champs de taux de la situation : seulement ceux que l'API renvoie non nuls. */
-export function baseRateFieldsFor(rate: BaseRateResponse): BaseRateField[] {
+/** Seul champ facultatif : conservé pour référence, sans effet sur la prime. */
+export const OPTIONAL_BASE_RATE_FIELDS: readonly BaseRateField[] = [
+  'minimumContentsValue',
+]
+
+/**
+ * Champs de la situation (D-7) : ceux que l'API renvoie non nuls, plus ceux
+ * que la base de calcul exige (un taux exigé mais vide en base doit rester
+ * saisissable). Le contenu n'est exigé que s'il est déjà couvert.
+ */
+export function baseRateFieldsFor(
+  rate: BaseRateResponse,
+  basis?: PropertyBasis,
+): BaseRateField[] {
+  const required = (name: BaseRateField) => {
+    if (basis === undefined) return false
+    if (name === 'buildingPremiumRate') return basis !== 'LOCATIVE'
+    if (name === 'rentalValuePremiumRate' || name === 'rentMultiplier') {
+      return basis === 'LOCATIVE'
+    }
+    return false
+  }
   return BASE_RATE_FIELDS.map((f) => f.name).filter(
-    (name) => rate[name] != null,
+    (name) => rate[name] != null || required(name),
   )
 }
 
-/** Accepte la virgule décimale française (« 0,35 » → 0.35). */
+/** Retire les séparateurs de milliers (espaces, espaces insécables). */
+function normalizeDecimal(raw: string): string {
+  return raw.replace(/[\s\u00a0\u202f]/g, '').replace(',', '.')
+}
+
+/** Accepte la virgule décimale et les espaces français (« 15 000,5 »). */
 export function parseDecimalInput(raw: string): number {
-  return Number(raw.trim().replace(',', '.'))
+  return Number(normalizeDecimal(raw))
+}
+
+/** Colonnes texte du backend : `varchar(255)`, sans `@Size` côté API. */
+export const MAX_TEXT_LENGTH = 255
+
+export function validateTextLength(raw: string): string | undefined {
+  return raw.trim().length > MAX_TEXT_LENGTH
+    ? `${MAX_TEXT_LENGTH} caractères maximum.`
+    : undefined
 }
 
 const integerFormatter = new Intl.NumberFormat('fr-FR')
@@ -72,7 +111,7 @@ export function validateDecimalInput(
   raw: string,
   { max, positive = false }: { max?: number; positive?: boolean },
 ): string | undefined {
-  const normalized = raw.trim().replace(',', '.')
+  const normalized = normalizeDecimal(raw)
   if (normalized === '') return 'Ce champ est requis.'
   if (!/^\d+(\.\d+)?$/.test(normalized)) return 'Saisissez un nombre valide.'
   const value = Number(normalized)
@@ -93,6 +132,8 @@ export function buildBaseRatePayload(
     BaseRateField,
     string,
   ][]) {
+    // Champ facultatif laissé vide : rien à envoyer (absent = inchangé).
+    if (normalizeDecimal(raw) === '') continue
     const value = parseDecimalInput(raw)
     if (value !== rate[name]) payload[name] = value
   }

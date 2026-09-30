@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { useForm, useStore } from '@tanstack/react-form'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
 import { FormDialog } from '#/components/forms/FormDialog'
 import { FormField } from '#/components/forms/FormField'
 import {
   BASE_RATE_FIELDS,
+  OPTIONAL_BASE_RATE_FIELDS,
   baseRateFieldsFor,
   buildBaseRatePayload,
   validateDecimalInput,
@@ -16,7 +16,13 @@ import type {
   BaseRateResponse,
   LegalQualityResponse,
 } from '#/services/mrh-tariff'
-import { MRH_KEYS, splitServerError, writeBack } from './grid-kit'
+import {
+  MRH_KEYS,
+  announceSaved,
+  saveThenReread,
+  splitServerError,
+  writeBack,
+} from './grid-kit'
 
 const ALL_FIELDS = BASE_RATE_FIELDS.map((f) => f.name)
 
@@ -32,20 +38,23 @@ export function BaseRateDialog({
   const queryClient = useQueryClient()
   const [serverError, setServerError] = useState<string | null>(null)
   const [serverFields, setServerFields] = useState<Record<string, string>>({})
-  const shown = baseRateFieldsFor(baseRate)
+  const shown = baseRateFieldsFor(baseRate, legalQuality.propertyBasis)
   const fields = BASE_RATE_FIELDS.filter((f) => shown.includes(f.name))
 
   const { mutateAsync, isPending } = useMutation({
-    mutationFn: async (values: Partial<Record<BaseRateField, string>>) => {
+    mutationFn: (values: Partial<Record<BaseRateField, string>>) => {
       const payload = buildBaseRatePayload(baseRate, values)
-      if (Object.keys(payload).length > 0) {
-        await updateBaseRate(baseRate.id, payload)
-      }
-      return getBaseRate(baseRate.id)
+      return saveThenReread(
+        () =>
+          Object.keys(payload).length > 0
+            ? updateBaseRate(baseRate.id, payload)
+            : Promise.resolve(baseRate),
+        () => getBaseRate(baseRate.id),
+      )
     },
-    onSuccess: (fresh) => {
-      writeBack(queryClient, MRH_KEYS.baseRates, fresh)
-      toast.success('Taux de base mis à jour.')
+    onSuccess: (saved) => {
+      writeBack(queryClient, MRH_KEYS.baseRates, saved.entity)
+      announceSaved(saved, 'Taux de base mis à jour.')
       onClose()
     },
   })
@@ -99,11 +108,18 @@ export function BaseRateDialog({
       error={serverError}
     >
       {fields.map(({ name, label, unit }) => {
+        const optional = OPTIONAL_BASE_RATE_FIELDS.includes(name)
         const validate = ({ value }: { value: string | undefined }) =>
-          validateDecimalInput(
-            value ?? '',
-            unit === 'multiplier' ? { positive: true } : { max: 1000 },
-          )
+          optional && (value ?? '').trim() === ''
+            ? undefined
+            : validateDecimalInput(
+                value ?? '',
+                unit === 'multiplier'
+                  ? { positive: true }
+                  : unit === 'fcfa'
+                    ? {}
+                    : { max: 1000 },
+              )
         return (
           <form.Field
             key={name}
@@ -114,7 +130,7 @@ export function BaseRateDialog({
               <FormField
                 id={`base-rate-${name}`}
                 label={label}
-                required
+                required={!optional}
                 value={field.state.value ?? ''}
                 onChange={(v) => {
                   setServerFields((prev) => {
@@ -128,7 +144,9 @@ export function BaseRateDialog({
                 hint={
                   unit === 'multiplier'
                     ? 'Risques locatifs = loyer mensuel × ce multiplicateur.'
-                    : undefined
+                    : optional
+                      ? 'Pour information : sans effet sur la prime.'
+                      : undefined
                 }
                 error={field.state.meta.errors[0] ?? serverFields[name]}
               />

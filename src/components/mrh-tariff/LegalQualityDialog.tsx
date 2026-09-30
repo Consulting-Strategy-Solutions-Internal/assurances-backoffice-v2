@@ -1,14 +1,23 @@
 import { useState } from 'react'
 import { useForm, useStore } from '@tanstack/react-form'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
 import { FormDialog } from '#/components/forms/FormDialog'
 import { FormField } from '#/components/forms/FormField'
 import { TextareaField } from '#/components/ia-products/shared/TextareaField'
-import { buildLegalQualityPayload } from '#/lib/mrh-tariff'
+import {
+  MAX_TEXT_LENGTH,
+  buildLegalQualityPayload,
+  validateTextLength,
+} from '#/lib/mrh-tariff'
 import { getLegalQuality, updateLegalQuality } from '#/services/mrh-tariff'
 import type { LegalQualityResponse } from '#/services/mrh-tariff'
-import { MRH_KEYS, splitServerError, writeBack } from './grid-kit'
+import {
+  MRH_KEYS,
+  announceSaved,
+  saveThenReread,
+  splitServerError,
+  writeBack,
+} from './grid-kit'
 
 const FORM_FIELDS = ['name', 'description'] as const
 
@@ -24,16 +33,15 @@ export function LegalQualityDialog({
   const [serverFields, setServerFields] = useState<Record<string, string>>({})
 
   const { mutateAsync, isPending } = useMutation({
-    mutationFn: async (values: { name: string; description: string }) => {
-      await updateLegalQuality(
-        legalQuality.id,
-        buildLegalQualityPayload(values),
-      )
-      return getLegalQuality(legalQuality.id)
-    },
-    onSuccess: (fresh) => {
-      writeBack(queryClient, MRH_KEYS.legalQualities, fresh)
-      toast.success('Situation mise à jour.')
+    mutationFn: (values: { name: string; description: string }) =>
+      saveThenReread(
+        () =>
+          updateLegalQuality(legalQuality.id, buildLegalQualityPayload(values)),
+        () => getLegalQuality(legalQuality.id),
+      ),
+    onSuccess: (saved) => {
+      writeBack(queryClient, MRH_KEYS.legalQualities, saved.entity)
+      announceSaved(saved, 'Situation mise à jour.')
       onClose()
     },
   })
@@ -58,7 +66,15 @@ export function LegalQualityDialog({
 
   const dirty = useStore(form.store, (s) => !s.isDefaultValue)
   const requireName = ({ value }: { value: string }) =>
-    value.trim() === '' ? 'Le nom est requis.' : undefined
+    value.trim() === '' ? 'Le nom est requis.' : validateTextLength(value)
+  const checkLength = ({ value }: { value: string }) =>
+    validateTextLength(value)
+  const clearServer = (name: string) =>
+    setServerFields((prev) => {
+      if (!(name in prev)) return prev
+      const { [name]: _removed, ...rest } = prev
+      return rest
+    })
 
   return (
     <FormDialog
@@ -82,22 +98,31 @@ export function LegalQualityDialog({
             label="Nom"
             required
             value={field.state.value}
-            onChange={field.handleChange}
+            onChange={(v) => {
+              clearServer('name')
+              field.handleChange(v)
+            }}
             onBlur={field.handleBlur}
             error={field.state.meta.errors[0] ?? serverFields.name}
           />
         )}
       </form.Field>
-      <form.Field name="description">
+      <form.Field
+        name="description"
+        validators={{ onBlur: checkLength, onSubmit: checkLength }}
+      >
         {(field) => (
           <TextareaField
             id="lq-description"
             label="Description"
-            maxLength={500}
+            maxLength={MAX_TEXT_LENGTH}
             value={field.state.value}
-            onChange={field.handleChange}
+            onChange={(v) => {
+              clearServer('description')
+              field.handleChange(v)
+            }}
             onBlur={field.handleBlur}
-            error={serverFields.description}
+            error={field.state.meta.errors[0] ?? serverFields.description}
           />
         )}
       </form.Field>

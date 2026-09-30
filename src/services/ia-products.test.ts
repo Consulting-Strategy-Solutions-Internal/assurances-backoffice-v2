@@ -52,6 +52,12 @@ describe('importAccessoriesCsv', () => {
     await expect(importAccessoriesCsv(file())).resolves.toEqual(body)
   })
 
+  it('R1-10 : relance un 422 ErrorResponse (« File is too large »), qui n’est pas un ImportResult', async () => {
+    const err = axiosError(422, { status: 422, message: 'File is too large' })
+    mockedPost.mockRejectedValue(err)
+    await expect(importAccessoriesCsv(file())).rejects.toBe(err)
+  })
+
   it('rethrows other errors', async () => {
     const err = axiosError(400, { status: 400, message: 'No file' })
     mockedPost.mockRejectedValue(err)
