@@ -121,3 +121,36 @@ describe('orphanBannerMessage', () => {
     expect(orphanBannerMessage(parsed, [])).toBe(parsed.message)
   })
 })
+
+describe('codes de la grille MRH et des accessoires', () => {
+  it('traduit les codes de taux et de mode sous leur champ', () => {
+    const parsed = parseIaError(
+      axiosError(400, {
+        errors: {
+          buildingPremiumRate: 'NOT_ALLOWED_FOR_LEGAL_QUALITY',
+          rentMultiplier: 'REQUIRED_FOR_LEGAL_QUALITY',
+          flatAmount: 'NOT_ALLOWED_FOR_PREMIUM_TYPE',
+          capitalShare: 'REQUIRED_FOR_PREMIUM_TYPE',
+        },
+      }),
+    )
+    expect(parsed.fields).toEqual({
+      buildingPremiumRate: 'Ce taux ne s’applique pas à cette situation.',
+      rentMultiplier: 'Ce taux est obligatoire pour cette situation.',
+      flatAmount: 'Ce champ ne s’applique pas à ce mode de calcul.',
+      capitalShare: 'Ce champ est obligatoire pour ce mode de calcul.',
+    })
+  })
+
+  it('LAST_ACCESSORY_HAS_ACTIVE_CONTRACT : message clair, sans préfixe de champ', () => {
+    const err = axiosError(422, {
+      status: 422,
+      message: 'The last accessory bracket…',
+      errors: { subscriptions: 'LAST_ACCESSORY_HAS_ACTIVE_CONTRACT' },
+    })
+    const expected =
+      'Impossible : c’est la dernière tranche du produit et des contrats sont en cours.'
+    expect(parseIaErrorList(err)).toEqual([expected])
+    expect(orphanBannerMessage(parseIaError(err), ['amount'])).toBe(expected)
+  })
+})

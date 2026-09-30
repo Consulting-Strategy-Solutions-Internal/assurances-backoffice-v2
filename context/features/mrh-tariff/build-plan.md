@@ -15,7 +15,7 @@
 - `src/lib/ia-errors.ts` — traduction des codes d'erreur
 
 ## Steps
-- [ ] **S1.** Services + types MRH (`src/services/mrh-tariff.ts`) d'après les DTO backend ; corps de PUT selon D-5 ; codes d'erreur FR — verify: tests des constructeurs de corps
+- [x] **S1.** Services + types MRH (`src/services/mrh-tariff.ts`) d'après les DTO backend ; corps de PUT selon D-5 ; codes d'erreur FR — verify: tests des constructeurs de corps
 - [ ] **S2.** Accessoires génériques par produit : écran, formulaire (choix du produit), import (productCode du produit), 422 LAST_ACCESSORY, bandeau vide — satisfies AC-5 — verify: tests composants
 - [ ] **S3.** Route `/produits-mrh/mrh-standard` + onglets, menu, recherche globale — verify: `generate-routes`, tsc
 - [ ] **S4.** Onglet Situations & taux (UC-1, UC-2) — AC-2, AC-3, D-7 — verify: tests modifier/relire/erreur champ

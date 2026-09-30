@@ -78,3 +78,11 @@ export async function updateProduct(
   const response = await api.put(`/products/${id}`, data)
   return response.data
 }
+
+/** Finds any product by its stable code (`GET /products`, all insurance types). */
+export async function findProductByCode(
+  code: ProductCode,
+): Promise<ProductResponse | null> {
+  const page = await getProducts(0, 50)
+  return page.content.find((p) => p.code === code) ?? null
+}
