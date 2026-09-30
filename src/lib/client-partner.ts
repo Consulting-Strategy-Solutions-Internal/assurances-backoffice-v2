@@ -15,7 +15,7 @@ export function parsePartnerFilter(
   return typeof value !== 'boolean' &&
     value !== '' &&
     value !== null &&
-    Number.isInteger(id) &&
+    Number.isSafeInteger(id) &&
     id > 0
     ? id
     : undefined

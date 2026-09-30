@@ -22,7 +22,8 @@
 - D-3 Fiche client : bouton « Changer de partenaire » (visible sauf si `backoffice:admin` est connu et absent — action que le serveur garde, L-005) → dialogue : sélecteur (partenaires ou « Aucun partenaire »), encadré qui explique (les vendeurs de l'ancien partenaire n'y auront plus accès ; devis et contrats déjà faits inchangés, prochains devis au nouveau partenaire), bouton « Confirmer le changement ».
 - D-4 Le partenaire actuel n'est pas connu (non exposé) : le dialogue le dit et ne présélectionne rien.
 - D-5 Erreurs : 400 → « Choisissez un partenaire ou « Aucun partenaire ». » ; 404 → partenaire supprimé entre-temps (liste rechargée) ou client introuvable, selon le `message` ; 403 → « Seule l'administration NSIA peut changer le partenaire d'un client. » ; autre → message générique. Affichées dans le dialogue.
-- D-6 204 → toast « Partenaire du client modifié », invalidation des listes `['clients', …]`.
+- D-6 204 → toast « Partenaire de <client> : <partenaire>. » (ou « <client> n'a plus de partenaire. »), nommé d'après le partenaire **envoyé** ; invalidation des listes `['clients', …]`. Sélecteur figé pendant l'envoi. _(revue R1)_
+- D-8 Compteur : « sur N » seulement quand la recherche ou un filtre local retire des clients (pas de « 5 clients sur 5 »). _(revue R1)_
 - D-7 Hors périmètre (critère « aucun changement pour les autres écrans admin ») : repérer dans la liste des vendeurs ceux sans partenaire ni agence — à proposer à part.
 
 **Critères d'acceptation :**
@@ -37,3 +38,13 @@
 - [x] **S1.** Services (`getClients`/`getAllClients` + `partnerId`, clés, `reassignClientPartner`) + logique pure `src/lib/client-partner.ts` (filtre, corps, erreurs) — verify: tests unitaires
 - [x] **S2.** Liste `/clients` : sélecteur Partenaire, `?partner`, en-tête — AC-1, AC-2 — verify: test de route
 - [x] **S3.** Fiche client : `ChangePartnerDialog` — AC-3, AC-4 — verify: tests composant
+
+## Review findings
+
+**Round 1** — 2026-09-30 · base `origin/main` · HEAD `0765d44` · verdict : prêt à commiter (0 🔴, 0 🟡, 3 ⚪)
+
+- [~] **R1-1** ⚪ id démesuré dans `?partner` (`1e30`) → 400 serveur — `src/lib/client-partner.ts:13` → `Number.isSafeInteger`, cas ajoutés au test
+- [~] **R1-2** ⚪ toast lu sur la sélection courante, pas celle envoyée — `src/components/clients/ChangePartnerDialog.tsx:46` → message depuis les `variables`, sélecteur désactivé pendant l'envoi, test R1-2
+- [~] **R1-3** ⚪ sélecteur Partenaire de la liste non testé en interaction — `src/routes/_auth/clients.tsx:195` → test « le sélecteur Partenaire écrit ?partner »
+- Plan gaps (compteur, texte du toast) : D-6 et D-8 mis à jour.
+- Hors diff : « Retour aux clients » (`backSearch` figé) perd les filtres de la liste — préexistant, non traité.

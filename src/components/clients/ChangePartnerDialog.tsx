@@ -45,12 +45,14 @@ export function ChangePartnerDialog({
   const mutation = useMutation({
     mutationFn: (partnerId: number | null) =>
       reassignClientPartner(clientId, partnerId),
-    onSuccess: () => {
+    // Named from what was sent, not from the picker (still editable meanwhile).
+    onSuccess: (_, partnerId) => {
       void queryClient.invalidateQueries({ queryKey: clientsKeys.all })
+      const sent = partners.find((p) => p.id === partnerId)
       toast.success(
-        value === NO_PARTNER
+        partnerId === null
           ? `${clientName} n’a plus de partenaire.`
-          : `Partenaire de ${clientName} : ${chosen?.label ?? 'modifié'}.`,
+          : `Partenaire de ${clientName} : ${sent?.name ?? 'modifié'}.`,
       )
       onClose()
     },
@@ -102,7 +104,7 @@ export function ChangePartnerDialog({
             options={options}
             placeholder="Rechercher un partenaire…"
             loading={partnersQuery.isLoading}
-            disabled={!!partnersQuery.error}
+            disabled={!!partnersQuery.error || mutation.isPending}
             disabledHint={
               partnersQuery.error
                 ? 'Impossible de charger les partenaires.'

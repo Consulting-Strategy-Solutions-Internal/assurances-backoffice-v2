@@ -83,6 +83,29 @@ vi.mock('#/components/clients/ContractDrawer', () => ({
   ),
 }))
 
+vi.mock('#/components/layout/SearchableSelect', () => ({
+  SearchableSelect: (props: {
+    label: string
+    value: string
+    allLabel: string
+    options: Array<{ value: string; label: string }>
+    onChange: (v: string) => void
+  }) => (
+    <select
+      aria-label={props.label}
+      value={props.value}
+      onChange={(e) => props.onChange(e.target.value)}
+    >
+      <option value="">{props.allLabel}</option>
+      {props.options.map((o) => (
+        <option key={o.value} value={o.value}>
+          {o.label}
+        </option>
+      ))}
+    </select>
+  ),
+}))
+
 vi.mock('#/services/partners', () => ({
   partnersAllKey: ['partners', 'all-pages'],
   getAllPartners: mocks.getAllPartners,
@@ -361,6 +384,29 @@ describe('cloisonnement par partenaire', () => {
     expect(schema.parse({ partner: 'none' }).partner).toBe('none')
     expect(schema.parse({ partner: 'abc' }).partner).toBeUndefined()
     expect(schema.parse({}).partner).toBeUndefined()
+  })
+
+  it('AC-1 : le sélecteur Partenaire écrit ?partner (id, none, ou rien) et revient page 0', async () => {
+    mocks.getAllClients.mockResolvedValue(allClients)
+    renderWithQuery(<ClientsPage />)
+    const select = screen.getByLabelText('Partenaire')
+    await screen.findByRole('option', { name: 'Sunu Distribution' })
+    const nextSearch = () => {
+      const call = mocks.navigate.mock.lastCall?.[0] as {
+        search: (previous: object) => Record<string, unknown>
+      }
+      return call.search({ page: 3, size: 20, sort: 'lastName,asc' })
+    }
+    fireEvent.change(select, { target: { value: '7' } })
+    expect(nextSearch()).toEqual(
+      expect.objectContaining({ partner: 7, page: 0 }),
+    )
+    fireEvent.change(select, { target: { value: 'none' } })
+    expect(nextSearch()).toEqual(
+      expect.objectContaining({ partner: 'none', page: 0 }),
+    )
+    fireEvent.change(select, { target: { value: '' } })
+    expect(nextSearch().partner).toBeUndefined()
   })
 
   it('AC-1 : sans filtre, charge tous les clients', async () => {

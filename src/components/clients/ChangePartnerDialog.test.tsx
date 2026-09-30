@@ -34,9 +34,11 @@ vi.mock('#/components/layout/SearchableSelect', () => ({
     value: string
     options: Array<{ value: string; label: string }>
     onChange: (v: string) => void
+    disabled?: boolean
   }) => (
     <select
       aria-label={props.label}
+      disabled={props.disabled}
       value={props.value}
       onChange={(e) => props.onChange(e.target.value)}
     >
@@ -135,6 +137,33 @@ describe('ChangePartnerDialog', () => {
     await waitFor(() => expect(onClose).toHaveBeenCalled())
     expect(mocks.reassignClientPartner).toHaveBeenCalledWith(42, 7)
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['clients'] })
+    expect(mocks.toast.success).toHaveBeenCalledWith(
+      'Partenaire de Awa Koné : Sunu Distribution.',
+    )
+  })
+
+  it('R1-2 : sélecteur figé pendant l’envoi, toast nommé d’après le partenaire envoyé', async () => {
+    let resolve: () => void = () => undefined
+    mocks.reassignClientPartner.mockReturnValue(
+      new Promise<void>((done) => {
+        resolve = done
+      }),
+    )
+    const { onClose } = renderDialog()
+    await choose('Sunu Distribution')
+    submit()
+    await waitFor(() =>
+      expect(
+        screen
+          .getByLabelText<HTMLSelectElement>('Nouveau partenaire')
+          .hasAttribute('disabled'),
+      ).toBe(true),
+    )
+    fireEvent.change(screen.getByLabelText('Nouveau partenaire'), {
+      target: { value: 'none' },
+    })
+    resolve()
+    await waitFor(() => expect(onClose).toHaveBeenCalled())
     expect(mocks.toast.success).toHaveBeenCalledWith(
       'Partenaire de Awa Koné : Sunu Distribution.',
     )
