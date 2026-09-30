@@ -2,7 +2,7 @@
 
 - **Status:** shipped — fusionnée dans main (2026-09-30)
 - **Created:** 2026-09-30 · **Updated:** 2026-09-30
-- **PR:** —
+- **PR:** https://github.com/Consulting-Strategy-Solutions-Internal/assurances-backoffice-v2/pull/12
 - **Branch:** `feat/client-documents` · **Worktree:** `.claude/worktrees/client-documents` · **Ports:** app 3003
 - **Spec:** ci-dessous · **ADRs:** — · **Lessons applied:** L-002 (types lus dans les DTO backend), L-003 (tri pour `fetchAllPages`), L-005/L-009, L-006, L-010, L-012
 
