@@ -45,13 +45,19 @@ export const BASE_RATE_FIELDS: {
     label: 'Taux risques locatifs (‰)',
     unit: 'permille',
   },
-  { name: 'rentMultiplier', label: 'Multiplicateur du loyer', unit: 'multiplier' },
+  {
+    name: 'rentMultiplier',
+    label: 'Multiplicateur du loyer',
+    unit: 'multiplier',
+  },
   { name: 'contentsPremiumRate', label: 'Taux contenu (‰)', unit: 'permille' },
 ]
 
 /** Champs de taux de la situation : seulement ceux que l'API renvoie non nuls. */
 export function baseRateFieldsFor(rate: BaseRateResponse): BaseRateField[] {
-  return BASE_RATE_FIELDS.map((f) => f.name).filter((name) => rate[name] != null)
+  return BASE_RATE_FIELDS.map((f) => f.name).filter(
+    (name) => rate[name] != null,
+  )
 }
 
 /** Accepte la virgule décimale française (« 0,35 » → 0.35). */

@@ -103,3 +103,16 @@ export async function importAccessoriesCsv(
     throw err
   }
 }
+
+/** Produits dont les tranches sont saisies au back-office (IA Pour Tous : compris dans le forfait). */
+export const ACCESSORY_PRODUCTS = ['MRH_STANDARD', 'IA_STANDARD'] as const
+export type AccessoryProduct = (typeof ACCESSORY_PRODUCTS)[number]
+
+export const ACCESSORY_PRODUCT_LABELS: Record<AccessoryProduct, string> = {
+  MRH_STANDARD: 'MRH Standard',
+  IA_STANDARD: 'IA Standard',
+}
+
+export function accessoryProductLabel(code: ProductCode): string {
+  return code === 'IA_FOR_ALL' ? 'IA Pour Tous' : ACCESSORY_PRODUCT_LABELS[code]
+}
