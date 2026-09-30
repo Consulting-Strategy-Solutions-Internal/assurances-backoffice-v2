@@ -1,6 +1,6 @@
 # Modifications de contrat, lot 2 — n° de police, client et PDF de quittance
 
-**Status:** done · **Branche :** `feat/amendment-receipts` · **Worktree :** `.claude/worktrees/feat-amendment-receipts` · **PR:** —
+**Status:** done · **Branche :** `feat/amendment-receipts` · **Worktree :** `.claude/worktrees/feat-amendment-receipts` · **PR:** https://github.com/Consulting-Strategy-Solutions-Internal/assurances-backoffice-v2/pull/8
 **Suite de :** `context/features/contract-amendments/` (PR #7, en production)
 
 ## Blocage

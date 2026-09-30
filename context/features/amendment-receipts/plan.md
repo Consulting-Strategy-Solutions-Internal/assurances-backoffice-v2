@@ -1,6 +1,6 @@
 # Modifications de contrat, lot 2 — plan
 
-**Status:** done · **Spec :** `spec.md` · **PR:** —
+**Status:** done · **Spec :** `spec.md` · **PR:** https://github.com/Consulting-Strategy-Solutions-Internal/assurances-backoffice-v2/pull/8
 **Lessons applied:** L-001…L-010
 
 ## Étapes
