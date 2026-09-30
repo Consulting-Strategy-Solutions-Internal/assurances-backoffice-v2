@@ -1,55 +1,47 @@
 import { api } from '#/lib/api'
-import type { PageResponse } from '#/services/users'
+import type { PageResponse } from '#/lib/page'
 
-/** Product-category calculation types supported by the API. */
-export const PRODUCT_CALCULATION_TYPES = ['MRH', 'IA'] as const
-export type ProductCalculationType = (typeof PRODUCT_CALCULATION_TYPES)[number]
+/** Stable business code of a product (never hardcode a product id). */
+export const PRODUCT_CODES = [
+  'IA_STANDARD',
+  'IA_FOR_ALL',
+  'MRH_STANDARD',
+] as const
+export type ProductCode = (typeof PRODUCT_CODES)[number]
+
+export const INSURANCE_TYPES = ['IA', 'MRH'] as const
+export type InsuranceType = (typeof INSURANCE_TYPES)[number]
 
 export interface ProductResponse {
   id: number
   label: string
+  /** Numeric NSIA code (used by the accessories CSV import). */
   productCode: number
-  categoryId: number
+  /** Stable business code. */
+  code: ProductCode
+  insuranceType: InsuranceType
   discountEnabled: boolean
   maxDiscountRate: number | null
   /** @deprecated The negotiated rate now belongs to CommissionScheme. */
   commissionRate: number | null
+  ageSurchargeMinAge: number | null
+  ageSurchargeMaxAge: number | null
+  ageSurchargeRate: number | null
   createdAt: string
   updatedAt: string
-}
-
-export interface ProductCategoryResponse {
-  id: number
-  name: string
-  description?: string
-  calculationType?: ProductCalculationType
-  createdAt: string
-  updatedAt: string
-}
-
-export interface CreateProductPayload {
-  label: string
-  productCode: number
-  categoryId: number
 }
 
 export interface UpdateProductPayload {
   label: string
   productCode: number
-  categoryId: number
   discountEnabled: boolean
   maxDiscountRate: number | null
   /** @deprecated Kept only because UpdateProductDto still exposes it. */
   commissionRate: number | null
+  ageSurchargeMinAge?: number | null
+  ageSurchargeMaxAge?: number | null
+  ageSurchargeRate?: number | null
 }
-
-export interface CreateCategoryPayload {
-  name: string
-  description?: string
-  calculationType?: ProductCalculationType
-}
-
-export type UpdateCategoryPayload = CreateCategoryPayload
 
 // ---------------------------------------------------------------------------
 // Produits
@@ -58,23 +50,24 @@ export type UpdateCategoryPayload = CreateCategoryPayload
 export async function getProducts(
   page = 0,
   size = 20,
-  categoryId?: number,
+  insuranceType?: InsuranceType,
 ): Promise<PageResponse<ProductResponse>> {
   const response = await api.get('/products', {
-    params: { page, size, categoryId },
+    params: { page, size, insuranceType },
   })
   return response.data
 }
 
-export async function getProduct(id: number): Promise<ProductResponse> {
-  const response = await api.get(`/products/${id}`)
-  return response.data
+/** Finds an IA product by its stable code (`GET /products?insuranceType=IA`). */
+export async function findIaProduct(
+  code: 'IA_STANDARD' | 'IA_FOR_ALL',
+): Promise<ProductResponse | null> {
+  const page = await getProducts(0, 50, 'IA')
+  return page.content.find((p) => p.code === code) ?? null
 }
 
-export async function createProduct(
-  data: CreateProductPayload,
-): Promise<ProductResponse> {
-  const response = await api.post('/products', data)
+export async function getProduct(id: number): Promise<ProductResponse> {
+  const response = await api.get(`/products/${id}`)
   return response.data
 }
 
@@ -84,50 +77,4 @@ export async function updateProduct(
 ): Promise<ProductResponse> {
   const response = await api.put(`/products/${id}`, data)
   return response.data
-}
-
-// Suppression logique (soft-delete) côté API.
-export async function deleteProduct(id: number): Promise<void> {
-  await api.delete(`/products/${id}`)
-}
-
-// ---------------------------------------------------------------------------
-// Catégories de produits
-// ---------------------------------------------------------------------------
-
-export async function getCategories(
-  page = 0,
-  size = 20,
-): Promise<PageResponse<ProductCategoryResponse>> {
-  const response = await api.get('/product-categories', {
-    params: { page, size },
-  })
-  return response.data
-}
-
-export async function getCategory(
-  id: number,
-): Promise<ProductCategoryResponse> {
-  const response = await api.get(`/product-categories/${id}`)
-  return response.data
-}
-
-export async function createCategory(
-  data: CreateCategoryPayload,
-): Promise<ProductCategoryResponse> {
-  const response = await api.post('/product-categories', data)
-  return response.data
-}
-
-export async function updateCategory(
-  id: number,
-  data: UpdateCategoryPayload,
-): Promise<ProductCategoryResponse> {
-  const response = await api.put(`/product-categories/${id}`, data)
-  return response.data
-}
-
-// Suppression logique (soft-delete) côté API.
-export async function deleteCategory(id: number): Promise<void> {
-  await api.delete(`/product-categories/${id}`)
 }
