@@ -2,7 +2,7 @@
 
 - **Status:** done
 - **Created:** 2026-09-30 · **Updated:** 2026-09-30
-- **PR:** —
+- **PR:** https://github.com/Consulting-Strategy-Solutions-Internal/assurances-backoffice-v2/pull/9
 - **Branch:** `feat/mrh-tariff` · **Worktree:** `.claude/worktrees/mrh-tariff` · **Ports:** app 3001 · db —
 - **Depends on:** —
 - **Spec:** [spec.md](spec.md) · **ADRs:** — · **Lessons applied:** L-011, L-001 (formateurs ‰/% dédiés), L-002 (types depuis le backend), L-003 (tri pour `fetchAllPages`), L-004 (cache avant affichage), L-005/L-009 (permissions), L-006 (compteurs)
