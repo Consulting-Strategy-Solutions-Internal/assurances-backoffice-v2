@@ -33,6 +33,9 @@ const config = defineConfig(({ mode, command }) => {
                           to: `${proxyTarget}/api/**`,
                           // The backend's CORS rejects the localhost Origin.
                           filterHeaders: ['origin', 'referer'],
+                          // The backend may set `Domain=<its domain>` on its auth
+                          // cookies; the browser would reject them on localhost.
+                          cookieDomainRewrite: { '*': '' },
                         },
                       },
                     },
