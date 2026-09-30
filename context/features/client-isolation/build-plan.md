@@ -1,8 +1,8 @@
 # Build plan — Cloisonnement des clients par partenaire (admin)
 
-- **Status:** done
+- **Status:** shipped — fusionnée dans main (2026-09-30)
 - **Created:** 2026-09-30 · **Updated:** 2026-09-30
-- **PR:** —
+- **PR:** https://github.com/Consulting-Strategy-Solutions-Internal/assurances-backoffice-v2/pull/14
 - **Branch:** `feat/client-isolation` · **Worktree:** `.claude/worktrees/client-isolation` · **Ports:** app 3005
 - **Spec:** ci-dessous · **ADRs:** backend ADR-0024 · **Lessons applied:** L-002 (contrat lu dans `ClientController` de la branche backend `feat/client-isolation`, PR #121), L-003, L-005, L-006, L-012
 
