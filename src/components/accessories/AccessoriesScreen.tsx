@@ -22,13 +22,19 @@ import {
   TableRow,
 } from '#/components/ui/table'
 import { WarningBanner } from '#/components/ia-products/shared/WarningBanner'
-import { HeaderActionPortal } from '../shared/header-action'
-import { isForbidden, RetryAction } from '../shared/screen-kit'
+import { HeaderActionPortal } from '#/components/ia-products/shared/header-action'
+import {
+  isForbidden,
+  RetryAction,
+} from '#/components/ia-products/shared/screen-kit'
 import { formatClaimDate } from '#/lib/claims'
 import { parseIaErrorList } from '#/lib/ia-errors'
 import { formatFcfa } from '#/lib/utils'
 import { deleteAccessory, getAccessories } from '#/services/accessories'
-import type { AccessoryResponse } from '#/services/accessories'
+import type {
+  AccessoryProduct,
+  AccessoryResponse,
+} from '#/services/accessories'
 import { fetchAllPages } from '#/lib/fetch-all-pages'
 import { AccessoryFormDialog } from './AccessoryFormDialog'
 import { ImportAccessoriesDialog } from './ImportAccessoriesDialog'
@@ -41,7 +47,7 @@ import {
 
 const NO_PERMISSION = 'Vous n’avez pas la permission requise (accessory:write).'
 
-export function IaAccessoriesScreen() {
+export function AccessoriesScreen({ product }: { product: AccessoryProduct }) {
   const queryClient = useQueryClient()
   const { can } = usePermissions()
   const canRead = can('accessory:read')
@@ -53,15 +59,11 @@ export function IaAccessoriesScreen() {
   const [deleting, setDeleting] = useState<AccessoryResponse | null>(null)
 
   const { data, isPending, isError, error, refetch } = useQuery({
-    queryKey: [
-      'accessories',
-      'IA_STANDARD',
-      { all: true, sort: 'minPremium,asc' },
-    ],
+    queryKey: ['accessories', product, { all: true, sort: 'minPremium,asc' }],
     queryFn: () =>
       fetchAllPages((page, size) =>
         getAccessories({
-          product: 'IA_STANDARD',
+          product,
           page,
           size,
           sort: 'minPremium,asc',
@@ -77,14 +79,18 @@ export function IaAccessoriesScreen() {
   const deleteMutation = useMutation({
     mutationFn: deleteAccessory,
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['accessories', 'IA_STANDARD'],
-      })
+      void queryClient.invalidateQueries({ queryKey: ['accessories', product] })
       toast.success('Tranche supprimée.')
       setDeleting(null)
     },
-    onError: (err) => toast.error(parseIaErrorList(err).join(' ')),
+    onError: (err) => {
+      toast.error(parseIaErrorList(err).join(' '))
+      // Refus (ex. dernière tranche) : rien à re-tenter depuis la confirmation.
+      setDeleting(null)
+    },
   })
+
+  const empty = !isPending && !isError && accessories.length === 0
 
   const hasWarnings =
     !isPending &&
@@ -102,6 +108,16 @@ export function IaAccessoriesScreen() {
         <WarningBanner className="mb-[18px]">
           Vous n’avez pas la permission de consulter les accessoires
           (accessory:read).
+        </WarningBanner>
+      )}
+
+      {canRead && empty && (
+        <WarningBanner
+          title="Aucun accessoire saisi : les devis de ce produit sont refusés."
+          className="mb-[18px]"
+        >
+          Saisissez les tranches du barème NSIA « BAREME DES ACCESSOIRES » ou
+          importez-les depuis un fichier CSV.
         </WarningBanner>
       )}
 
@@ -256,12 +272,16 @@ export function IaAccessoriesScreen() {
 
       {editing && (
         <AccessoryFormDialog
+          product={product}
           accessory={editing === 'new' ? undefined : editing}
           onClose={() => setEditing(null)}
         />
       )}
       {importing && (
-        <ImportAccessoriesDialog onClose={() => setImporting(false)} />
+        <ImportAccessoriesDialog
+          product={product}
+          onClose={() => setImporting(false)}
+        />
       )}
       <ConfirmDialog
         open={deleting !== null}

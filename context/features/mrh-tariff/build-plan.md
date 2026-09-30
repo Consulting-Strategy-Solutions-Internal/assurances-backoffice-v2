@@ -1,0 +1,91 @@
+# Build plan — Tarif MRH NSIA
+
+- **Status:** shipped — fusionnée dans main via la PR #9 (2026-09-30)
+- **Created:** 2026-09-30 · **Updated:** 2026-09-30
+- **PR:** https://github.com/Consulting-Strategy-Solutions-Internal/assurances-backoffice-v2/pull/9
+- **Branch:** `feat/mrh-tariff` · **Worktree:** `.claude/worktrees/mrh-tariff` · **Ports:** app 3001 · db —
+- **Depends on:** —
+- **Spec:** [spec.md](spec.md) · **ADRs:** — · **Lessons applied:** L-011, L-001 (formateurs ‰/% dédiés), L-002 (types depuis le backend), L-003 (tri pour `fetchAllPages`), L-004 (cache avant affichage), L-005/L-009 (permissions), L-006 (compteurs)
+
+## Code context
+
+- `src/components/ia-products/accessories/` — écran IA à rendre générique (D-2)
+- `src/routes/_auth/produits-ia.ia-standard.tsx` — gabarit à onglets à reproduire
+- `src/components/dashboard/Sidebar.tsx`, `src/components/search/search-logic.ts` — navigation
+- `src/services/quotations.ts`, `src/components/quotations/QuotationDetailDrawer.tsx` — snapshot MRH
+- `src/lib/ia-errors.ts` — traduction des codes d'erreur
+
+## Steps
+
+- [x] **S1.** Services + types MRH (`src/services/mrh-tariff.ts`) d'après les DTO backend ; corps de PUT selon D-5 ; codes d'erreur FR — verify: tests des constructeurs de corps
+- [x] **S2.** Accessoires génériques par produit : écran, formulaire (choix du produit), import (productCode du produit), 422 LAST_ACCESSORY, bandeau vide — satisfies AC-5 — verify: tests composants
+- [x] **S3.** Route `/produits-mrh/mrh-standard` + onglets, menu, recherche globale — verify: `generate-routes`, tsc
+- [x] **S4.** Onglet Situations & taux (UC-1, UC-2) — AC-2, AC-3, D-7 — verify: tests modifier/relire/erreur champ
+- [x] **S5.** Onglet Garanties (UC-3) — AC-2 — verify: tests
+- [x] **S6.** Onglet Garanties par situation (UC-4) — AC-2, AC-4 — verify: tests par mode
+- [x] **S7.** Tiroir des cotations : `rentalRisks`, loyer × multiplicateur, occupation, CAPITAL ; suppression de `createMrhQuotation` — AC-6 — verify: test du tiroir
+- [x] **S8.** Contrôles finaux : `npx tsc --noEmit && pnpm lint && pnpm test`, grep AC-1 / AC-6
+
+## Build notes (2026-09-30)
+
+- Checks : `tsc` OK · `pnpm lint` OK · `pnpm test` 559/559 (baseline 518) · `pnpm check` : 22 fichiers déjà en écart sur `main`, aucun fichier de cette branche.
+- AC-1 : aucun `post(`/`delete(` vers les 4 ressources de la grille (grep) ; tests « aucun bouton Ajouter/Supprimer ».
+- AC-6 : `rentalValue` n'apparaît plus que dans un commentaire ; `rentalValueRate` / `rentalValuePremiumRate` sont d'autres champs, bien réels, de l'API.
+- AC → tests : AC-2/AC-3 `LegalQualitiesScreen.test.tsx`, `WarrantiesScreens.test.tsx` ; AC-4 `WarrantiesScreens.test.tsx` (POURCENTAGE, CAPITAL, FORFAIT) ; AC-5 `accessories.test.tsx`, `ia-errors.test.ts` ; AC-6 `QuotationDetailDrawer.test.tsx` ; corps D-5 `mrh-tariff.test.ts`.
+- Écran d'accessoires déplacé : `src/components/ia-products/accessories/` → `src/components/accessories/` (partagé IA/MRH).
+
+## Review findings
+
+- [x] **R2-1** ⚪ Vider « Valeur minimale du contenu » affichait un succès sans effet (l'API ne sait pas l'effacer) — `src/components/mrh-tariff/BaseRateDialog.tsx` (fix: da02293) (confirmé par l'utilisateur, 2026-09-30 — re-revue remplacée par sa décision)
+
+> Last review: round 2 · 2026-09-30 · base `93bde04` · HEAD `0d074c5` · verdict : prêt après R1-8 et R1-9 (corrigés depuis, à confirmer)
+> Round 1 · 2026-09-30 · base `c38dff8` · HEAD `93bde04` (+ uncommitted: no) · verdict : prêt après le 🟡 (2 relecteurs : grille / accessoires + devis + navigation)
+
+- [x] **R1-1** 🟡 Nom et description sans limite (colonnes varchar 255) → 409 « Cet élément existe déjà. » trompeur — `src/components/mrh-tariff/LegalQualityDialog.tsx:96`, `WarrantyDialog.tsx` (fixed, round 2)
+- [x] **R1-2** ⚪ PUT réussi mais relecture en échec affiché comme un échec — `src/components/mrh-tariff/BaseRateDialog.tsx:39` (fixed, round 2)
+- [x] **R1-3** ⚪ Nom technique (`capitalShare`) dans le bandeau d'erreur des lignes — `src/components/mrh-tariff/LineWarrantyDialog.tsx:84` (fixed, round 2)
+- [x] **R1-4** ⚪ Erreurs serveur non effacées à la saisie (garantie, situation) — `src/components/mrh-tariff/WarrantyDialog.tsx:82` (fixed, round 2)
+- [x] **R1-5** ⚪ Cas « permission connue mais absente » non testé sur la grille (L-009) — `src/components/mrh-tariff/LegalQualitiesScreen.test.tsx:32` (fixed, round 2)
+- [x] **R1-6** ⚪ Mode et Obligatoire masqués sur téléphone sans relais (L-008) — `src/components/mrh-tariff/LineWarrantiesScreen.tsx:84` (fixed, round 2)
+- [x] **R1-7** ⚪ Montant saisi avec espace (« 15 000 ») refusé — `src/lib/mrh-tariff.ts:77` (fixed, round 2)
+- [x] **R1-8** ⚪ Cas « permission connue mais absente » non testé sur les accessoires (L-009) — `src/components/accessories/accessories.test.tsx:31` (fix: da02293) (confirmé par l'utilisateur, 2026-09-30 — re-revue remplacée par sa décision)
+- [x] **R1-9** ⚪ Refus de suppression : la confirmation reste ouverte — `src/components/accessories/AccessoriesScreen.tsx:138` (fix: da02293 — l'ancienne « réfutation » était fausse, relevé au round 2) (confirmé par l'utilisateur, 2026-09-30 — re-revue remplacée par sa décision)
+- [x] **R1-10** ⚪ (hors diff, fichier touché) 422 `ErrorResponse` « File is too large » lu comme `ImportResult` → plantage — `src/services/accessories.ts:97` (fixed, round 2)
+- Écarts au plan, résolus dans la spec (D-7 révisée, D-8) — fix: 0d074c5
+
+## Acceptance run
+
+> Run: run 1 · 2026-09-30 · HEAD `6751b98` (+ uncommitted: no) · 9 pass · 0 fail · 0 manual — dev (port 3001) + proxy vers la démo `nsia.c2s-demo.cloud` (PR backend #110 déployée : 4 situations, 11 garanties, 39 lignes), compte admin, Playwright
+
+- UC-1 / AC-2 — pass — Situations & taux : 4 cartes dans l'ordre de la grille, taux non nuls seulement (Locataire : locatif 0,35 ‰, × 180, contenu 4 ‰ ; non occupant : bâtiment 0,65 ‰), fenêtre « Modifier les taux » limitée aux champs de la situation.
+- UC-3 / AC-2 — pass — Garanties : 11 lignes, taxe en % ; « Enregistrer » sans changement → `PUT /warranties/101 {"name":"Incendie","taxRate":25}` 200 puis relecture, fenêtre fermée (valeurs inchangées : démo partagée).
+- UC-4 / AC-4 — pass — Garanties par situation : pastilles (situation dans l'URL), Locataire 10 lignes / non occupant 7 ; Incendie → seul « Taux (%) » + case « Garantie obligatoire », `PUT /legal-quality-warranties/101 {"rate":25}` 200 ; Inondation (Capital) → « Taux (‰) » + « Part des capitaux (%) ».
+- UC-5 / AC-5 — pass — Accessoires MRH et IA : 0 tranche sur la démo → bandeau « Aucun accessoire saisi : les devis de ce produit sont refusés. » ; import d'un CSV invalide → vrai 422 `ImportResult`, « Ligne 2 : amount doit être un nombre… », « Ligne 3 : maxPremium doit être supérieur ou égal à minPremium. », rien d'importé.
+- AC-1 — pass — aucun bouton de création/suppression sur les écrans de grille.
+- AC-7 / codes — pass — aucun code technique affiché sur les 4 onglets (demande de l'utilisateur).
+- Navigation — pass — Produits › Multirisque Habitation › MRH Standard → `/produits-mrh/mrh-standard/situations`.
+- Responsive (L-008, L-010) — pass — 0 px de débordement à 360, 390, 1024 px et à 390 px sans JavaScript ; relais « Mode · Obligatoire » visible à 360/390, masqué à 1024.
+- Erreurs console — pass — aucune.
+- Non vérifié en réel : les refus 400 par champ et le 422 `LAST_ACCESSORY_HAS_ACTIVE_CONTRACT` (il faudrait écrire de vraies valeurs sur la démo partagée) — couverts par les tests simulés.
+
+## Timeline
+
+- **Lead time:** 52m (shipped) · idle between stages: 21m
+  | Stage | Active | Waiting on the user | Runs |
+  |---|---|---|---|
+  | scope | 0m | 0m | 1 |
+  | architect | 9m | 0m | 1 |
+  | build | 16m | 0m | 2 |
+  | review | 5m | 0m | 1 |
+  | ship | 0m | 0m | 1 |
+  | land | 0m | 0m | 1 |
+- **Quality:** review rounds 2 · 🔴 found 0 · verify fails 0 · bugs after ship 0
+
+## Follow-up
+
+- Tranches d'accessoires : à la fusion, la démo n'a **aucune** tranche MRH Standard ni IA Standard, donc tous leurs devis sont refusés. À vérifier après la saisie NSIA (barème « BAREME DES ACCESSOIRES ») : le bandeau disparaît de Produits › MRH Standard › Accessoires et d'IA Standard › Accessoires, et un devis MRH passe. Responsable : NSIA / équipe produit.
+- Non vérifiés en réel (écritures sur la démo partagée) : refus 400 par champ et 422 `LAST_ACCESSORY_HAS_ACTIVE_CONTRACT` — à observer au premier usage réel.
+
+## Open questions
+
+- ~~La démo a-t-elle la #110 déployée ?~~ oui (recette du 2026-09-30).

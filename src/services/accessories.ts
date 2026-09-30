@@ -94,12 +94,28 @@ export async function importAccessoriesCsv(
     )
     return response.data
   } catch (err) {
+    // Seul le rejet du CSV renvoie un `ImportResult` ; un autre 422 (fichier
+    // trop volumineux) est un `ErrorResponse` et remonte comme une erreur.
     if (
       isAxiosError<AccessoryImportResult>(err) &&
-      err.response?.status === 422
+      err.response?.status === 422 &&
+      Array.isArray((err.response.data as { errors?: unknown }).errors)
     ) {
       return err.response.data
     }
     throw err
   }
+}
+
+/** Produits dont les tranches sont saisies au back-office (IA Pour Tous : compris dans le forfait). */
+export const ACCESSORY_PRODUCTS = ['MRH_STANDARD', 'IA_STANDARD'] as const
+export type AccessoryProduct = (typeof ACCESSORY_PRODUCTS)[number]
+
+export const ACCESSORY_PRODUCT_LABELS: Record<AccessoryProduct, string> = {
+  MRH_STANDARD: 'MRH Standard',
+  IA_STANDARD: 'IA Standard',
+}
+
+export function accessoryProductLabel(code: ProductCode): string {
+  return code === 'IA_FOR_ALL' ? 'IA Pour Tous' : ACCESSORY_PRODUCT_LABELS[code]
 }

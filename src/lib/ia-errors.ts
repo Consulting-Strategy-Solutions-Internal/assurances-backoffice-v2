@@ -32,6 +32,14 @@ export const IA_ERROR_MESSAGES: Record<string, string> = {
   FORMULA_INACTIVE: 'Cette formule est inactive.',
   AGE_SURCHARGE_NOT_APPLICABLE:
     'La majoration d’âge ne s’applique qu’à IA Standard.',
+  LAST_ACCESSORY_HAS_ACTIVE_CONTRACT:
+    'Impossible : c’est la dernière tranche du produit et des contrats sont en cours.',
+  // Grille MRH (taux de base selon la situation, lignes selon leur mode)
+  NOT_ALLOWED_FOR_LEGAL_QUALITY: 'Ce taux ne s’applique pas à cette situation.',
+  REQUIRED_FOR_LEGAL_QUALITY: 'Ce taux est obligatoire pour cette situation.',
+  NOT_ALLOWED_FOR_PREMIUM_TYPE:
+    'Ce champ ne s’applique pas à ce mode de calcul.',
+  REQUIRED_FOR_PREMIUM_TYPE: 'Ce champ est obligatoire pour ce mode de calcul.',
   // Clés croisées (validation de plage)
   premiumRangeValid: 'Le maximum doit être supérieur ou égal au minimum.',
   monthRangeValid:
@@ -138,6 +146,8 @@ export function orphanBannerMessage(
   const orphan = Object.entries(parsed.fields)
     .filter(([key]) => !formFields.includes(key))
     .map(([key, message]) => {
+      // Clés métier (`subscriptions`…) : le message se suffit à lui-même.
+      if ((IA_NON_FIELD_KEYS as readonly string[]).includes(key)) return message
       const label = ORPHAN_FIELD_LABELS[key]
       return label ? `${label} : ${message}` : `Champ « ${key} » : ${message}`
     })

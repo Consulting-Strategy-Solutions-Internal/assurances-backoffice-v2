@@ -27,6 +27,7 @@ import type {
   RiskClassSnapshot,
   WarrantiesSnapshot,
 } from '#/services/quotations'
+import { PREMIUM_TYPE_LABELS } from '#/lib/mrh-tariff'
 
 const RELATIONSHIPS: Record<string, string> = {
   SELF: 'Le client lui-même',
@@ -57,6 +58,8 @@ function Block({ title, children }: { title: string; children: ReactNode }) {
     </section>
   )
 }
+
+const OCCUPANCY_LABELS = { TOTAL: 'Totale', PARTIAL: 'Partielle' } as const
 
 const money = (value?: number | null) =>
   value == null ? undefined : formatFcfa(value)
@@ -154,9 +157,14 @@ function WarrantiesDetail({ warranties }: { warranties: WarrantiesSnapshot }) {
               <div className="font-semibold break-words">
                 {line.warrantyName ?? '—'}
               </div>
-              {line.mandatory && (
+              {(line.mandatory || line.premiumType) && (
                 <div className="text-[12px] text-muted-foreground">
-                  Obligatoire
+                  {[
+                    line.mandatory && 'Obligatoire',
+                    line.premiumType && PREMIUM_TYPE_LABELS[line.premiumType],
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
                 </div>
               )}
             </div>
@@ -257,9 +265,7 @@ export function DetailBody({
             </>
           )}
           {product?.legalQualityName && (
-            <InfoRow label="Qualité juridique">
-              {product.legalQualityName}
-            </InfoRow>
+            <InfoRow label="Situation">{product.legalQualityName}</InfoRow>
           )}
           {product?.contentsValue != null && (
             <InfoRow label="Valeur du contenu">
@@ -271,9 +277,21 @@ export function DetailBody({
               {money(product.buildingValue)}
             </InfoRow>
           )}
-          {product?.rentalValue != null && (
-            <InfoRow label="Valeur locative">
-              {money(product.rentalValue)}
+          {product?.rentalRisks != null && (
+            <InfoRow label="Risques locatifs">
+              <span className="tabular-nums">{money(product.rentalRisks)}</span>
+              {product.monthlyRent != null &&
+                product.rentMultiplier != null && (
+                  <span className="block text-[12px] font-normal text-muted-foreground">
+                    Loyer mensuel {money(product.monthlyRent)} ×{' '}
+                    {product.rentMultiplier}
+                  </span>
+                )}
+            </InfoRow>
+          )}
+          {product?.occupancy && (
+            <InfoRow label="Occupation du logement">
+              {OCCUPANCY_LABELS[product.occupancy]}
             </InfoRow>
           )}
         </InfoList>

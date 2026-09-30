@@ -4,11 +4,15 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, cleanup, render, screen } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { ImportAccessoriesDialog } from './ImportAccessoriesDialog'
+import type * as AccessoriesService from '#/services/accessories'
 
 vi.mock('#/services/products', () => ({
-  findIaProduct: vi.fn().mockResolvedValue({ productCode: 7 }),
+  findProductByCode: vi.fn().mockResolvedValue({ productCode: 7 }),
 }))
-vi.mock('#/services/accessories', () => ({ importAccessoriesCsv: vi.fn() }))
+vi.mock('#/services/accessories', async (importOriginal) => ({
+  ...(await importOriginal<typeof AccessoriesService>()),
+  importAccessoriesCsv: vi.fn(),
+}))
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 vi.mock('#/components/forms/FormDialog', () => ({
   FormDialog: (p: { children: React.ReactNode }) => <div>{p.children}</div>,
@@ -47,7 +51,10 @@ it('ignore le pré-contrôle d’un fichier qui n’est plus le fichier courant 
   const client = new QueryClient()
   render(
     <QueryClientProvider client={client}>
-      <ImportAccessoriesDialog onClose={() => undefined} />
+      <ImportAccessoriesDialog
+        product="IA_STANDARD"
+        onClose={() => undefined}
+      />
     </QueryClientProvider>,
   )
   // attendre le produit (productCode chargé)

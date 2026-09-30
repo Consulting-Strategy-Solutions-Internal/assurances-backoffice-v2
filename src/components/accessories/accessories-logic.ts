@@ -118,7 +118,7 @@ function normalizeHeaderCell(cell: string): string {
 }
 
 /**
- * Vérifie côté navigateur que chaque ligne cible bien IA Standard. Seul le
+ * Vérifie côté navigateur que chaque ligne cible bien le produit de l'écran. Seul le
  * `productCode` est contrôlé ici, le reste est validé par le serveur.
  * Séparateur (`,` ou `;`) détecté sur l'en-tête ; lignes vides ignorées ;
  * numérotation physique (en-tête = 1).

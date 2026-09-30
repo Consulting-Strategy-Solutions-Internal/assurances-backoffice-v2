@@ -6,6 +6,7 @@
 ## Active
 
 ### L-001: Never change what a shared helper means — add a helper named after its use instead
+
 - **Why:** `formatNumber` (`src/lib/utils.ts`) was made integer-only for FCFA amounts; the IA Barèmes screen used it for ‰ rates, so 0,25 ‰ displayed « 0 » and an admin could « fix » a correct tariff. Changing a shared helper's semantics silently breaks every caller.
 - **How to apply:** one formatter per use (`formatFcfa`, `formatPermille`, `formatPercent`…); before changing any shared helper, grep its callers and check each one.
 - **Seen:** 2026-09-30 `ux-fixes` R1-1 (🔴)
@@ -13,6 +14,7 @@
 - **Enforced by:** partly — `formatNumber` renamed `formatInteger` (no generic number formatter left in `utils.ts`); still a rule, not a check
 
 ### L-002: Type every request and response from the backend's OpenAPI, never from memory or guesses
+
 - **Why:** the scheme wizard sent `productId` when the API had moved to `product` (400 « Validation failed »); the quotation drawer read invented `riskClassSnapshot` keys and treated `warrantiesSnapshot` (an object `{lines}`) as an array, so the detail the user asked for never showed.
 - **How to apply:** check shapes against `https://<backend>/api/v3/api-docs` (see `context/memory.md`) when writing or touching a service; no `unknown` for snapshot fields the UI renders.
 - **Seen:** 2026-09-30 `ux-fixes` R1-8, R1-9; bug « Validation failed » on `/commission-schemes`
@@ -20,6 +22,7 @@
 - **Enforced by:** —
 
 ### L-003: Always pass a newest-first `sort` to `fetchAllPages`
+
 - **Why:** without `sort`, the backend orders by `id,ASC`; past the 2 000-row cap the oldest rows are kept and the « most recent » note is false (dashboard, Cotations).
 - **How to apply:** every `fetchAllPages` call passes `sort: 'createdAt,desc'` (or the list's natural newest-first key) through the service.
 - **Seen:** 2026-09-30 `ux-fixes` R1-2
@@ -27,12 +30,14 @@
 - **Enforced by:** —
 
 ### L-004: Before offering « Annuler » after a mutation, write the server's response into the cache
+
 - **Why:** the permission editor offered « Annuler » while `['roles-all']` still held the pre-mutation state (invalidation refetch pending); the undo read that stale state and silently did nothing on a shared role.
 - **How to apply:** in `onSuccess`, `setQueryData` with the returned entity (then invalidate), or await the refetch before showing the undo; if an undo is skipped, say so.
 - **Seen:** 2026-09-30 `ux-fixes` R1-12
 - **Enforced by:** —
 
 ### L-005: When a permission decides what to hide, treat unknown permissions as denied
+
 - **Why:** `can()` answers `true` while the permission set is unknown (« unknown → allow », fine for letting the server decide on actions). The risk-class status filter reused it to decide whether to show an option the backend ignores for read-only users; for exactly those users (no `iam:read`, set unknown) the misleading filter came back.
 - **How to apply:** gate on `permissions?.has(code) === true` (known and granted) whenever hiding/forcing UI depends on the permission; keep « unknown → allow » only for actions the server will refuse anyway.
 - **Seen:** 2026-09-30 `ux-fixes` R1-5 (reopened round 2)
@@ -40,12 +45,14 @@
 - **Enforced by:** —
 
 ### L-006: A result counter shows the filtered total, never the length of the current page
+
 - **Why:** « 20 types » was the page slice (`rows.length`) while the KPI said 30; the audit had already found the same on Permissions (« 20 » vs 60 in the KPIs). Two numbers for the same set make an admin doubt both.
 - **How to apply:** counters read the filtered set (`matching.length`) or the server's `totalElements`; the page slice is only for rendering rows.
 - **Seen:** 2026-09-30 audit (Permissions), `ux-fixes` R1-10 (reopened round 2)
 - **Enforced by:** —
 
 ### L-007: Two sticky table columns must fit together in the narrowest visible width
+
 - **Why:** Schémas and Distributions stuck the first column left and the action column right; at 360 px their sum (≈ 355–373 px) exceeded the 326 px visible, so the middle columns (Taux négocié, Statut) could never be scrolled into view.
 - **How to apply:** only stick both sides when left + right widths fit in the smallest content width (≈ 326 px), keeping ≥ 150 px free; otherwise pass `stickyFrom="sm"` (`DataTableHead`/`DataTableCell`) on one side — it only sticks from 576 px of content — or switch to cards. Measure at 360 with real rows.
 - **Seen:** 2026-09-30 `responsive` R1-3
@@ -53,21 +60,33 @@
 - **Enforced by:** —
 
 ### L-008: Choose column-hiding thresholds from the measured table width, never by guess
+
 - **Why:** `hideBelow="lg"/"xl"` was set on Sinistres and Cotations columns although those tables fit at 1024/1280 (audit measured 672 / 866 px); desktop users lost Produit, Déclaré par, Émis par for nothing.
 - **How to apply:** measure the table's natural width (Playwright sweep) and hide a column only below the content width where the table stops fitting; content thresholds are 576/672/896/1024 px (`sm/md/lg/xl` of `hideBelow`), not viewport breakpoints.
 - **Seen:** 2026-09-30 `responsive` R1-4
+- **Seen:** 2026-09-30 `mrh-tariff` R1-6 (suspected) — Mode/Obligatoire hidden below md/sm with no relay; relay sub-line added, thresholds to measure in verify
 - **Enforced by:** —
 
 ### L-009: Test the « permissions unknown » case with `permissions === null`, never with an empty set
+
 - **Why:** an empty `Set` means « known, none granted »; `null` means « unknown » (every role without `iam:read`). A test that mocks `can`/`canKnown` over an empty set passes whatever helper the code uses, and proves nothing about the unknown case.
 - **How to apply:** in permission tests, mock `usePermissions` with the real semantics (`permissions: null` ⇒ `can()` true, `canKnown()` false) and assert both cases: unknown and known-but-absent.
 - **Seen:** 2026-09-30 `contract-amendments` R1-2
+- **Seen:** 2026-09-30 `mrh-tariff` R1-5, R1-8 — grid and accessories screens only mocked the unknown case
 - **Enforced by:** —
 
 ### L-010: Check phone layouts once with JavaScript disabled — the server render must not overflow either
+
 - **Why:** until hydration, Radix renders extra markup (a hidden native `<select aria-hidden>` next to each Select). The Toolbar's `[&>*]:w-full!` rule stretched it to the toolbar width and the page scrolled 30 px sideways at 390 px on every toolbar with a Select; with JavaScript loaded the sweep saw 0 px, so the bug only showed on flaky-network runs and was first dismissed as noise.
 - **How to apply:** in a responsive check, load each page once with `javaScriptEnabled: false` and measure `scrollWidth - innerWidth`; when a child-selector rule (`[&>*]:…`) styles every child, exclude injected hidden elements (`:not(select[aria-hidden])`). An overflow that only appears « sometimes » is a bug until proven otherwise.
 - **Seen:** 2026-09-30 `contract-amendments` R2-3
+- **Enforced by:** —
+
+### L-011: Cap every free-text input at the backend column length, even when the API has no `@Size`
+
+- **Why:** situation description and warranty/situation names are `varchar(255)` with only `@NotBlank` on the DTO; a longer value fails at the database and the backend's generic `DataIntegrityViolationException` handler answers 409 « A record with these details already exists », which the screen shows as « Cet élément existe déjà. » — a misleading message for a length problem.
+- **How to apply:** when a form sends a text field, look up its column in the backend migrations (`V*__*.sql`) and add a client-side length validator (and `maxLength` on the counter) matching it.
+- **Seen:** 2026-09-30 `mrh-tariff` R1-1
 - **Enforced by:** —
 
 ## Enforced

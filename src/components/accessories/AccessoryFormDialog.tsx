@@ -4,12 +4,29 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { FormDialog } from '#/components/forms/FormDialog'
 import { FormField } from '#/components/forms/FormField'
+import { FormSelect } from '#/components/forms/FormSelect'
 import { orphanBannerMessage, parseIaError } from '#/lib/ia-errors'
-import { createAccessory, updateAccessory } from '#/services/accessories'
+import {
+  ACCESSORY_PRODUCT_LABELS,
+  ACCESSORY_PRODUCTS,
+  accessoryProductLabel,
+  createAccessory,
+  updateAccessory,
+} from '#/services/accessories'
 import type {
+  AccessoryProduct,
   AccessoryResponse,
   CreateAccessoryPayload,
 } from '#/services/accessories'
+
+const PRODUCT_OPTIONS = ACCESSORY_PRODUCTS.map((value) => ({
+  value,
+  label: ACCESSORY_PRODUCT_LABELS[value],
+}))
+
+function isAccessoryProduct(value: string): value is AccessoryProduct {
+  return (ACCESSORY_PRODUCTS as readonly string[]).includes(value)
+}
 
 type FieldName = 'minPremium' | 'maxPremium' | 'amount'
 
@@ -39,12 +56,15 @@ function validateAmount(raw: string): string | undefined {
 }
 
 interface AccessoryFormDialogProps {
+  /** Produit de l'écran : pré-rempli à la création. */
+  product: AccessoryProduct
   /** Absent = création. */
   accessory?: AccessoryResponse
   onClose: () => void
 }
 
 export function AccessoryFormDialog({
+  product,
   accessory,
   onClose,
 }: AccessoryFormDialogProps) {
@@ -58,9 +78,8 @@ export function AccessoryFormDialog({
         ? updateAccessory(accessory.id, payload)
         : createAccessory(payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['accessories', 'IA_STANDARD'],
-      })
+      // Tous les produits : une tranche déplacée quitte une liste pour une autre.
+      void queryClient.invalidateQueries({ queryKey: ['accessories'] })
       toast.success(accessory ? 'Tranche modifiée.' : 'Tranche ajoutée.')
       onClose()
     },
@@ -68,6 +87,7 @@ export function AccessoryFormDialog({
 
   const form = useForm({
     defaultValues: {
+      product: accessory?.product ?? (product as string),
       minPremium: accessory ? String(accessory.minPremium) : '',
       maxPremium: accessory ? String(accessory.maxPremium) : '',
       amount: accessory ? String(accessory.amount) : '',
@@ -77,7 +97,7 @@ export function AccessoryFormDialog({
       setServerFields({})
       try {
         await mutateAsync({
-          product: 'IA_STANDARD',
+          product: isAccessoryProduct(value.product) ? value.product : product,
           minPremium: Number(value.minPremium),
           maxPremium: Number(value.maxPremium),
           amount: Number(value.amount),
@@ -86,10 +106,10 @@ export function AccessoryFormDialog({
         const parsed = parseIaError(error)
         setServerFields(parsed.fields)
         setServerError(
-          orphanBannerMessage(
-            parsed,
-            FIELDS.map((f) => f.name),
-          ),
+          orphanBannerMessage(parsed, [
+            'product',
+            ...FIELDS.map((f) => f.name),
+          ]),
         )
       }
     },
@@ -115,7 +135,7 @@ export function AccessoryFormDialog({
     <FormDialog
       dirty={dirty}
       onClose={onClose}
-      eyebrow="Accessoires — IA Standard"
+      eyebrow={`Accessoires — ${ACCESSORY_PRODUCT_LABELS[product]}`}
       title={accessory ? 'Modifier la tranche' : 'Ajouter une tranche'}
       description="Frais d’accessoires appliqués selon la tranche de prime nette."
       onSubmit={() => form.handleSubmit()}
@@ -129,6 +149,31 @@ export function AccessoryFormDialog({
       pending={isPending}
       error={serverError}
     >
+      <form.Field name="product">
+        {(field) => (
+          <FormSelect
+            id="product"
+            label="Produit"
+            required
+            value={field.state.value}
+            options={PRODUCT_OPTIONS}
+            onChange={(v) => {
+              setServerFields((prev) => {
+                if (!('product' in prev)) return prev
+                const { product: _removed, ...rest } = prev
+                return rest
+              })
+              field.handleChange(v)
+            }}
+            hint={
+              accessory && field.state.value !== accessory.product
+                ? `La tranche quittera ${accessoryProductLabel(accessory.product)}.`
+                : undefined
+            }
+            error={serverFields.product}
+          />
+        )}
+      </form.Field>
       {FIELDS.map(({ name, label, hint }) => (
         <form.Field
           key={name}
