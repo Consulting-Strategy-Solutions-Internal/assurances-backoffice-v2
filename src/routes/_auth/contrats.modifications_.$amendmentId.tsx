@@ -37,6 +37,7 @@ import {
   buildComparison,
   buildRequestedRows,
   taxSignNote,
+  totalSignWarning,
   canDelete,
   canValidate,
   deleteConfirmation,
@@ -203,6 +204,10 @@ function ComparisonBlock({
   )
 }
 
+const surfaceFormatter = new Intl.NumberFormat('fr-FR', {
+  maximumFractionDigits: 2,
+})
+
 const HOUSING_TYPE_LABELS: Record<HousingType, string> = {
   VILLA: 'Villa',
   APARTMENT: 'Appartement',
@@ -236,7 +241,7 @@ function MrhContractCards({
           </InfoRow>
           <InfoRow label="Adresse">{housing?.location}</InfoRow>
           {housing?.surfaceArea != null && (
-            <InfoRow label="Surface">{`${housing.surfaceArea} m²`}</InfoRow>
+            <InfoRow label="Surface">{`${surfaceFormatter.format(housing.surfaceArea)} m²`}</InfoRow>
           )}
         </InfoList>
       </SectionCard>
@@ -314,7 +319,11 @@ export function AmendmentDetailContent({
   // Sans page « fiche contrat » au back-office : on ne sert la fiche que pour
   // retrouver le client (lien vers sa page). Échec silencieux : pas de lien.
   const subscriptionId = amendment?.subscriptionId
-  const { data: subscription } = useQuery({
+  const {
+    data: subscription,
+    isError: subscriptionFailed,
+    refetch: refetchSubscription,
+  } = useQuery({
     queryKey: subscriptionsKeys.detail(subscriptionId ?? 0),
     queryFn: () => getSubscription(subscriptionId as number),
     enabled: subscriptionId !== undefined,
@@ -530,6 +539,22 @@ export function AmendmentDetailContent({
         </div>
 
         <div className="flex flex-col gap-[18px]">
+          {product === 'MRH_STANDARD' && subscriptionFailed && (
+            <SectionCard title="Logement">
+              <p className="text-[13px] text-destructive">
+                Logement et souscripteur indisponibles : le contrat n’a pas pu
+                être chargé.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-3 rounded-[10px]"
+                onClick={() => void refetchSubscription()}
+              >
+                Réessayer
+              </Button>
+            </SectionCard>
+          )}
           {product === 'MRH_STANDARD' && subscription && (
             <MrhContractCards
               situation={
@@ -601,6 +626,11 @@ export function AmendmentDetailContent({
               <InfoRow label="Taxe">{formatFcfa(delta.tax)}</InfoRow>
               <InfoRow label="Total">{formatFcfa(delta.total)}</InfoRow>
             </InfoList>
+            {totalSignWarning(delta) && (
+              <WarningBanner className="mt-3">
+                {totalSignWarning(delta)}
+              </WarningBanner>
+            )}
             {taxSignNote(delta) && (
               <p className="mt-3 text-[12.5px] text-muted-foreground">
                 {taxSignNote(delta)}

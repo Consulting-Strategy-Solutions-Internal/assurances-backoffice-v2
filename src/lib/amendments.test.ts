@@ -9,6 +9,7 @@ import {
   deleteConfirmation,
   mapAmendmentError,
   taxSignNote,
+  totalSignWarning,
   isReceiptDownloadable,
   mapPolicyDocumentError,
   mapReceiptDocumentError,
@@ -27,6 +28,8 @@ import {
   draftRefund,
   draftUnchanged,
   mrhDraftIncrease,
+  mrhDraftRefundTaxUp,
+  mrhDraftRefundTotalPositive,
   toRefundReceipt,
 } from './amendments.fixtures'
 
@@ -423,11 +426,42 @@ describe('avenants MRH', () => {
   })
 
   it('AC-3 : note quand la taxe est de signe opposé à l’écart net (D13)', () => {
-    expect(taxSignNote(mrhDraftIncrease.delta)).toMatch(/25 % et 14,5 %/)
-    expect(taxSignNote({ ...mrhDraftIncrease.delta, tax: 150 })).toBeNull()
+    expect(taxSignNote(mrhDraftRefundTaxUp.delta)).toMatch(/25 % et 14,5 %/)
+    expect(taxSignNote(mrhDraftIncrease.delta)).toBeNull()
     expect(
       taxSignNote({ ...mrhDraftIncrease.delta, netDelta: 0, tax: 0 }),
     ).toBeNull()
+  })
+
+  it('R1 : total de signe opposé à l’écart net → alerte et confirmation qui le dit', () => {
+    expect(totalSignWarning(mrhDraftRefundTaxUp.delta)).toBeNull()
+    const warning = totalSignWarning(mrhDraftRefundTotalPositive.delta)
+    expect(warning).toMatch(/total/)
+    expect(warning).toContain(formatFcfa(340))
+    const text = validateConfirmation(mrhDraftRefundTotalPositive.delta)
+    expect(text).not.toMatch(/ristourne de/)
+    expect(text).toContain(formatFcfa(340))
+  })
+
+  it('R1 : refus au code inconnu → message du backend', () => {
+    expect(
+      mapAmendmentError(
+        axiosError(422, {
+          status: 422,
+          message: 'A renewal payment is in progress',
+          errors: { subscription: 'RENEWAL_PAYMENT_IN_PROGRESS' },
+        }),
+      ),
+    ).toMatchObject({ kind: 'other' })
+    expect(
+      mapAmendmentError(
+        axiosError(422, {
+          status: 422,
+          message: 'A renewal payment is in progress',
+          errors: { subscription: 'RENEWAL_PAYMENT_IN_PROGRESS' },
+        }),
+      ).message,
+    ).not.toBe('')
   })
 
   it('AC-4 : AMENDMENT_IN_PROGRESS traduit', () => {

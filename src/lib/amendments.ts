@@ -390,11 +390,6 @@ export function sameBeneficiaries(
   return left.every((value, index) => value === right[index])
 }
 
-/**
- * Lignes « avant / après » d'une modification (avant = `current`, après = la
- * modification) selon son produit, et comparaison des bénéficiaires. Les
- * montants sont arrondis au franc (spec E3).
- */
 /** Garanties retenues, d'après les lignes du tarif (triées, Incendie compris). */
 function warrantiesLabel(terms?: MrhAmendmentTerms | null): string {
   const names = (terms?.warrantiesSnapshot?.lines ?? [])
@@ -473,6 +468,11 @@ function mrhRows(
   return rows
 }
 
+/**
+ * Lignes « avant / après » d'une modification (avant = `current`, après = la
+ * modification) selon son produit, et comparaison des bénéficiaires. Les
+ * montants sont arrondis au franc (spec E3).
+ */
 export function buildComparison(detail: AmendmentDetail): {
   rows: ComparisonRow[]
   /** `null` sur une modification MRH (pas de bénéficiaires). */
@@ -623,8 +623,26 @@ export function taxSignNote(delta: AmendmentDelta): string | null {
   return 'La taxe est de signe opposé à l’écart net : des garanties de taux différents (25 % et 14,5 %) s’échangent. C’est normal.'
 }
 
+/**
+ * MRH : le backend classe l'écart d'après le seul écart net, mais le total
+ * (taxe comprise) peut être de signe opposé. Alerte à afficher dans ce cas,
+ * `null` sinon.
+ */
+export function totalSignWarning(delta: AmendmentDelta): string | null {
+  if (delta.netDelta === 0 || delta.total === 0) return null
+  if (Math.sign(delta.netDelta) === Math.sign(delta.total)) return null
+  const direction = delta.netDelta < 0 ? 'baisse' : 'hausse'
+  const due =
+    delta.total > 0
+      ? `${formatFcfa(delta.total)} à payer par le client`
+      : `${formatFcfa(Math.abs(delta.total))} à rembourser au client`
+  return `Attention : le total, taxe comprise, est de signe opposé à l’écart net (${direction}) — ${due}. Vérifiez la quittance avant de valider.`
+}
+
 /** Texte de la confirmation de validation, selon l'écart estimé. */
 export function validateConfirmation(delta: AmendmentDelta): string {
+  const warning = totalSignWarning(delta)
+  if (warning) return `${warning} ${RECOMPUTE_NOTE}`
   const amount = formatFcfa(Math.abs(delta.total))
   const outcome =
     delta.kind === 'UNCHANGED'

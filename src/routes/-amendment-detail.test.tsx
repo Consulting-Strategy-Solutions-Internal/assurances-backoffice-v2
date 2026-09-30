@@ -22,6 +22,8 @@ import {
   draftRefund,
   draftUnchanged,
   mrhDraftIncrease,
+  mrhDraftRefundTaxUp,
+  mrhDraftRefundTotalPositive,
   toRefundReceipt,
 } from '#/lib/amendments.fixtures'
 import { formatFcfa } from '#/lib/utils'
@@ -745,11 +747,41 @@ describe('AmendmentDetailContent — MRH', () => {
     expect(screen.getByText('Société assurée')).toBeTruthy()
   })
 
-  it('AC-3 : écart en hausse, note quand la taxe est de signe opposé (D13)', async () => {
+  it('AC-3 : ristourne à taxe positive, note D13', async () => {
     mocks.getSubscription.mockResolvedValue(mrhSubscription)
-    renderDetail(mrhDraftIncrease)
+    renderDetail(mrhDraftRefundTaxUp)
     expect(await screen.findByText(/garanties de taux différents/)).toBeTruthy()
-    expect(screen.getAllByText(/^[-−]50\sFCFA$/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/^[-−]49\sFCFA$/).length).toBeGreaterThan(0)
+  })
+
+  it('R1 : total de signe opposé → alerte dans l’écart et dans la confirmation', async () => {
+    mocks.getSubscription.mockResolvedValue(mrhSubscription)
+    renderDetail(mrhDraftRefundTotalPositive)
+    expect(await screen.findByText(/Attention : le total/)).toBeTruthy()
+    fireEvent.click(await screen.findByRole('button', { name: 'Valider' }))
+    const dialog = await screen.findByRole('alertdialog')
+    expect(dialog.textContent).not.toMatch(/ristourne de/)
+  })
+
+  it('R1 : contrat illisible → cartes Logement / Souscripteur en erreur avec Réessayer', async () => {
+    mocks.getSubscription.mockRejectedValue({
+      isAxiosError: true,
+      response: { status: 500, data: {} },
+    })
+    renderDetail(mrhDraftIncrease)
+    expect(
+      await screen.findByText(/Logement et souscripteur indisponibles/),
+    ).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Réessayer' })).toBeTruthy()
+  })
+
+  it('R1 : surface au format français', async () => {
+    mocks.getSubscription.mockResolvedValue({
+      ...mrhSubscription,
+      housing: { ...mrhSubscription.housing, surfaceArea: 250.5 },
+    })
+    renderDetail(mrhDraftIncrease)
+    expect(await screen.findByText(/250,5\sm²/)).toBeTruthy()
   })
 
   it('AC-4 : valider une hausse MRH → attente de paiement', async () => {
@@ -763,10 +795,10 @@ describe('AmendmentDetailContent — MRH', () => {
         receiptNumber: 'Q-2026-000031',
         kind: 'SUPPLEMENTARY_CALL',
         status: 'TO_PAY',
-        netAmount: 1068,
+        netAmount: 1069,
         fees: 5000,
-        tax: -50,
-        total: 6018,
+        tax: 1448,
+        total: 7517,
       },
     }
     mocks.validateAmendment.mockResolvedValue(asAmendment(validated))
@@ -777,7 +809,7 @@ describe('AmendmentDetailContent — MRH', () => {
     )
     await waitFor(() =>
       expect(mocks.toastSuccess).toHaveBeenCalledWith(
-        `Quittance de ${formatFcfa(6018)} envoyée au client : le contrat changera après son paiement.`,
+        `Quittance de ${formatFcfa(7517)} envoyée au client : le contrat changera après son paiement.`,
       ),
     )
     expect(await screen.findByText('À payer')).toBeTruthy()
