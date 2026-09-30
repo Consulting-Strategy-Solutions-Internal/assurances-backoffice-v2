@@ -8,6 +8,7 @@ import {
   canValidate,
   deleteConfirmation,
   mapAmendmentError,
+  taxSignNote,
   isReceiptDownloadable,
   mapPolicyDocumentError,
   mapReceiptDocumentError,
@@ -25,6 +26,7 @@ import {
   draftIncrease,
   draftRefund,
   draftUnchanged,
+  mrhDraftIncrease,
   toRefundReceipt,
 } from './amendments.fixtures'
 
@@ -71,7 +73,7 @@ describe('buildComparison', () => {
     const { rows, beneficiaries } = buildComparison(draftUnchanged)
     const changed = rows.filter((row) => row.changed).map((row) => row.key)
     expect(changed).toEqual(['phone'])
-    expect(beneficiaries.changed).toBe(false)
+    expect(beneficiaries?.changed).toBe(false)
   })
 
   it('compares class, capitals, modifiers and premium for IA Standard', () => {
@@ -139,13 +141,11 @@ describe('buildComparison', () => {
   })
 
   it('detects changed beneficiaries regardless of order', () => {
-    const [first, ...rest] = draftUnchanged.beneficiaries
+    const all = draftUnchanged.beneficiaries ?? []
+    const [first, ...rest] = all
     expect(sameBeneficiaries([first, ...rest], [...rest, first])).toBe(true)
     expect(
-      sameBeneficiaries(draftUnchanged.beneficiaries, [
-        { ...first, sharePercent: 50 },
-        ...rest,
-      ]),
+      sameBeneficiaries(all, [{ ...first, sharePercent: 50 }, ...rest]),
     ).toBe(false)
   })
 
@@ -370,5 +370,79 @@ describe('400 on a PDF download', () => {
     const policy = mapPolicyDocumentError(axiosError(400))
     expect(policy.retry).toBe(false)
     expect(policy.message).toContain('invalide')
+  })
+})
+
+describe('avenants MRH', () => {
+  it('AC-1 : produit MRH Standard lu dans le bloc mrh', () => {
+    expect(amendmentProduct(mrhDraftIncrease)).toBe('MRH_STANDARD')
+  })
+
+  it('AC-2 : avant/après MRH — contenu, loyer, pièces, garanties, prime ; sans téléphone ni bénéficiaires', () => {
+    const { rows, beneficiaries } = buildComparison(mrhDraftIncrease)
+    const byKey = Object.fromEntries(rows.map((r) => [r.key, r]))
+    expect(Object.keys(byKey)).toEqual([
+      'situation',
+      'contents',
+      'rent',
+      'rentalRisks',
+      'rooms',
+      'warranties',
+      'premium',
+    ])
+    expect(byKey.situation).toMatchObject({
+      before: 'Locataire',
+      after: 'Locataire',
+      changed: false,
+    })
+    expect(byKey.contents.changed).toBe(true)
+    expect(byKey.contents.after).toBe(formatFcfa(6000000))
+    expect(byKey.rent.changed).toBe(false)
+    expect(byKey.rooms).toMatchObject({
+      before: '4',
+      after: '5',
+      changed: true,
+    })
+    expect(byKey.warranties).toMatchObject({
+      before: 'Dégâts des eaux, Incendie',
+      after: 'Incendie, Vol par effraction',
+      changed: true,
+    })
+    expect(byKey.premium.after).toBe(formatFcfa(32371))
+    expect(beneficiaries).toBeNull()
+  })
+
+  it('AC-2 : bâtiment affiché seulement s’il existe d’un côté', () => {
+    const { rows } = buildComparison(mrhDraftIncrease)
+    expect(rows.some((r) => r.key === 'building')).toBe(false)
+  })
+
+  it('état demandé seul (appliqué) : lignes MRH', () => {
+    const rows = buildRequestedRows({ ...mrhDraftIncrease, status: 'APPLIED' })
+    expect(rows.find((r) => r.key === 'rooms')?.value).toBe('5')
+  })
+
+  it('AC-3 : note quand la taxe est de signe opposé à l’écart net (D13)', () => {
+    expect(taxSignNote(mrhDraftIncrease.delta)).toMatch(/25 % et 14,5 %/)
+    expect(taxSignNote({ ...mrhDraftIncrease.delta, tax: 150 })).toBeNull()
+    expect(
+      taxSignNote({ ...mrhDraftIncrease.delta, netDelta: 0, tax: 0 }),
+    ).toBeNull()
+  })
+
+  it('AC-4 : AMENDMENT_IN_PROGRESS traduit', () => {
+    expect(
+      mapAmendmentError(
+        axiosError(422, {
+          status: 422,
+          message: 'x',
+          errors: { subscription: 'AMENDMENT_IN_PROGRESS' },
+        }),
+      ).message,
+    ).toMatch(/autre modification de ce contrat est déjà en cours/)
+  })
+
+  it('AC-6 : IA inchangé — IA Standard reste IA Standard', () => {
+    expect(amendmentProduct(draftUnchanged)).toBe('IA_STANDARD')
   })
 })

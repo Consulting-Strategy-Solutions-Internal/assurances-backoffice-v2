@@ -4,6 +4,7 @@ import { apiErrorMessage } from '#/lib/api-error'
 import { formatPercent } from '#/lib/format'
 import { formatFcfa } from '#/lib/utils'
 import type { PillTone } from '#/lib/dashboard-theme'
+import type { ProductSnapshot, WarrantiesSnapshot } from '#/services/quotations'
 
 // Formes calquées sur la collection Postman « NSIA Connect » (Commun ›
 // Validation des modifications), générée depuis l'OpenAPI du backend (L-002).
@@ -16,8 +17,12 @@ export const AMENDMENT_STATUSES = [
 ] as const
 export type AmendmentStatus = (typeof AMENDMENT_STATUSES)[number]
 
-/** Produits filtrables (le backend accepte aussi MRH_STANDARD, non proposé). */
-export const AMENDMENT_PRODUCTS = ['IA_STANDARD', 'IA_FOR_ALL'] as const
+/** Produits filtrables de la file (`?product=`). */
+export const AMENDMENT_PRODUCTS = [
+  'IA_STANDARD',
+  'IA_FOR_ALL',
+  'MRH_STANDARD',
+] as const
 export type AmendmentProduct = (typeof AMENDMENT_PRODUCTS)[number]
 
 export type DeltaKind = 'UNCHANGED' | 'INCREASE' | 'REFUND'
@@ -117,6 +122,23 @@ export interface AmendmentReceipt {
   remainingDays?: number | null
 }
 
+/**
+ * Bloc `mrh` d'une modification MRH (état voulu) ou de `current` (conditions
+ * en vigueur) — PR backend #119.
+ */
+export interface MrhAmendmentTerms {
+  contentsValue: number
+  /** Situations BATIMENT seulement. */
+  buildingValue?: number | null
+  /** Locataire seulement. */
+  monthlyRent?: number | null
+  rooms: number
+  /** Garanties facultatives retenues (l'Incendie, obligatoire, n'y est pas). */
+  selectedWarrantyIds: number[]
+  productSnapshot?: ProductSnapshot | null
+  warrantiesSnapshot?: WarrantiesSnapshot | null
+}
+
 export interface Amendment {
   id: number
   subscriptionId: number
@@ -128,8 +150,12 @@ export interface Amendment {
   medicalExpensesCapital?: number | null
   appliedModifierCodes?: string[] | null
   reductionRate?: number | null
-  insuredPhone: string
-  beneficiaries: AmendmentBeneficiary[]
+  /** IA seulement ; nul sur une modification MRH. */
+  insuredPhone?: string | null
+  /** IA seulement ; nul sur une modification MRH. */
+  beneficiaries?: AmendmentBeneficiary[] | null
+  /** MRH seulement ; nul sur une modification IA. */
+  mrh?: MrhAmendmentTerms | null
   tariffChanged: boolean
   formulaSnapshot?: FormulaSnapshot | null
   riskClassSnapshot?: RiskClassSnapshot | null
@@ -156,8 +182,12 @@ export interface AmendmentCurrent {
   fees: number
   tax: number
   totalPremium: number
-  insuredPhone: string
-  beneficiaries: AmendmentBeneficiary[]
+  /** IA seulement ; nul sur un contrat MRH. */
+  insuredPhone?: string | null
+  /** IA seulement ; vide sur un contrat MRH. */
+  beneficiaries?: AmendmentBeneficiary[] | null
+  /** MRH seulement : conditions en vigueur. */
+  mrh?: MrhAmendmentTerms | null
   amendmentNumber?: number | null
 }
 
@@ -275,12 +305,17 @@ export const DELTA_TITLES: Record<DeltaKind, string> = {
 export const AMENDMENT_PRODUCT_LABELS: Record<AmendmentProduct, string> = {
   IA_STANDARD: 'IA Standard',
   IA_FOR_ALL: 'IA Pour Tous',
+  MRH_STANDARD: 'MRH Standard',
 }
 
-/** Produit d'une modification : `formulaSnapshot` ⇒ IA Pour Tous, `riskClassSnapshot` ⇒ IA Standard. */
+/**
+ * Produit d'une modification : `mrh` ⇒ MRH Standard, `formulaSnapshot` ⇒ IA
+ * Pour Tous, `riskClassSnapshot` ⇒ IA Standard.
+ */
 export function amendmentProduct(
-  amendment: Pick<Amendment, 'formulaSnapshot' | 'riskClassSnapshot'>,
+  amendment: Pick<Amendment, 'formulaSnapshot' | 'riskClassSnapshot' | 'mrh'>,
 ): AmendmentProduct | null {
+  if (amendment.mrh) return 'MRH_STANDARD'
   if (amendment.formulaSnapshot) return 'IA_FOR_ALL'
   if (amendment.riskClassSnapshot) return 'IA_STANDARD'
   return null
@@ -360,12 +395,103 @@ export function sameBeneficiaries(
  * modification) selon son produit, et comparaison des bénéficiaires. Les
  * montants sont arrondis au franc (spec E3).
  */
+/** Garanties retenues, d'après les lignes du tarif (triées, Incendie compris). */
+function warrantiesLabel(terms?: MrhAmendmentTerms | null): string {
+  const names = (terms?.warrantiesSnapshot?.lines ?? [])
+    .map((line) => line.warrantyName?.trim())
+    .filter((name): name is string => !!name)
+    .sort((a, b) => a.localeCompare(b, 'fr'))
+  return names.length ? names.join(', ') : NONE
+}
+
+/** Lignes MRH : seulement celles qui ont une valeur d'un côté au moins. */
+function mrhRows(
+  before?: MrhAmendmentTerms | null,
+  after?: MrhAmendmentTerms | null,
+): ComparisonRow[] {
+  const rows = [
+    row(
+      'situation',
+      'Situation',
+      before?.productSnapshot?.legalQualityName ?? NONE,
+      after?.productSnapshot?.legalQualityName ?? NONE,
+    ),
+    row(
+      'contents',
+      'Valeur du contenu',
+      fcfa(before?.contentsValue),
+      fcfa(after?.contentsValue),
+    ),
+  ]
+  if (before?.buildingValue != null || after?.buildingValue != null) {
+    rows.push(
+      row(
+        'building',
+        'Valeur du bâtiment',
+        fcfa(before?.buildingValue),
+        fcfa(after?.buildingValue),
+      ),
+    )
+  }
+  if (before?.monthlyRent != null || after?.monthlyRent != null) {
+    rows.push(
+      row(
+        'rent',
+        'Loyer mensuel',
+        fcfa(before?.monthlyRent),
+        fcfa(after?.monthlyRent),
+      ),
+    )
+  }
+  if (
+    before?.productSnapshot?.rentalRisks != null ||
+    after?.productSnapshot?.rentalRisks != null
+  ) {
+    rows.push(
+      row(
+        'rentalRisks',
+        'Risques locatifs',
+        fcfa(before?.productSnapshot?.rentalRisks),
+        fcfa(after?.productSnapshot?.rentalRisks),
+      ),
+    )
+  }
+  rows.push(
+    row(
+      'rooms',
+      'Nombre de pièces',
+      before ? String(before.rooms) : NONE,
+      after ? String(after.rooms) : NONE,
+    ),
+    row(
+      'warranties',
+      'Garanties',
+      warrantiesLabel(before),
+      warrantiesLabel(after),
+    ),
+  )
+  return rows
+}
+
 export function buildComparison(detail: AmendmentDetail): {
   rows: ComparisonRow[]
-  beneficiaries: BeneficiaryComparison
+  /** `null` sur une modification MRH (pas de bénéficiaires). */
+  beneficiaries: BeneficiaryComparison | null
 } {
   const product = amendmentProduct(detail)
   const rows: ComparisonRow[] = []
+  if (product === 'MRH_STANDARD') {
+    rows.push(
+      ...mrhRows(detail.current.mrh, detail.mrh),
+      row(
+        'premium',
+        'Prime annuelle',
+        fcfa(detail.current.totalPremium),
+        fcfa(detail.grossPremium),
+      ),
+    )
+    return { rows, beneficiaries: null }
+  }
   if (product === 'IA_FOR_ALL') {
     const before = detail.current.formulaSnapshot
     const after = detail.formulaSnapshot
@@ -452,19 +578,18 @@ export function buildComparison(detail: AmendmentDetail): {
     row(
       'phone',
       'Téléphone de l’assuré',
-      detail.current.insuredPhone,
-      detail.insuredPhone,
+      detail.current.insuredPhone ?? NONE,
+      detail.insuredPhone ?? NONE,
     ),
   )
+  const before = detail.current.beneficiaries ?? []
+  const after = detail.beneficiaries ?? []
   return {
     rows,
     beneficiaries: {
-      before: detail.current.beneficiaries,
-      after: detail.beneficiaries,
-      changed: !sameBeneficiaries(
-        detail.current.beneficiaries,
-        detail.beneficiaries,
-      ),
+      before,
+      after,
+      changed: !sameBeneficiaries(before, after),
     },
   }
 }
@@ -486,6 +611,17 @@ export function buildRequestedRows(
 
 const RECOMPUTE_NOTE =
   'Le montant est recalculé à la date du jour : seul le nombre de jours restants change, pas la prime annuelle.'
+
+/**
+ * MRH : la taxe de l'écart se calcule garantie par garantie (25 % ou 14,5 %),
+ * elle peut donc être de signe opposé à l'écart net (D13 backend). Note à
+ * afficher dans ce cas, `null` sinon.
+ */
+export function taxSignNote(delta: AmendmentDelta): string | null {
+  if (delta.netDelta === 0 || delta.tax === 0) return null
+  if (Math.sign(delta.netDelta) === Math.sign(delta.tax)) return null
+  return 'La taxe est de signe opposé à l’écart net : des garanties de taux différents (25 % et 14,5 %) s’échangent. C’est normal.'
+}
 
 /** Texte de la confirmation de validation, selon l'écart estimé. */
 export function validateConfirmation(delta: AmendmentDelta): string {
@@ -535,12 +671,17 @@ export type AmendmentErrorKind =
   | 'forbidden'
   | 'other'
 
+/** Code d'erreur stable : `errors.status`, sinon `errors.subscription`. */
 function errorCode(data: unknown): string | undefined {
   if (!data || typeof data !== 'object') return undefined
   const errors = (data as { errors?: unknown }).errors
   if (!errors || typeof errors !== 'object') return undefined
-  const status = (errors as { status?: unknown }).status
-  return typeof status === 'string' ? status : undefined
+  const { status, subscription } = errors as {
+    status?: unknown
+    subscription?: unknown
+  }
+  if (typeof status === 'string') return status
+  return typeof subscription === 'string' ? subscription : undefined
 }
 
 /** Traduit une erreur des routes de modification (codes `errors.status` du backend). */
@@ -561,6 +702,12 @@ export function mapAmendmentError(error: unknown): {
         kind: 'not-amendable',
         message:
           'Le contrat ne peut plus être modifié (inactif, échu ou résilié).',
+      }
+    if (code === 'AMENDMENT_IN_PROGRESS')
+      return {
+        kind: 'other',
+        message:
+          'Une autre modification de ce contrat est déjà en cours : appliquez-la ou supprimez-la d’abord.',
       }
     if (code === 'AMENDMENT_ALREADY_APPLIED')
       return {

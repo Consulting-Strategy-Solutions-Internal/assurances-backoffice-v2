@@ -91,6 +91,28 @@ export interface IdentityDocumentStatus {
   back: boolean
 }
 
+export type HousingType = 'VILLA' | 'APARTMENT' | 'DUPLEX' | 'BUILDING'
+
+/** Logement assuré d'un contrat MRH (`HousingDto`) ; nul sur IA. */
+export interface SubscriptionHousing {
+  type: HousingType
+  number: string
+  rooms: number
+  location: string
+  latitude?: number | null
+  longitude?: number | null
+  /** Propriétaire non occupant seulement. */
+  surfaceArea?: number | null
+}
+
+/** Société assurée d'un contrat MRH souscrit en son nom (`InsuredCompanyDto`). */
+export interface SubscriptionInsuredCompany {
+  name: string
+  phoneNumber: string
+  email: string
+  address: string
+}
+
 /** Champs lus de `SubscriptionDetailResponse` (`GET /subscriptions/{id}`). */
 export interface SubscriptionDetailResponse {
   id: number
@@ -108,6 +130,8 @@ export interface SubscriptionDetailResponse {
   totalPremium?: number
   coverageStart?: string | null
   coverageEnd?: string | null
+  housing?: SubscriptionHousing | null
+  insuredCompany?: SubscriptionInsuredCompany | null
 }
 
 /** `RenewalResponse.receipt` (`GET /subscriptions/{id}/renewal`). */

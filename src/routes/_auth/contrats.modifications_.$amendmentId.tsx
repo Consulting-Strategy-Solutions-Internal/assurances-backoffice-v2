@@ -36,6 +36,7 @@ import {
   amendmentProduct,
   buildComparison,
   buildRequestedRows,
+  taxSignNote,
   canDelete,
   canValidate,
   deleteConfirmation,
@@ -67,6 +68,11 @@ import {
   validateAmendment,
 } from '#/services/amendments'
 import { getSubscription, subscriptionsKeys } from '#/services/subscriptions'
+import type {
+  HousingType,
+  SubscriptionHousing,
+  SubscriptionInsuredCompany,
+} from '#/services/subscriptions'
 
 export const Route = createFileRoute(
   '/_auth/contrats/modifications_/$amendmentId',
@@ -146,7 +152,8 @@ function ComparisonBlock({
   beneficiaries,
 }: {
   rows: ComparisonRow[]
-  beneficiaries: BeneficiaryComparison
+  /** `null` sur une modification MRH : pas de bénéficiaires. */
+  beneficiaries: BeneficiaryComparison | null
 }) {
   return (
     <div>
@@ -173,22 +180,82 @@ function ComparisonBlock({
             </div>
           </li>
         ))}
-        <li data-changed={beneficiaries.changed} className="py-3">
-          <p className="mb-1 text-[12.5px] text-muted-foreground">
-            Bénéficiaires
-            {beneficiaries.changed && (
-              <span className="ml-2 font-semibold text-[#1f53b0]">modifié</span>
-            )}
-          </p>
-          <div className="grid grid-cols-2 gap-3">
-            <BeneficiaryList items={beneficiaries.before} />
-            <div className={cn(beneficiaries.changed && CHANGED_CLASS)}>
-              <BeneficiaryList items={beneficiaries.after} />
+        {beneficiaries && (
+          <li data-changed={beneficiaries.changed} className="py-3">
+            <p className="mb-1 text-[12.5px] text-muted-foreground">
+              Bénéficiaires
+              {beneficiaries.changed && (
+                <span className="ml-2 font-semibold text-[#1f53b0]">
+                  modifié
+                </span>
+              )}
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <BeneficiaryList items={beneficiaries.before} />
+              <div className={cn(beneficiaries.changed && CHANGED_CLASS)}>
+                <BeneficiaryList items={beneficiaries.after} />
+              </div>
             </div>
-          </div>
-        </li>
+          </li>
+        )}
       </ul>
     </div>
+  )
+}
+
+const HOUSING_TYPE_LABELS: Record<HousingType, string> = {
+  VILLA: 'Villa',
+  APARTMENT: 'Appartement',
+  DUPLEX: 'Duplex',
+  BUILDING: 'Immeuble',
+}
+
+/** Situation, logement et souscripteur d'un contrat MRH, en lecture seule. */
+function MrhContractCards({
+  situation,
+  housing,
+  company,
+  clientName,
+}: {
+  situation?: string | null
+  housing?: SubscriptionHousing | null
+  company?: SubscriptionInsuredCompany | null
+  clientName?: string | null
+}) {
+  return (
+    <>
+      <SectionCard title="Logement">
+        <InfoList columns={2}>
+          <InfoRow label="Situation">{situation}</InfoRow>
+          <InfoRow label="Type">
+            {housing ? HOUSING_TYPE_LABELS[housing.type] : undefined}
+          </InfoRow>
+          <InfoRow label="Numéro">{housing?.number}</InfoRow>
+          <InfoRow label="Pièces">
+            {housing ? String(housing.rooms) : undefined}
+          </InfoRow>
+          <InfoRow label="Adresse">{housing?.location}</InfoRow>
+          {housing?.surfaceArea != null && (
+            <InfoRow label="Surface">{`${housing.surfaceArea} m²`}</InfoRow>
+          )}
+        </InfoList>
+      </SectionCard>
+      <SectionCard title="Souscripteur">
+        {company ? (
+          <InfoList columns={2}>
+            <InfoRow label="Société assurée">{company.name}</InfoRow>
+            <InfoRow label="Contact">{clientName}</InfoRow>
+            <InfoRow label="Téléphone">{company.phoneNumber}</InfoRow>
+            <InfoRow label="Email">{company.email}</InfoRow>
+            <InfoRow label="Adresse">{company.address}</InfoRow>
+          </InfoList>
+        ) : (
+          <InfoList>
+            <InfoRow label="Client (assuré)">{clientName}</InfoRow>
+          </InfoList>
+        )}
+      </SectionCard>
+    </>
   )
 }
 
@@ -207,12 +274,14 @@ function RequestedState({ detail }: { detail: AmendmentDetail }) {
           </InfoRow>
         ))}
       </InfoList>
-      <div className="mt-5 border-t pt-4">
-        <p className="mb-1.5 text-[12.5px] text-muted-foreground">
-          Bénéficiaires
-        </p>
-        <BeneficiaryList items={detail.beneficiaries} />
-      </div>
+      {detail.beneficiaries && (
+        <div className="mt-5 border-t pt-4">
+          <p className="mb-1.5 text-[12.5px] text-muted-foreground">
+            Bénéficiaires
+          </p>
+          <BeneficiaryList items={detail.beneficiaries} />
+        </div>
+      )}
     </>
   )
 }
@@ -461,6 +530,18 @@ export function AmendmentDetailContent({
         </div>
 
         <div className="flex flex-col gap-[18px]">
+          {product === 'MRH_STANDARD' && subscription && (
+            <MrhContractCards
+              situation={
+                (amendment.mrh ?? amendment.current.mrh)?.productSnapshot
+                  ?.legalQualityName
+              }
+              housing={subscription.housing}
+              company={subscription.insuredCompany}
+              clientName={amendment.clientName}
+            />
+          )}
+
           <SectionCard title="Contrat">
             <InfoList>
               <InfoRow label="N° de police">{amendment.policyNumber}</InfoRow>
@@ -520,6 +601,11 @@ export function AmendmentDetailContent({
               <InfoRow label="Taxe">{formatFcfa(delta.tax)}</InfoRow>
               <InfoRow label="Total">{formatFcfa(delta.total)}</InfoRow>
             </InfoList>
+            {taxSignNote(delta) && (
+              <p className="mt-3 text-[12.5px] text-muted-foreground">
+                {taxSignNote(delta)}
+              </p>
+            )}
           </SectionCard>
 
           {receipt && (

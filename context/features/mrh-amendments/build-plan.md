@@ -34,8 +34,8 @@
 - AC-6 Parcours IA inchangé (tests existants verts).
 
 ## Steps
-- [ ] **S1.** Types + produit + comparatif MRH + erreurs (`src/lib/amendments.ts`) — AC-1, AC-2, AC-3, AC-5 — verify: tests unitaires
-- [ ] **S2.** Détail : comparatif sans bénéficiaires pour MRH, Logement / Souscripteur, note de taxe — AC-2, AC-3 — verify: tests de route
+- [x] **S1.** Types + produit + comparatif MRH + erreurs (`src/lib/amendments.ts`) — AC-1, AC-2, AC-3, AC-5 — verify: tests unitaires
+- [x] **S2.** Détail : comparatif sans bénéficiaires pour MRH, Logement / Souscripteur, note de taxe — AC-2, AC-3 — verify: tests de route
 - [ ] **S3.** Contrôles + recette (démo si #119 déployée, sinon réponses simulées)
 
 ## Review findings
