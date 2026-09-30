@@ -23,6 +23,7 @@ import {
   MobileCardList,
 } from '#/components/layout/MobileCardList'
 import { TruncatedText } from '#/components/layout/TruncatedText'
+import { SearchableSelect } from '#/components/layout/SearchableSelect'
 import { SegmentedPills } from '#/components/layout/SegmentedPills'
 import {
   ResultCount,
@@ -50,7 +51,14 @@ import {
 import type { GenderFilter, VerificationFilter } from '#/lib/clients'
 import { formatClaimDate, mapClaimError } from '#/lib/claims'
 import { Button } from '#/components/ui/button'
+import {
+  NO_PARTNER,
+  parsePartnerFilter,
+  partnerFilterLabel,
+  partnerOptions,
+} from '#/lib/client-partner'
 import { clientsKeys, getAllClients } from '#/services/clients'
+import { getAllPartners, partnersAllKey } from '#/services/partners'
 
 const searchSchema = z.object({
   q: z.string().optional().catch(undefined),
@@ -59,6 +67,12 @@ const searchSchema = z.object({
     .optional()
     .catch(undefined),
   gender: z.enum(['all', 'HOMME', 'FEMME']).optional().catch(undefined),
+  /** `GET /clients?partnerId=` : un id de partenaire, ou `none` (sans partenaire). */
+  partner: z
+    .unknown()
+    .transform(parsePartnerFilter)
+    .optional()
+    .catch(undefined),
   page: z.coerce.number().int().min(0).catch(0),
   size: z.coerce.number().int().min(1).max(100).catch(20),
   sort: z
@@ -78,15 +92,25 @@ export function ClientsPage() {
   const query = search.q ?? ''
   const verification: VerificationFilter = search.verification ?? 'all'
   const gender: GenderFilter = search.gender ?? 'all'
+  const partner = search.partner ?? null
 
-  // The API has no text search / verification / gender filter: every client
-  // is loaded (sorted server-side) and filtered + paginated here, so the
-  // counters and the search always cover the whole base.
+  // The API filters by partner only: every client of that filter is loaded
+  // (sorted server-side), then searched, filtered and paginated here, so the
+  // counters and the search always cover the whole filtered base.
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: clientsKeys.everyone(search.sort),
-    queryFn: () => getAllClients(search.sort),
+    queryKey: clientsKeys.everyone(search.sort, partner),
+    queryFn: () => getAllClients(search.sort, partner),
     retry: false,
   })
+  const partnersQuery = useQuery({
+    queryKey: partnersAllKey,
+    queryFn: getAllPartners,
+    retry: false,
+  })
+  const partnerLabel =
+    partner === null
+      ? ''
+      : ` · ${partnerFilterLabel(partner, partnersQuery.data?.items)}`
 
   const clients = useMemo(() => data?.items ?? [], [data])
   const stats = useMemo(() => computeClientStats(clients), [clients])
@@ -101,7 +125,10 @@ export function ClientsPage() {
     ? Math.round((stats.phoneVerified / stats.total) * 100)
     : 0
   const filtering =
-    query.trim() !== '' || verification !== 'all' || gender !== 'all'
+    query.trim() !== '' ||
+    verification !== 'all' ||
+    gender !== 'all' ||
+    partner !== null
   const forbidden = !!error && mapClaimError(error).kind === 'forbidden'
 
   const setPage = (next: number) =>
@@ -165,6 +192,27 @@ export function ClientsPage() {
         }
         filters={
           <>
+            <SearchableSelect
+              label="Partenaire"
+              value={partner === null ? '' : String(partner)}
+              onChange={(value) =>
+                patch({
+                  partner: value === '' ? undefined : parsePartnerFilter(value),
+                })
+              }
+              allLabel="Tous les partenaires"
+              options={[
+                { value: NO_PARTNER, label: 'Sans partenaire' },
+                ...partnerOptions(partnersQuery.data?.items ?? []),
+              ]}
+              placeholder="Rechercher un partenaire…"
+              loading={partnersQuery.isLoading}
+              selectedLabel={
+                typeof partner === 'number'
+                  ? `Partenaire #${partner}`
+                  : undefined
+              }
+            />
             <SegmentedPills
               label="Vérification du téléphone"
               value={verification}
@@ -225,7 +273,7 @@ export function ClientsPage() {
       >
         {isLoading
           ? 'Chargement…'
-          : `${filtered.length} client${filtered.length > 1 ? 's' : ''}${filtering ? ` sur ${clients.length}` : ''}`}
+          : `${filtered.length} client${filtered.length > 1 ? 's' : ''}${filtered.length !== clients.length ? ` sur ${clients.length}` : ''}${partnerLabel}`}
       </ResultCount>
 
       <DataTableCard

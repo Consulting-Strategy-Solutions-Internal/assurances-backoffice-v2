@@ -1,4 +1,6 @@
 import { api } from '#/lib/api'
+import { fetchAllPages } from '#/lib/fetch-all-pages'
+import type { AllPages } from '#/lib/fetch-all-pages'
 import type { PageResponse } from '#/services/users'
 
 export interface PartnerResponse {
@@ -57,4 +59,13 @@ export async function updatePartner(
 
 export async function deletePartner(id: number): Promise<void> {
   await api.delete(`/partners/${id}`)
+}
+
+/** Same cache entry as the partners list page: the whole network, newest first. */
+export const partnersAllKey = ['partners', 'all-pages'] as const
+
+export function getAllPartners(): Promise<AllPages<PartnerResponse>> {
+  return fetchAllPages((page, size) =>
+    getPartners(page, size, 'createdAt,desc'),
+  )
 }

@@ -1,6 +1,6 @@
 # Build plan — Cloisonnement des clients par partenaire (admin)
 
-- **Status:** in-progress
+- **Status:** done
 - **Created:** 2026-09-30 · **Updated:** 2026-09-30
 - **PR:** —
 - **Branch:** `feat/client-isolation` · **Worktree:** `.claude/worktrees/client-isolation` · **Ports:** app 3005
@@ -34,6 +34,6 @@
 
 ## Steps
 
-- [ ] **S1.** Services (`getClients`/`getAllClients` + `partnerId`, clés, `reassignClientPartner`) + logique pure `src/lib/client-partner.ts` (filtre, corps, erreurs) — verify: tests unitaires
-- [ ] **S2.** Liste `/clients` : sélecteur Partenaire, `?partner`, en-tête — AC-1, AC-2 — verify: test de route
-- [ ] **S3.** Fiche client : `ChangePartnerDialog` — AC-3, AC-4 — verify: tests composant
+- [x] **S1.** Services (`getClients`/`getAllClients` + `partnerId`, clés, `reassignClientPartner`) + logique pure `src/lib/client-partner.ts` (filtre, corps, erreurs) — verify: tests unitaires
+- [x] **S2.** Liste `/clients` : sélecteur Partenaire, `?partner`, en-tête — AC-1, AC-2 — verify: test de route
+- [x] **S3.** Fiche client : `ChangePartnerDialog` — AC-3, AC-4 — verify: tests composant
