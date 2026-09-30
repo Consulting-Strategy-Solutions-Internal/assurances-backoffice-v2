@@ -21,7 +21,7 @@
 ## Décisions
 
 - **D-1** Navigation : Produits › Multirisque Habitation › MRH Standard, route `/produits-mrh/mrh-standard/{situations,garanties,tarifs,accessoires}`, même gabarit à onglets qu'IA Standard. _(décidé)_
-- **D-2** Accessoires : un écran partagé paramétré par produit, dans IA Standard › Accessoires et MRH Standard › Accessoires ; le formulaire propose le produit (IA_STANDARD / MRH_STANDARD, pré-rempli sur celui de l'écran). _(décidé)_
+- **D-2** Accessoires : un écran partagé paramétré par produit, dans IA Standard › Accessoires et MRH Standard › Accessoires ; le formulaire propose le produit (IA*STANDARD / MRH_STANDARD, pré-rempli sur celui de l'écran). *(décidé)\_
 - **D-3** Modification par fenêtre (`FormDialog`) par ligne ; codes affichés comme repères, jamais modifiables. _(décidé)_
 - **D-4** Après chaque `PUT` : `GET /{id}`, la valeur relue est écrite dans le cache (`setQueryData`) puis la liste invalidée ; l'écran affiche la valeur renvoyée par l'API (L-004). _(décidé)_
 - **D-5** Corps envoyés — le backend l'emporte sur le brief quand ils divergent _(décidé)_ :
@@ -30,7 +30,9 @@
   - Garantie : `{ name, taxRate }`, obligatoires.
   - Ligne garantie × situation : **tous** les champs du mode (POURCENTAGE → `rate` ; FORFAIT → `flatAmount` ; CAPITAL → `rate` + `capitalShare`), les autres absents ; `mandatory` seulement s'il change (le backend exige les champs du mode à chaque PUT).
 - **D-6** Erreurs 400 : `errors.<champ>` → message FR sous le champ (`NOT_ALLOWED_FOR_LEGAL_QUALITY`, `REQUIRED_FOR_LEGAL_QUALITY`, `REQUIRED_FOR_PREMIUM_TYPE`, `NOT_ALLOWED_FOR_PREMIUM_TYPE`, messages Jakarta) ; clé hors formulaire → bandeau.
-- **D-7** Taux de base : on n'affiche que les champs non nuls de la situation (NON_OCCUPANT_OWNER : bâtiment seul ; TENANT : locatif + multiplicateur + contenu ; autres : bâtiment + contenu).
+- **D-7** Taux de base : on affiche les champs non nuls de la situation, plus ceux que sa base de calcul exige même vides en base (LOCATIVE : locatif + multiplicateur ; sinon : bâtiment) — NON_OCCUPANT_OWNER : bâtiment seul ; TENANT : locatif + multiplicateur + contenu ; autres : bâtiment + contenu. Un refus sur un champ non affiché part en bandeau avec son libellé.
+- **D-8** `minimumContentsValue` (« Valeur minimale du contenu (FCFA) ») : affiché et modifiable seulement s'il est non nul, facultatif, avec la mention « sans effet sur la prime ». _(défaut, revue R1)_
+- **D-9** Textes (nom, description, libellé) limités à 255 caractères côté écran (colonnes `varchar(255)`, sans `@Size` côté API). Si la relecture échoue après un `PUT` réussi, on affiche la réponse du `PUT` avec un avertissement. _(revue R1)_
 
 ## Critères d'acceptation
 
@@ -43,3 +45,5 @@
 - **AC-7** Libellés en français, noms de champs API inchangés.
 
 ## Revisions
+
+- 2026-09-30 — revue R1 : D-7 révisée (taux exigés affichés même vides), D-8 et D-9 ajoutées.
