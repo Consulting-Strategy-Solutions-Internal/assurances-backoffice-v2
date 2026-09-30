@@ -2,6 +2,7 @@
 
 Branche `feat/responsive` (worktree `.claude/worktrees/feat-responsive`), base `main` f9d0c9a. Demande utilisateur (2026-09-30) : « rendre tout le site responsive ».
 Source : `context/features/responsive/audit.md` (RSP-1…RSP-31). Conventions : `context/project/ui-registry.md`, `context/project/lessons.md`.
+**PR:** https://github.com/Consulting-Strategy-Solutions-Internal/assurances-backoffice-v2/pull/6
 **Status:** in-progress (review round 2 fixes applied, awaiting ship)
 
 ## Décisions (prises pour l'exécution, à valider au bilan)
