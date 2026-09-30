@@ -14,6 +14,7 @@ import type { ReactNode } from 'react'
 import type * as SubscriptionsModule from '#/services/subscriptions'
 import type { AmendmentDetail } from '#/lib/amendments'
 import {
+  appliedPaid,
   appliedUnchanged,
   asAmendment,
   awaitingPayment,
@@ -34,6 +35,7 @@ const mocks = vi.hoisted(() => {
     validateAmendment: vi.fn(),
     deleteAmendment: vi.fn(),
     downloadPolicyDocument: vi.fn(),
+    downloadReceiptDocument: vi.fn(),
     getSubscription: vi.fn(),
     toastError: vi.fn(),
     toastSuccess: vi.fn(),
@@ -65,6 +67,7 @@ vi.mock('#/services/amendments', () => ({
   validateAmendment: mocks.validateAmendment,
   deleteAmendment: mocks.deleteAmendment,
   downloadPolicyDocument: mocks.downloadPolicyDocument,
+  downloadReceiptDocument: mocks.downloadReceiptDocument,
 }))
 
 vi.mock('#/services/subscriptions', async (importActual) => ({
@@ -81,6 +84,12 @@ vi.mock('#/components/dashboard/use-permissions', () => ({
     canKnown: (code: string) => mocks.permissions?.has(code) === true,
   }),
 }))
+
+/** Erreur de téléchargement telle que les services la relèvent : corps JSON déjà lu. */
+const blobError = (status: number, message: string) => ({
+  isAxiosError: true,
+  response: { status, data: { status, message } },
+})
 
 function renderDetail(detail: AmendmentDetail) {
   mocks.getAmendment.mockResolvedValue(detail)
@@ -332,6 +341,16 @@ describe('AmendmentDetailContent — content', () => {
     expect(links).toHaveLength(2)
   })
 
+  it('shows « Client supprimé » greyed in the header and the Contrat card when clientName is null', async () => {
+    renderDetail({ ...draftUnchanged, clientName: null })
+    await screen.findByRole('heading', { name: 'IA-2026-000002' })
+    const labels = screen.getAllByText('Client supprimé')
+    expect(labels).toHaveLength(2)
+    for (const label of labels)
+      expect(label.className).toContain('text-muted-foreground')
+    expect(screen.queryByText('Client inconnu')).toBeNull()
+  })
+
   it('shows the client name without a link when the contract cannot be read', async () => {
     mocks.getSubscription.mockRejectedValue(new Error('403'))
     renderDetail(draftUnchanged)
@@ -388,10 +407,201 @@ describe('AmendmentDetailContent — PDF', () => {
     expect(screen.queryByRole('button', { name: 'Réessayer' })).toBeNull()
   })
 
+  it('shows a retry message on 404 « policy document not issued yet » (read from the body)', async () => {
+    mocks.downloadPolicyDocument.mockRejectedValue(
+      blobError(404, 'The policy document is not issued yet'),
+    )
+    renderDetail(appliedUnchanged)
+    fireEvent.click(await screen.findByRole('button', { name: 'Avenant n° 1' }))
+
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      'pas encore disponible',
+    )
+    expect(screen.getByRole('button', { name: 'Réessayer' })).toBeTruthy()
+  })
+
+  it('says « Contrat introuvable » without retry on 404 « Subscription not found »', async () => {
+    mocks.downloadPolicyDocument.mockRejectedValue(
+      blobError(404, 'Subscription not found with id: 402'),
+    )
+    renderDetail(appliedUnchanged)
+    fireEvent.click(await screen.findByRole('button', { name: 'Avenant n° 1' }))
+
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      'Contrat introuvable',
+    )
+    expect(screen.queryByRole('button', { name: 'Réessayer' })).toBeNull()
+  })
+
+  it('shows a generic message without retry on 400 for the receipt PDF', async () => {
+    mocks.downloadReceiptDocument.mockRejectedValue(
+      blobError(400, 'Bad request'),
+    )
+    renderDetail({
+      ...draftRefund,
+      status: 'APPLIED',
+      amendmentNumber: 2,
+      receipt: toRefundReceipt,
+    })
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Télécharger la quittance' }),
+    )
+    expect((await screen.findByRole('alert')).textContent).toContain('invalide')
+    expect(screen.queryByRole('button', { name: 'Réessayer' })).toBeNull()
+  })
+
   it('has no PDF link before an amendment number is assigned', async () => {
     renderDetail(draftUnchanged)
     await screen.findByRole('heading', { name: 'IA-2026-000002' })
     expect(screen.queryByText('Document')).toBeNull()
+  })
+})
+
+describe('AmendmentDetailContent — receipt PDF', () => {
+  const stubDownload = () => {
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => undefined)
+    vi.stubGlobal('URL', {
+      createObjectURL: vi.fn(() => 'blob:quittance'),
+      revokeObjectURL: vi.fn(),
+    })
+    return click
+  }
+  const receiptButton = () =>
+    screen.queryByRole('button', { name: 'Télécharger la quittance' })
+
+  it('REFUND validated: the TO_REFUND receipt is downloadable with the right ids', async () => {
+    const click = stubDownload()
+    mocks.downloadReceiptDocument.mockResolvedValue(new Blob(['pdf']))
+    renderDetail(draftRefund)
+    fireEvent.click(await screen.findByRole('button', { name: 'Valider' }))
+    const dialog = await screen.findByRole('alertdialog')
+    const applied: AmendmentDetail = {
+      ...draftRefund,
+      status: 'APPLIED',
+      amendmentNumber: 2,
+      receipt: toRefundReceipt,
+    }
+    mocks.validateAmendment.mockResolvedValue(asAmendment(applied))
+    mocks.getAmendment.mockResolvedValue(applied)
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Valider' }))
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Télécharger la quittance' }),
+    )
+
+    await waitFor(() => expect(click).toHaveBeenCalled())
+    expect(mocks.downloadReceiptDocument).toHaveBeenCalledWith(
+      402,
+      'Q-2026-000011',
+    )
+    click.mockRestore()
+  })
+
+  it('INCREASE: no button while the call is unpaid, the button appears once paid', async () => {
+    const click = stubDownload()
+    mocks.downloadReceiptDocument.mockResolvedValue(new Blob(['pdf']))
+    mocks.getAmendment.mockResolvedValue(awaitingPayment)
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+    render(
+      <QueryClientProvider client={queryClient}>
+        <AmendmentDetailContent amendmentId={1} />
+      </QueryClientProvider>,
+    )
+
+    expect(
+      await screen.findByText('PDF disponible après le paiement'),
+    ).toBeTruthy()
+    expect(receiptButton()).toBeNull()
+
+    // Le client paie : le rechargement renvoie PAID.
+    mocks.getAmendment.mockResolvedValue(appliedPaid)
+    await queryClient.invalidateQueries({ queryKey: ['amendments'] })
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Télécharger la quittance' }),
+    )
+    await waitFor(() =>
+      expect(mocks.downloadReceiptDocument).toHaveBeenCalledWith(
+        402,
+        'Q-2026-000010',
+      ),
+    )
+    expect(screen.queryByText('PDF disponible après le paiement')).toBeNull()
+    click.mockRestore()
+  })
+
+  it.each(['CANCELLED', 'PAID_NOT_APPLIED'] as const)(
+    '%s: no download button, says there is no PDF',
+    async (status) => {
+      renderDetail({
+        ...awaitingPayment,
+        status: 'DELETED',
+        receipt: { ...awaitingPayment.receipt!, status },
+      })
+      expect(
+        await screen.findByText('Pas de PDF pour cette quittance'),
+      ).toBeTruthy()
+      expect(receiptButton()).toBeNull()
+    },
+  )
+
+  it.each([
+    [
+      404,
+      'The receipt document is not issued yet',
+      'Quittance en cours de production',
+      true,
+    ],
+    [404, 'Receipt not found: Q-2026-000011', 'Quittance introuvable', false],
+    [404, 'Subscription not found with id: 402', 'Contrat introuvable', false],
+    [403, 'Forbidden', 'Accès refusé', false],
+    [502, 'Bad gateway', 'Service de documents indisponible', true],
+  ])(
+    'error %i « %s » shows « %s » (retry: %s)',
+    async (status, message, expected, retry) => {
+      mocks.downloadReceiptDocument.mockRejectedValue(
+        blobError(status, message),
+      )
+      renderDetail({
+        ...draftRefund,
+        status: 'APPLIED',
+        amendmentNumber: 2,
+        receipt: toRefundReceipt,
+      })
+      fireEvent.click(
+        await screen.findByRole('button', { name: 'Télécharger la quittance' }),
+      )
+
+      expect((await screen.findByRole('alert')).textContent).toContain(expected)
+      expect(!!screen.queryByRole('button', { name: 'Réessayer' })).toBe(retry)
+    },
+  )
+
+  it('retries the download from the « Réessayer » button', async () => {
+    const click = stubDownload()
+    mocks.downloadReceiptDocument
+      .mockRejectedValueOnce(
+        blobError(404, 'The receipt document is not issued yet'),
+      )
+      .mockResolvedValueOnce(new Blob(['pdf']))
+    renderDetail({
+      ...draftRefund,
+      status: 'APPLIED',
+      amendmentNumber: 2,
+      receipt: toRefundReceipt,
+    })
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Télécharger la quittance' }),
+    )
+    fireEvent.click(await screen.findByRole('button', { name: 'Réessayer' }))
+
+    await waitFor(() => expect(click).toHaveBeenCalled())
+    expect(mocks.downloadReceiptDocument).toHaveBeenCalledTimes(2)
+    click.mockRestore()
   })
 })
 

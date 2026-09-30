@@ -1,6 +1,7 @@
 import type {
   Amendment,
   AmendmentDetail,
+  AmendmentListItem,
   AmendmentReceipt,
   RiskClassSnapshot,
 } from '#/lib/amendments'
@@ -220,4 +221,30 @@ export function asAmendment(detail: AmendmentDetail): Amendment {
   void clientName
   void current
   return amendment
+}
+
+/** Ligne de `GET /subscription-amendments` : champs de `Amendment` + n° de police et client. */
+export function asListItem(
+  detail: AmendmentDetail,
+  overrides: Partial<AmendmentListItem> = {},
+): AmendmentListItem {
+  const { current, ...rest } = detail
+  void current
+  return {
+    ...rest,
+    policyNumber: detail.policyNumber ?? 'IA-2026-000002',
+    clientName: detail.clientName ?? null,
+    ...overrides,
+  }
+}
+
+export const paidReceipt: AmendmentReceipt = { ...toPayReceipt, status: 'PAID' }
+
+/** Hausse payée par le client : le contrat a changé, quittance PAID. */
+export const appliedPaid: AmendmentDetail = {
+  ...awaitingPayment,
+  status: 'APPLIED',
+  amendmentNumber: 3,
+  appliedAt: '2026-09-30T11:00:00',
+  receipt: paidReceipt,
 }

@@ -8,7 +8,10 @@ import {
   canValidate,
   deleteConfirmation,
   mapAmendmentError,
+  isReceiptDownloadable,
   mapPolicyDocumentError,
+  mapReceiptDocumentError,
+  receiptPdfNote,
   sameBeneficiaries,
   showsComparison,
   validateConfirmation,
@@ -273,5 +276,99 @@ describe('mapPolicyDocumentError', () => {
 
   it('does not offer a retry on 403', () => {
     expect(mapPolicyDocumentError(axiosError(403)).retry).toBe(false)
+  })
+})
+
+describe('isReceiptDownloadable', () => {
+  it.each([
+    ['REFUND', 'TO_REFUND', true],
+    ['SUPPLEMENTARY_CALL', 'PAID', true],
+    ['SUPPLEMENTARY_CALL', 'TO_PAY', false],
+    ['SUPPLEMENTARY_CALL', 'CANCELLED', false],
+    ['SUPPLEMENTARY_CALL', 'PAID_NOT_APPLIED', false],
+    ['REFUND', 'CANCELLED', false],
+  ] as const)('%s / %s → %s', (kind, status, expected) => {
+    expect(isReceiptDownloadable({ kind, status })).toBe(expected)
+  })
+
+  it('explains the missing PDF', () => {
+    expect(
+      receiptPdfNote({ kind: 'SUPPLEMENTARY_CALL', status: 'TO_PAY' }),
+    ).toBe('PDF disponible après le paiement')
+    expect(receiptPdfNote({ kind: 'REFUND', status: 'CANCELLED' })).toContain(
+      'Pas de PDF',
+    )
+    expect(receiptPdfNote({ kind: 'REFUND', status: 'TO_REFUND' })).toBeNull()
+  })
+})
+
+describe('mapReceiptDocumentError', () => {
+  const err = (status: number, message?: string) =>
+    axiosError(status, message ? { status, message } : undefined)
+
+  it('reads the 404 message, not only the status', () => {
+    expect(
+      mapReceiptDocumentError(
+        err(404, 'The receipt document is not issued yet'),
+      ),
+    ).toEqual({
+      retry: true,
+      message:
+        'Quittance en cours de production, réessayez dans quelques minutes.',
+    })
+    expect(
+      mapReceiptDocumentError(err(404, 'Receipt not found: Q-2026-000011')),
+    ).toEqual({ retry: false, message: 'Quittance introuvable.' })
+    expect(
+      mapReceiptDocumentError(err(404, 'Subscription not found with id: 402')),
+    ).toEqual({ retry: false, message: 'Contrat introuvable.' })
+  })
+
+  it('maps 403 and 502, and falls back to a generic retryable message', () => {
+    expect(mapReceiptDocumentError(err(403))).toEqual({
+      retry: false,
+      message: 'Accès refusé.',
+    })
+    expect(mapReceiptDocumentError(err(502))).toEqual({
+      retry: true,
+      message: 'Service de documents indisponible, réessayez.',
+    })
+    // 404 sans message connu (ancienne démo : « Resource not found »).
+    expect(
+      mapReceiptDocumentError(err(404, 'Resource not found')),
+    ).toMatchObject({
+      retry: true,
+      message: expect.stringContaining('Impossible'),
+    })
+    expect(mapReceiptDocumentError(new Error('boom')).retry).toBe(true)
+  })
+})
+
+describe('mapPolicyDocumentError by message', () => {
+  it('keeps the « not issued yet » message with retry', () => {
+    const result = mapPolicyDocumentError(
+      axiosError(404, { message: 'The policy document is not issued yet' }),
+    )
+    expect(result.retry).toBe(true)
+    expect(result.message).toContain('pas encore disponible')
+  })
+
+  it('says « Contrat introuvable » without retry for an unknown subscription', () => {
+    expect(
+      mapPolicyDocumentError(
+        axiosError(404, { message: 'Subscription not found with id: 402' }),
+      ),
+    ).toEqual({ retry: false, message: 'Contrat introuvable.' })
+  })
+})
+
+describe('400 on a PDF download', () => {
+  it('gives a generic message without retry (receipt and policy)', () => {
+    const receipt = mapReceiptDocumentError(axiosError(400))
+    expect(receipt.retry).toBe(false)
+    expect(receipt.message).toContain('invalide')
+    const policy = mapPolicyDocumentError(axiosError(400))
+    expect(policy.retry).toBe(false)
+    expect(policy.message).toContain('invalide')
   })
 })

@@ -12,6 +12,7 @@ import {
   DeltaKindBadge,
   ReceiptStatusBadge,
 } from '#/components/amendments/AmendmentBadges'
+import { ClientName } from '#/components/amendments/ClientName'
 import { AmendmentsGate } from '#/components/amendments/AmendmentsGate'
 import { BackLink } from '#/components/layout/BackLink'
 import {
@@ -37,8 +38,11 @@ import {
   canDelete,
   canValidate,
   deleteConfirmation,
+  isReceiptDownloadable,
   mapAmendmentError,
   mapPolicyDocumentError,
+  mapReceiptDocumentError,
+  receiptPdfNote,
   showsComparison,
   validateConfirmation,
   validationOutcome,
@@ -49,6 +53,7 @@ import type {
   AmendmentDetail,
   BeneficiaryComparison,
   ComparisonRow,
+  DocumentError,
 } from '#/lib/amendments'
 import { formatClaimDate } from '#/lib/claims'
 import { cn, formatFcfa } from '#/lib/utils'
@@ -56,6 +61,7 @@ import {
   amendmentsKeys,
   deleteAmendment,
   downloadPolicyDocument,
+  downloadReceiptDocument,
   getAmendment,
   validateAmendment,
 } from '#/services/amendments'
@@ -109,6 +115,15 @@ function StateCard({
       }
     />
   )
+}
+
+function saveBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  link.click()
+  URL.revokeObjectURL(url)
 }
 
 function BeneficiaryList({ items }: { items: AmendmentBeneficiary[] }) {
@@ -221,11 +236,10 @@ export function AmendmentDetailContent({
   // Droit inconnu = on laisse le serveur trancher : le 403 est traduit (L-005).
   const { can } = usePermissions()
   const [confirm, setConfirm] = useState<'validate' | 'delete' | null>(null)
-  const [pdfError, setPdfError] = useState<{
-    message: string
-    retry: boolean
-  } | null>(null)
+  const [pdfError, setPdfError] = useState<DocumentError | null>(null)
   const [pdfPending, setPdfPending] = useState(false)
+  const [receiptError, setReceiptError] = useState<DocumentError | null>(null)
+  const [receiptPending, setReceiptPending] = useState(false)
   const {
     data: amendment,
     isLoading,
@@ -286,16 +300,25 @@ export function AmendmentDetailContent({
     setPdfError(null)
     try {
       const blob = await downloadPolicyDocument(subscriptionId, number)
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `Avenant ${number}.pdf`
-      link.click()
-      URL.revokeObjectURL(url)
+      saveBlob(blob, `Avenant ${number}.pdf`)
     } catch (downloadError) {
       setPdfError(mapPolicyDocumentError(downloadError))
     } finally {
       setPdfPending(false)
+    }
+  }
+
+  const downloadReceipt = async (receiptNumber: string) => {
+    if (subscriptionId === undefined) return
+    setReceiptPending(true)
+    setReceiptError(null)
+    try {
+      const blob = await downloadReceiptDocument(subscriptionId, receiptNumber)
+      saveBlob(blob, `Quittance ${receiptNumber}.pdf`)
+    } catch (downloadError) {
+      setReceiptError(mapReceiptDocumentError(downloadError))
+    } finally {
+      setReceiptPending(false)
     }
   }
 
@@ -364,7 +387,7 @@ export function AmendmentDetailContent({
                 {amendment.clientName}
               </Link>
             ) : (
-              (amendment.clientName ?? 'Client inconnu')
+              <ClientName name={amendment.clientName} />
             )}
             {amendment.amendmentNumber != null &&
               ` · Avenant n° ${amendment.amendmentNumber}`}{' '}
@@ -461,7 +484,7 @@ export function AmendmentDetailContent({
                     {amendment.clientName}
                   </Link>
                 ) : (
-                  amendment.clientName
+                  <ClientName name={amendment.clientName} />
                 )}
               </InfoRow>
               <InfoRow label="Créée le">
@@ -532,6 +555,36 @@ export function AmendmentDetailContent({
                   {formatClaimDate(receipt.expiryDate)}
                 </InfoRow>
               </InfoList>
+              <div className="mt-4">
+                {isReceiptDownloadable(receipt) ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      className="rounded-[11px]"
+                      disabled={receiptPending}
+                      onClick={() =>
+                        void downloadReceipt(receipt.receiptNumber)
+                      }
+                    >
+                      <Download />
+                      {receiptPending
+                        ? 'Téléchargement…'
+                        : receiptError?.retry
+                          ? 'Réessayer'
+                          : 'Télécharger la quittance'}
+                    </Button>
+                    {receiptError && (
+                      <p role="alert" className="mt-2 text-sm text-destructive">
+                        {receiptError.message}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-[13px] text-muted-foreground">
+                    {receiptPdfNote(receipt)}
+                  </p>
+                )}
+              </div>
             </SectionCard>
           )}
 

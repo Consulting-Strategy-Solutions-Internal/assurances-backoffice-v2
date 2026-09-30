@@ -11,12 +11,14 @@ import {
   within,
 } from '@testing-library/react'
 import type { ReactNode } from 'react'
-import type { Amendment } from '#/lib/amendments'
+import type { AmendmentListItem } from '#/lib/amendments'
 import {
   appliedUnchanged,
-  asAmendment,
+  appliedPaid,
+  asListItem,
   awaitingPayment,
   draftRefund,
+  toRefundReceipt,
 } from '#/lib/amendments.fixtures'
 import type { PageResponse } from '#/lib/page'
 import { formatFcfa } from '#/lib/utils'
@@ -80,9 +82,9 @@ vi.mock('#/components/claims/FilterSelect', () => ({
 }))
 
 function page(
-  content: Amendment[],
-  overrides: Partial<PageResponse<Amendment>> = {},
-): PageResponse<Amendment> {
+  content: AmendmentListItem[],
+  overrides: Partial<PageResponse<AmendmentListItem>> = {},
+): PageResponse<AmendmentListItem> {
   return {
     content,
     page: 0,
@@ -229,13 +231,20 @@ describe('AmendmentsListContent', () => {
     mocks.search = { ...mocks.search, status: 'AWAITING_PAYMENT' }
     mocks.getAmendments.mockResolvedValue(
       page([
-        asAmendment(awaitingPayment),
-        { ...asAmendment(draftRefund), id: 2, subscriptionId: 500 },
+        asListItem(awaitingPayment),
+        {
+          ...asListItem(draftRefund),
+          id: 2,
+          subscriptionId: 500,
+          policyNumber: 'IA-2026-000777',
+          clientName: 'TRAORE Awa',
+        },
       ]),
     )
     renderList()
 
-    expect(await inTable().findByText('402')).toBeTruthy()
+    expect(await inTable().findByText('IA-2026-000002')).toBeTruthy()
+    expect(inTable().getByText('IA-2026-000777')).toBeTruthy()
     expect(inTable().getAllByText('IA Standard').length).toBe(2)
     expect(inTable().getByText('Hausse')).toBeTruthy()
     expect(inTable().getByText(shown(12345))).toBeTruthy()
@@ -245,11 +254,84 @@ describe('AmendmentsListContent', () => {
     expect(screen.getByText('2 modifications')).toBeTruthy()
   })
 
+  it('puts the right policy number and client on each row', async () => {
+    mocks.getAmendments.mockResolvedValue(
+      page([
+        asListItem(awaitingPayment),
+        {
+          ...asListItem(draftRefund),
+          id: 2,
+          subscriptionId: 500,
+          policyNumber: 'IA-2026-000777',
+          clientName: 'TRAORE Awa',
+        },
+      ]),
+    )
+    renderList()
+
+    const rowOf = async (policy: string) =>
+      within((await inTable().findByText(policy)).closest('tr') as HTMLElement)
+    const first = await rowOf('IA-2026-000002')
+    const second = await rowOf('IA-2026-000777')
+    expect(first.getByText('KONATÉ Yann')).toBeTruthy()
+    expect(first.queryByText('TRAORE Awa')).toBeNull()
+    expect(second.getByText('TRAORE Awa')).toBeTruthy()
+    expect(second.queryByText('KONATÉ Yann')).toBeNull()
+    // Plus de colonne « Contrat n° » ni d'id technique.
+    expect(inTable().queryByText('Contrat n°')).toBeNull()
+    expect(inTable().queryByText('500')).toBeNull()
+    expect(inTable().getByText('N° de police')).toBeTruthy()
+    expect(inTable().getByText('Client')).toBeTruthy()
+  })
+
+  it('shows « Client supprimé » greyed when the client account is gone', async () => {
+    mocks.getAmendments.mockResolvedValue(
+      page([asListItem(draftRefund, { clientName: null })]),
+    )
+    renderList()
+
+    const label = await inTable().findByText('Client supprimé')
+    expect(label.className).toContain('text-muted-foreground')
+  })
+
+  it('shows the policy number and client in the mobile card too', async () => {
+    mocks.getAmendments.mockResolvedValue(
+      page([asListItem(draftRefund, { clientName: null })]),
+    )
+    renderList()
+
+    await inTable().findByText('Client supprimé')
+    // Une seule occurrence hors du tableau : la carte mobile.
+    expect(screen.getAllByText('IA-2026-000002').length).toBe(2)
+    expect(screen.getAllByText('Client supprimé').length).toBe(2)
+  })
+
+  it('marks rows whose receipt PDF can be downloaded', async () => {
+    mocks.getAmendments.mockResolvedValue(
+      page([
+        asListItem(appliedPaid),
+        {
+          ...asListItem(draftRefund),
+          id: 2,
+          status: 'APPLIED',
+          receipt: toRefundReceipt,
+        },
+        { ...asListItem(awaitingPayment), id: 3 },
+      ]),
+    )
+    renderList()
+
+    await inTable().findByText('Payée')
+    expect(
+      inTable().getAllByRole('img', { name: /PDF de la quittance/ }),
+    ).toHaveLength(2)
+  })
+
   it('shows PAID_NOT_APPLIED receipts with the danger tone', async () => {
     mocks.getAmendments.mockResolvedValue(
       page([
         {
-          ...asAmendment(appliedUnchanged),
+          ...asListItem(appliedUnchanged),
           status: 'DELETED',
           receipt: { ...awaitingPayment.receipt!, status: 'PAID_NOT_APPLIED' },
         },
@@ -262,10 +344,12 @@ describe('AmendmentsListContent', () => {
   })
 
   it('opens the detail on row activation', async () => {
-    mocks.getAmendments.mockResolvedValue(page([asAmendment(appliedUnchanged)]))
+    mocks.getAmendments.mockResolvedValue(page([asListItem(appliedUnchanged)]))
     renderList()
 
-    const row = (await inTable().findByText('402')).closest('tr') as HTMLElement
+    const row = (await inTable().findByText('IA-2026-000002')).closest(
+      'tr',
+    ) as HTMLElement
     fireEvent.click(row)
     expect(mocks.navigate).toHaveBeenCalledWith({
       to: '/contrats/modifications/$amendmentId',
@@ -282,7 +366,7 @@ describe('AmendmentsListContent', () => {
 
   it('paginates server-side through the URL', async () => {
     mocks.getAmendments.mockResolvedValue(
-      page([asAmendment(appliedUnchanged)], {
+      page([asListItem(appliedUnchanged)], {
         totalElements: 45,
         totalPages: 3,
         last: false,

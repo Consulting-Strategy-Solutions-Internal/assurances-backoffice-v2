@@ -1,7 +1,8 @@
-import { api } from '#/lib/api'
+import { api, readBlobErrorBody } from '#/lib/api'
 import type {
   Amendment,
   AmendmentDetail,
+  AmendmentListItem,
   AmendmentProduct,
   AmendmentStatus,
 } from '#/lib/amendments'
@@ -24,8 +25,8 @@ export const amendmentsKeys = {
 
 export async function getAmendments(
   filters: AmendmentFilters = {},
-): Promise<PageResponse<Amendment>> {
-  const response = await api.get<PageResponse<Amendment>>(
+): Promise<PageResponse<AmendmentListItem>> {
+  const response = await api.get<PageResponse<AmendmentListItem>>(
     '/subscription-amendments',
     {
       params: {
@@ -65,9 +66,29 @@ export async function downloadPolicyDocument(
   subscriptionId: number,
   amendment: number,
 ): Promise<Blob> {
-  const response = await api.get<Blob>(
-    `/subscriptions/${subscriptionId}/policy-document`,
-    { params: { amendment }, responseType: 'blob' },
-  )
-  return response.data
+  try {
+    const response = await api.get<Blob>(
+      `/subscriptions/${subscriptionId}/policy-document`,
+      { params: { amendment }, responseType: 'blob' },
+    )
+    return response.data
+  } catch (error) {
+    throw await readBlobErrorBody(error)
+  }
+}
+
+/** PDF d'une quittance, par le numéro imprimé dessus (`receipt.receiptNumber`). */
+export async function downloadReceiptDocument(
+  subscriptionId: number,
+  receiptNumber: string,
+): Promise<Blob> {
+  try {
+    const response = await api.get<Blob>(
+      `/subscriptions/${subscriptionId}/receipts/${encodeURIComponent(receiptNumber)}/document`,
+      { responseType: 'blob' },
+    )
+    return response.data
+  } catch (error) {
+    throw await readBlobErrorBody(error)
+  }
 }

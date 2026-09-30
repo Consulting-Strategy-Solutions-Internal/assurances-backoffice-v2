@@ -1,7 +1,7 @@
 import { pageHead } from '#/lib/page-title'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
-import { FilePenLine } from 'lucide-react'
+import { FilePenLine, FileText } from 'lucide-react'
 import { Button } from '#/components/ui/button'
 import { Pagination } from '#/components/ui/Pagination'
 import { PageHeader } from '#/components/dashboard/PageHeader'
@@ -9,6 +9,7 @@ import {
   DeltaKindBadge,
   ReceiptStatusBadge,
 } from '#/components/amendments/AmendmentBadges'
+import { ClientName } from '#/components/amendments/ClientName'
 import { AmendmentsGate } from '#/components/amendments/AmendmentsGate'
 import { FilterSelect } from '#/components/claims/FilterSelect'
 import {
@@ -35,8 +36,9 @@ import {
   AMENDMENT_PRODUCT_LABELS,
   AMENDMENT_STATUSES,
   amendmentProduct,
+  isReceiptDownloadable,
 } from '#/lib/amendments'
-import type { Amendment, AmendmentListSearch } from '#/lib/amendments'
+import type { AmendmentListItem, AmendmentListSearch } from '#/lib/amendments'
 import { formatClaimDate } from '#/lib/claims'
 import { formatFcfa } from '#/lib/utils'
 import { amendmentsKeys, getAmendments } from '#/services/amendments'
@@ -47,7 +49,7 @@ export const Route = createFileRoute('/_auth/contrats/modifications')({
   component: AmendmentsRoute,
 })
 
-const COLUMNS = 7
+const COLUMNS = 8
 
 const SORT_OPTIONS: Array<{
   value: AmendmentListSearch['sort']
@@ -72,7 +74,7 @@ const STATUS_OPTIONS = AMENDMENT_STATUSES.map((status) => ({
   label: TAB_LABELS[status],
 }))
 
-function productLabel(amendment: Amendment) {
+function productLabel(amendment: AmendmentListItem) {
   const product = amendmentProduct(amendment)
   return product ? AMENDMENT_PRODUCT_LABELS[product] : '—'
 }
@@ -104,7 +106,7 @@ export function AmendmentsListContent() {
     navigate({
       search: (previous) => ({ ...previous, product: undefined, page: 0 }),
     })
-  const open = (amendment: Amendment) =>
+  const open = (amendment: AmendmentListItem) =>
     void navigate({
       to: '/contrats/modifications/$amendmentId',
       params: { amendmentId: String(amendment.id) },
@@ -218,8 +220,13 @@ export function AmendmentsListContent() {
             empty={{ icon: FilePenLine, title: emptyTitle, action: resetLink }}
             renderCard={(amendment) => (
               <MobileCardContent
-                title={`Contrat n° ${amendment.subscriptionId}`}
-                subtitle={productLabel(amendment)}
+                title={amendment.policyNumber}
+                subtitle={
+                  <>
+                    <ClientName name={amendment.clientName} /> ·{' '}
+                    {productLabel(amendment)}
+                  </>
+                }
                 status={<DeltaKindBadge kind={amendment.delta.kind} />}
                 value={formatFcfa(amendment.delta.total)}
                 meta={
@@ -243,7 +250,8 @@ export function AmendmentsListContent() {
               <DataTableHead first sticky="left">
                 Créée le
               </DataTableHead>
-              <DataTableHead>Contrat n°</DataTableHead>
+              <DataTableHead>N° de police</DataTableHead>
+              <DataTableHead>Client</DataTableHead>
               <DataTableHead>Produit</DataTableHead>
               <DataTableHead>Écart</DataTableHead>
               <DataTableHead className="text-right">Montant</DataTableHead>
@@ -253,7 +261,10 @@ export function AmendmentsListContent() {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableSkeletonRows columns={[28, 20, 24, 20, 24, 28]} trailing />
+              <TableSkeletonRows
+                columns={[28, 24, 28, 24, 20, 24, 28]}
+                trailing
+              />
             ) : error ? (
               <TableErrorState
                 colSpan={COLUMNS}
@@ -287,7 +298,10 @@ export function AmendmentsListContent() {
                     </div>
                   </DataTableCell>
                   <DataTableCell className="font-semibold whitespace-nowrap tabular-nums">
-                    {amendment.subscriptionId}
+                    {amendment.policyNumber}
+                  </DataTableCell>
+                  <DataTableCell>
+                    <ClientName name={amendment.clientName} />
                   </DataTableCell>
                   <DataTableCell className="whitespace-nowrap">
                     {productLabel(amendment)}
@@ -300,7 +314,16 @@ export function AmendmentsListContent() {
                   </DataTableCell>
                   <DataTableCell>
                     {amendment.receipt ? (
-                      <ReceiptStatusBadge status={amendment.receipt.status} />
+                      <span className="inline-flex items-center gap-1.5">
+                        <ReceiptStatusBadge status={amendment.receipt.status} />
+                        {isReceiptDownloadable(amendment.receipt) && (
+                          <FileText
+                            className="size-4 text-muted-foreground"
+                            role="img"
+                            aria-label="PDF de la quittance disponible"
+                          />
+                        )}
+                      </span>
                     ) : (
                       <span className="text-muted-foreground">—</span>
                     )}
