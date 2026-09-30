@@ -38,3 +38,12 @@
 ## Review findings
 
 ## Acceptance run
+
+> Run: run 1 · 2026-09-30 · HEAD `30f993b` · 5 pass · 0 fail — dev (port 3003) + proxy vers la démo, compte admin, Playwright, lecture seule
+
+- AC-1 — pass — fiche du client 52, clic sur IA-2026-000002 → panneau, URL `?contract=402` ; « Fermer » → URL sans `contract`, panneau fermé.
+- AC-2 — pass — « Signé », « Carte nationale d’identité — recto et verso », note sur les images réservées.
+- AC-3 — pass — vrais téléchargements : « Police IA-2026-000002.pdf » (43 Ko) et « Avenant 1 — IA-2026-000002.pdf » (49 Ko), en-tête `%PDF-`.
+- AC-4 — pass — « Aucune quittance disponible. » (aucune quittance téléchargeable sur la démo pour ce contrat).
+- AC-5 — pass — 0 requête vers `/signature` ou `/identity-document`.
+- Responsive — 0 px de débordement à 1280 et 390 px ; aucune erreur de page.
