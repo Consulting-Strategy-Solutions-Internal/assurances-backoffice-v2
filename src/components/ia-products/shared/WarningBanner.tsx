@@ -6,8 +6,8 @@ interface WarningBannerProps {
   children: ReactNode
   title?: string
   className?: string
-  /** `warning` (ambre, défaut) ou `info` (bleu) — mêmes teintes que les pastilles. */
-  tone?: 'warning' | 'info'
+  /** `warning` (ambre, défaut), `info` (bleu) ou `danger` (rouge) — mêmes teintes que les pastilles. */
+  tone?: 'warning' | 'info' | 'danger'
 }
 
 /**
@@ -21,14 +21,17 @@ export function WarningBanner({
   tone = 'warning',
 }: WarningBannerProps) {
   const Icon = tone === 'info' ? Info : TriangleAlert
+  const tint = {
+    warning: 'bg-[#fef3da] text-[#8a6600]',
+    info: 'bg-[#e7eefb] text-[#1f53b0]',
+    danger: 'bg-[#fbe9e9] text-[#c0392b]',
+  }[tone]
   return (
     <div
       role={tone === 'info' ? 'status' : 'alert'}
       className={cn(
         'flex items-start gap-2.5 rounded-lg px-4 py-3 text-[13px]',
-        tone === 'info'
-          ? 'bg-[#e7eefb] text-[#1f53b0]'
-          : 'bg-[#fef3da] text-[#8a6600]',
+        tint,
         className,
       )}
     >

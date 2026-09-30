@@ -93,9 +93,9 @@ const PERMISSION_DESCRIPTIONS: Record<string, string> = {
   'actuator:read':
     "Consulter l'état de santé et les indicateurs techniques de la plateforme.",
   'amendment:read-all':
-    'Consulter les avenants de tous les contrats, quel que soit le vendeur.',
+    'Consulter les modifications de contrat (avenants) de tous les contrats, quel que soit le vendeur.',
   'amendment:validate':
-    'Valider ou refuser les avenants demandés sur les contrats.',
+    'Valider ou supprimer les modifications de contrat en attente de traitement.',
   'apidocs:read': "Consulter la documentation technique de l'API.",
   'backoffice:admin':
     'Administrer le back-office (accès complet aux réglages).',

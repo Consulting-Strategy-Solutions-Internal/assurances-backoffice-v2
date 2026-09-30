@@ -28,6 +28,7 @@ import { Route as AuthClientsClientIdRouteImport } from './routes/_auth/clients_
 import { Route as AuthCommissionsDistributionsRouteImport } from './routes/_auth/commissions.distributions'
 import { Route as AuthCommissionsSchemesRouteImport } from './routes/_auth/commissions.schemes'
 import { Route as AuthCommissionsWalletsRouteImport } from './routes/_auth/commissions.wallets'
+import { Route as AuthContratsModificationsRouteImport } from './routes/_auth/contrats.modifications'
 import { Route as AuthPartnersPartnerIdRouteImport } from './routes/_auth/partners_.$partnerId'
 import { Route as AuthProduitsIaIaPourTousRouteImport } from './routes/_auth/produits-ia.ia-pour-tous'
 import { Route as AuthProduitsIaIaStandardRouteImport } from './routes/_auth/produits-ia.ia-standard'
@@ -35,6 +36,7 @@ import { Route as AuthSinistresClaimIdRouteImport } from './routes/_auth/sinistr
 import { Route as AuthSinistresTypesRouteImport } from './routes/_auth/sinistres_.types'
 import { Route as AuthSupportConversationIdRouteImport } from './routes/_auth/support_.$conversationId'
 import { Route as AuthCommissionsSchemesNewRouteImport } from './routes/_auth/commissions.schemes_.new'
+import { Route as AuthContratsModificationsAmendmentIdRouteImport } from './routes/_auth/contrats.modifications_.$amendmentId'
 import { Route as AuthPartnersPartnerIdRelationsRouteImport } from './routes/_auth/partners_.$partnerId_.relations'
 import { Route as AuthProduitsIaIaStandardIndexRouteImport } from './routes/_auth/produits-ia.ia-standard.index'
 import { Route as AuthProduitsIaIaStandardAccessoiresRouteImport } from './routes/_auth/produits-ia.ia-standard.accessoires'
@@ -140,6 +142,12 @@ const AuthCommissionsWalletsRoute = AuthCommissionsWalletsRouteImport.update({
   path: '/commissions/wallets',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthContratsModificationsRoute =
+  AuthContratsModificationsRouteImport.update({
+    id: '/contrats/modifications',
+    path: '/contrats/modifications',
+    getParentRoute: () => AuthRoute,
+  } as any)
 const AuthPartnersPartnerIdRoute = AuthPartnersPartnerIdRouteImport.update({
   id: '/partners_/$partnerId',
   path: '/partners/$partnerId',
@@ -177,6 +185,12 @@ const AuthCommissionsSchemesNewRoute =
   AuthCommissionsSchemesNewRouteImport.update({
     id: '/commissions/schemes_/new',
     path: '/commissions/schemes/new',
+    getParentRoute: () => AuthRoute,
+  } as any)
+const AuthContratsModificationsAmendmentIdRoute =
+  AuthContratsModificationsAmendmentIdRouteImport.update({
+    id: '/contrats/modifications_/$amendmentId',
+    path: '/contrats/modifications/$amendmentId',
     getParentRoute: () => AuthRoute,
   } as any)
 const AuthPartnersPartnerIdRelationsRoute =
@@ -253,6 +267,7 @@ export interface FileRoutesByFullPath {
   '/commissions/distributions': typeof AuthCommissionsDistributionsRoute
   '/commissions/schemes': typeof AuthCommissionsSchemesRoute
   '/commissions/wallets': typeof AuthCommissionsWalletsRoute
+  '/contrats/modifications': typeof AuthContratsModificationsRoute
   '/partners/$partnerId': typeof AuthPartnersPartnerIdRoute
   '/produits-ia/ia-pour-tous': typeof AuthProduitsIaIaPourTousRoute
   '/produits-ia/ia-standard': typeof AuthProduitsIaIaStandardRouteWithChildren
@@ -260,6 +275,7 @@ export interface FileRoutesByFullPath {
   '/sinistres/types': typeof AuthSinistresTypesRoute
   '/support/$conversationId': typeof AuthSupportConversationIdRoute
   '/commissions/schemes/new': typeof AuthCommissionsSchemesNewRoute
+  '/contrats/modifications/$amendmentId': typeof AuthContratsModificationsAmendmentIdRoute
   '/partners/$partnerId/relations': typeof AuthPartnersPartnerIdRelationsRoute
   '/produits-ia/ia-standard/accessoires': typeof AuthProduitsIaIaStandardAccessoiresRoute
   '/produits-ia/ia-standard/baremes': typeof AuthProduitsIaIaStandardBaremesRoute
@@ -289,12 +305,14 @@ export interface FileRoutesByTo {
   '/commissions/distributions': typeof AuthCommissionsDistributionsRoute
   '/commissions/schemes': typeof AuthCommissionsSchemesRoute
   '/commissions/wallets': typeof AuthCommissionsWalletsRoute
+  '/contrats/modifications': typeof AuthContratsModificationsRoute
   '/partners/$partnerId': typeof AuthPartnersPartnerIdRoute
   '/produits-ia/ia-pour-tous': typeof AuthProduitsIaIaPourTousRoute
   '/sinistres/$claimId': typeof AuthSinistresClaimIdRoute
   '/sinistres/types': typeof AuthSinistresTypesRoute
   '/support/$conversationId': typeof AuthSupportConversationIdRoute
   '/commissions/schemes/new': typeof AuthCommissionsSchemesNewRoute
+  '/contrats/modifications/$amendmentId': typeof AuthContratsModificationsAmendmentIdRoute
   '/partners/$partnerId/relations': typeof AuthPartnersPartnerIdRelationsRoute
   '/produits-ia/ia-standard/accessoires': typeof AuthProduitsIaIaStandardAccessoiresRoute
   '/produits-ia/ia-standard/baremes': typeof AuthProduitsIaIaStandardBaremesRoute
@@ -326,6 +344,7 @@ export interface FileRoutesById {
   '/_auth/commissions/distributions': typeof AuthCommissionsDistributionsRoute
   '/_auth/commissions/schemes': typeof AuthCommissionsSchemesRoute
   '/_auth/commissions/wallets': typeof AuthCommissionsWalletsRoute
+  '/_auth/contrats/modifications': typeof AuthContratsModificationsRoute
   '/_auth/partners_/$partnerId': typeof AuthPartnersPartnerIdRoute
   '/_auth/produits-ia/ia-pour-tous': typeof AuthProduitsIaIaPourTousRoute
   '/_auth/produits-ia/ia-standard': typeof AuthProduitsIaIaStandardRouteWithChildren
@@ -333,6 +352,7 @@ export interface FileRoutesById {
   '/_auth/sinistres_/types': typeof AuthSinistresTypesRoute
   '/_auth/support_/$conversationId': typeof AuthSupportConversationIdRoute
   '/_auth/commissions/schemes_/new': typeof AuthCommissionsSchemesNewRoute
+  '/_auth/contrats/modifications_/$amendmentId': typeof AuthContratsModificationsAmendmentIdRoute
   '/_auth/partners_/$partnerId_/relations': typeof AuthPartnersPartnerIdRelationsRoute
   '/_auth/produits-ia/ia-standard/accessoires': typeof AuthProduitsIaIaStandardAccessoiresRoute
   '/_auth/produits-ia/ia-standard/baremes': typeof AuthProduitsIaIaStandardBaremesRoute
@@ -364,6 +384,7 @@ export interface FileRouteTypes {
     | '/commissions/distributions'
     | '/commissions/schemes'
     | '/commissions/wallets'
+    | '/contrats/modifications'
     | '/partners/$partnerId'
     | '/produits-ia/ia-pour-tous'
     | '/produits-ia/ia-standard'
@@ -371,6 +392,7 @@ export interface FileRouteTypes {
     | '/sinistres/types'
     | '/support/$conversationId'
     | '/commissions/schemes/new'
+    | '/contrats/modifications/$amendmentId'
     | '/partners/$partnerId/relations'
     | '/produits-ia/ia-standard/accessoires'
     | '/produits-ia/ia-standard/baremes'
@@ -400,12 +422,14 @@ export interface FileRouteTypes {
     | '/commissions/distributions'
     | '/commissions/schemes'
     | '/commissions/wallets'
+    | '/contrats/modifications'
     | '/partners/$partnerId'
     | '/produits-ia/ia-pour-tous'
     | '/sinistres/$claimId'
     | '/sinistres/types'
     | '/support/$conversationId'
     | '/commissions/schemes/new'
+    | '/contrats/modifications/$amendmentId'
     | '/partners/$partnerId/relations'
     | '/produits-ia/ia-standard/accessoires'
     | '/produits-ia/ia-standard/baremes'
@@ -436,6 +460,7 @@ export interface FileRouteTypes {
     | '/_auth/commissions/distributions'
     | '/_auth/commissions/schemes'
     | '/_auth/commissions/wallets'
+    | '/_auth/contrats/modifications'
     | '/_auth/partners_/$partnerId'
     | '/_auth/produits-ia/ia-pour-tous'
     | '/_auth/produits-ia/ia-standard'
@@ -443,6 +468,7 @@ export interface FileRouteTypes {
     | '/_auth/sinistres_/types'
     | '/_auth/support_/$conversationId'
     | '/_auth/commissions/schemes_/new'
+    | '/_auth/contrats/modifications_/$amendmentId'
     | '/_auth/partners_/$partnerId_/relations'
     | '/_auth/produits-ia/ia-standard/accessoires'
     | '/_auth/produits-ia/ia-standard/baremes'
@@ -597,6 +623,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCommissionsWalletsRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_auth/contrats/modifications': {
+      id: '/_auth/contrats/modifications'
+      path: '/contrats/modifications'
+      fullPath: '/contrats/modifications'
+      preLoaderRoute: typeof AuthContratsModificationsRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/_auth/partners_/$partnerId': {
       id: '/_auth/partners_/$partnerId'
       path: '/partners/$partnerId'
@@ -644,6 +677,13 @@ declare module '@tanstack/react-router' {
       path: '/commissions/schemes/new'
       fullPath: '/commissions/schemes/new'
       preLoaderRoute: typeof AuthCommissionsSchemesNewRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/contrats/modifications_/$amendmentId': {
+      id: '/_auth/contrats/modifications_/$amendmentId'
+      path: '/contrats/modifications/$amendmentId'
+      fullPath: '/contrats/modifications/$amendmentId'
+      preLoaderRoute: typeof AuthContratsModificationsAmendmentIdRouteImport
       parentRoute: typeof AuthRoute
     }
     '/_auth/partners_/$partnerId_/relations': {
@@ -756,6 +796,7 @@ interface AuthRouteChildren {
   AuthCommissionsDistributionsRoute: typeof AuthCommissionsDistributionsRoute
   AuthCommissionsSchemesRoute: typeof AuthCommissionsSchemesRoute
   AuthCommissionsWalletsRoute: typeof AuthCommissionsWalletsRoute
+  AuthContratsModificationsRoute: typeof AuthContratsModificationsRoute
   AuthPartnersPartnerIdRoute: typeof AuthPartnersPartnerIdRoute
   AuthProduitsIaIaPourTousRoute: typeof AuthProduitsIaIaPourTousRoute
   AuthProduitsIaIaStandardRoute: typeof AuthProduitsIaIaStandardRouteWithChildren
@@ -763,6 +804,7 @@ interface AuthRouteChildren {
   AuthSinistresTypesRoute: typeof AuthSinistresTypesRoute
   AuthSupportConversationIdRoute: typeof AuthSupportConversationIdRoute
   AuthCommissionsSchemesNewRoute: typeof AuthCommissionsSchemesNewRoute
+  AuthContratsModificationsAmendmentIdRoute: typeof AuthContratsModificationsAmendmentIdRoute
   AuthPartnersPartnerIdRelationsRoute: typeof AuthPartnersPartnerIdRelationsRoute
   AuthCommissionsSchemesSchemeIdEditRoute: typeof AuthCommissionsSchemesSchemeIdEditRoute
 }
@@ -782,6 +824,7 @@ const AuthRouteChildren: AuthRouteChildren = {
   AuthCommissionsDistributionsRoute: AuthCommissionsDistributionsRoute,
   AuthCommissionsSchemesRoute: AuthCommissionsSchemesRoute,
   AuthCommissionsWalletsRoute: AuthCommissionsWalletsRoute,
+  AuthContratsModificationsRoute: AuthContratsModificationsRoute,
   AuthPartnersPartnerIdRoute: AuthPartnersPartnerIdRoute,
   AuthProduitsIaIaPourTousRoute: AuthProduitsIaIaPourTousRoute,
   AuthProduitsIaIaStandardRoute: AuthProduitsIaIaStandardRouteWithChildren,
@@ -789,6 +832,8 @@ const AuthRouteChildren: AuthRouteChildren = {
   AuthSinistresTypesRoute: AuthSinistresTypesRoute,
   AuthSupportConversationIdRoute: AuthSupportConversationIdRoute,
   AuthCommissionsSchemesNewRoute: AuthCommissionsSchemesNewRoute,
+  AuthContratsModificationsAmendmentIdRoute:
+    AuthContratsModificationsAmendmentIdRoute,
   AuthPartnersPartnerIdRelationsRoute: AuthPartnersPartnerIdRelationsRoute,
   AuthCommissionsSchemesSchemeIdEditRoute:
     AuthCommissionsSchemesSchemeIdEditRoute,

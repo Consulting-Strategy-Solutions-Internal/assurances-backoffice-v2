@@ -215,7 +215,7 @@ Breakpoints of the layout primitives follow the **content column** (`@container/
 
 **KpiCard / KpiRow**: `KpiCard` has a compact row layout (icon left, value + label right) below 576 px of content and the stacked card above; new `unit?: string` (small, next to the value: `value="75 805" unit="FCFA"`); value `text-[24px] → 30px`; `min-w-0`. `KpiRow cols={4}`: 2 columns then 4 from 896 px; `cols={3}`: 2 columns on phones (3rd card spans both), 3 from 576 px. `KPI_ROW_CLASS` is exported for skeletons.
 
-**Toolbar**: below 576 px a 2-column grid (search, `SegmentedPills`, `DateRangeFilter` and the actions span both; selects fill one cell — direct children get `w-full!` automatically). `ToolbarSearch` is `min-w-0` then `min-w-[240px]`. `fluid` on `SearchableSelect` / `claims/FilterSelect` (full width below 576 px) for use outside a Toolbar direct-child position. `ResultCount` wraps (note on its own line on phones).
+**Toolbar**: below 576 px a 2-column grid (search, `SegmentedPills`, `DateRangeFilter` and the actions span both; selects fill one cell — direct children get `w-full!` automatically, except Radix's hidden native `<select aria-hidden>` shown until hydration). `ToolbarSearch` is `min-w-0` then `min-w-[240px]`. `fluid` on `SearchableSelect` / `claims/FilterSelect` (full width below 576 px) for use outside a Toolbar direct-child position. `ResultCount` wraps (note on its own line on phones).
 
 **DateRangeFilter** (`layout/DateRangeFilter.tsx`), built on `quotations/FrDateInput`:
 
@@ -271,7 +271,7 @@ Row opens detail → `ClickableRow` + `RowChevron`. Row opens a drawer → `Clic
 
 Loading: `Skeleton h-36 rounded-xl` + 3× `h-[122px] rounded-2xl` + `h-64 rounded-xl`. Not found / invalid id / error: `EmptyState variant="card"` with a BackLink-like button.
 
-**Settings / form page**: `PageHeader` + stacked `SectionCard`s (max `max-w-3xl` for forms), fields via `FormField` (`h-10 rounded-[10px]`), footer buttons right-aligned inside the card (`Annuler` outline + primary `rounded-[11px]`). Inline banner for warnings: rounded-lg, `bg-[#fef3da] text-[#8a6600]` (see `ia-products/shared/WarningBanner`). Success feedback = `toast` (sonner).
+**Settings / form page**: `PageHeader` + stacked `SectionCard`s (max `max-w-3xl` for forms), fields via `FormField` (`h-10 rounded-[10px]`), footer buttons right-aligned inside the card (`Annuler` outline + primary `rounded-[11px]`). Inline banner: `ia-products/shared/WarningBanner` (`tone` `warning` amber default, `info` blue, `danger` red; `title?`) — never hand-made hex banners. Success feedback = `toast` (sonner).
 
 **Drawers & dialogs**: create/edit forms → `FormDialog` (short) or right `Sheet` (permission/role style, with tabs/sections); destructive → `ConfirmDialog` with `destructive`. Titles: sentence case verb + object (« Ajouter un partenaire »); eyebrow = category in caps-by-CSS.
 

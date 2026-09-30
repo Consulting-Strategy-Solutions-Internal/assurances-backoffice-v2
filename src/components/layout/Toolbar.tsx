@@ -8,8 +8,10 @@ import { cn } from '#/lib/utils'
 export const TOOLBAR_CLASS = cn(
   'grid grid-cols-2 gap-2',
   '@xl/main:flex @xl/main:flex-wrap @xl/main:items-center @xl/main:gap-3',
-  // Below 576 px every direct control (Select, SearchableSelect…) fills its grid cell.
-  '@max-xl/main:[&>*]:w-full! @max-xl/main:[&>*]:min-w-0',
+  // Below 576 px every direct control (Select, SearchableSelect…) fills its grid cell,
+  // except Radix Select's hidden native <select> (rendered until hydration), which
+  // would otherwise be stretched to the toolbar's width and scroll the page.
+  '@max-xl/main:[&>*:not(select[aria-hidden])]:w-full! @max-xl/main:[&>*]:min-w-0',
 )
 
 /**

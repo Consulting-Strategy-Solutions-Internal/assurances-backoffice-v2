@@ -36,6 +36,7 @@
 - **Why:** `can()` answers `true` while the permission set is unknown (« unknown → allow », fine for letting the server decide on actions). The risk-class status filter reused it to decide whether to show an option the backend ignores for read-only users; for exactly those users (no `iam:read`, set unknown) the misleading filter came back.
 - **How to apply:** gate on `permissions?.has(code) === true` (known and granted) whenever hiding/forcing UI depends on the permission; keep « unknown → allow » only for actions the server will refuse anyway.
 - **Seen:** 2026-09-30 `ux-fixes` R1-5 (reopened round 2)
+- **Seen:** 2026-09-30 `contract-amendments` R1-1 — applied the other way: Valider/Supprimer gated on `canKnown`, so a manager without `iam:read` saw no button. Hiding a *menu entry or filter* → `canKnown`; an *action button the server guards* → `can`.
 - **Enforced by:** —
 
 ### L-006: A result counter shows the filtered total, never the length of the current page
@@ -55,6 +56,18 @@
 - **Why:** `hideBelow="lg"/"xl"` was set on Sinistres and Cotations columns although those tables fit at 1024/1280 (audit measured 672 / 866 px); desktop users lost Produit, Déclaré par, Émis par for nothing.
 - **How to apply:** measure the table's natural width (Playwright sweep) and hide a column only below the content width where the table stops fitting; content thresholds are 576/672/896/1024 px (`sm/md/lg/xl` of `hideBelow`), not viewport breakpoints.
 - **Seen:** 2026-09-30 `responsive` R1-4
+- **Enforced by:** —
+
+### L-009: Test the « permissions unknown » case with `permissions === null`, never with an empty set
+- **Why:** an empty `Set` means « known, none granted »; `null` means « unknown » (every role without `iam:read`). A test that mocks `can`/`canKnown` over an empty set passes whatever helper the code uses, and proves nothing about the unknown case.
+- **How to apply:** in permission tests, mock `usePermissions` with the real semantics (`permissions: null` ⇒ `can()` true, `canKnown()` false) and assert both cases: unknown and known-but-absent.
+- **Seen:** 2026-09-30 `contract-amendments` R1-2
+- **Enforced by:** —
+
+### L-010: Check phone layouts once with JavaScript disabled — the server render must not overflow either
+- **Why:** until hydration, Radix renders extra markup (a hidden native `<select aria-hidden>` next to each Select). The Toolbar's `[&>*]:w-full!` rule stretched it to the toolbar width and the page scrolled 30 px sideways at 390 px on every toolbar with a Select; with JavaScript loaded the sweep saw 0 px, so the bug only showed on flaky-network runs and was first dismissed as noise.
+- **How to apply:** in a responsive check, load each page once with `javaScriptEnabled: false` and measure `scrollWidth - innerWidth`; when a child-selector rule (`[&>*]:…`) styles every child, exclude injected hidden elements (`:not(select[aria-hidden])`). An overflow that only appears « sometimes » is a bug until proven otherwise.
+- **Seen:** 2026-09-30 `contract-amendments` R2-3
 - **Enforced by:** —
 
 ## Enforced
