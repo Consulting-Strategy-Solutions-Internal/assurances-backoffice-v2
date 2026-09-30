@@ -100,7 +100,8 @@ export function NotificationsMenu() {
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
-        className="w-[380px] overflow-hidden rounded-xl p-0"
+        collisionPadding={8}
+        className="w-[min(380px,calc(100vw-1rem))] overflow-hidden rounded-xl p-0"
       >
         <div className="flex items-center justify-between border-b px-4 py-3">
           <div className="flex items-center gap-2">

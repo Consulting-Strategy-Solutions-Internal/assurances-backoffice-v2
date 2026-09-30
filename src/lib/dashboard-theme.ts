@@ -51,6 +51,13 @@ export const CHART = {
   gray: '#dde2ea',
 } as const
 
+/**
+ * Text link/button that acts as an action (« Tout voir → », « Ouvrir »):
+ * a 36 px tall hit area (negative margin keeps the visual alignment).
+ */
+export const ACTION_LINK_CLASS =
+  '-mx-2 inline-flex min-h-9 items-center gap-1 rounded-md px-2 text-[13px] font-semibold text-primary outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50'
+
 /** Props that make a clickable table row keyboard-activatable (Enter/Space). */
 export function clickableRow(onClick: () => void) {
   return {

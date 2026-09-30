@@ -2,7 +2,9 @@ import type { ReactNode } from 'react'
 import { cn } from '#/lib/utils'
 
 /**
- * Definition list for read-only details. `columns` = 1 (default, stacked) or 2.
+ * Definition list for read-only details. `columns` = 1 (default, stacked) or 2;
+ * two columns only when the list itself is at least 384 px wide (container
+ * query on the list, so a half-width card or a drawer stays on one column).
  * Put `InfoRow`s inside; typically wrapped in a `SectionCard`.
  */
 export function InfoList({
@@ -15,15 +17,17 @@ export function InfoList({
   children: ReactNode
 }) {
   return (
-    <dl
-      className={cn(
-        'grid gap-4',
-        columns === 2 && 'grid-cols-2 gap-x-6',
-        className,
-      )}
-    >
-      {children}
-    </dl>
+    <div className="@container">
+      <dl
+        className={cn(
+          'grid gap-4',
+          columns === 2 && '@sm:grid-cols-2 @sm:gap-x-6',
+          className,
+        )}
+      >
+        {children}
+      </dl>
+    </div>
   )
 }
 

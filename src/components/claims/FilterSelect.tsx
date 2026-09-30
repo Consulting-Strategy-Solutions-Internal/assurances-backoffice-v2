@@ -27,6 +27,7 @@ export function FilterSelect({
   onChange,
   allLabel,
   className,
+  fluid,
 }: {
   label: string
   value: string
@@ -34,6 +35,8 @@ export function FilterSelect({
   onChange: (value: string) => void
   allLabel?: string
   className?: string
+  /** Full width below 576 px of content (170 px above); `Toolbar` already does it for its direct children. */
+  fluid?: boolean
 }) {
   return (
     <Select
@@ -42,7 +45,11 @@ export function FilterSelect({
     >
       <SelectTrigger
         aria-label={label}
-        className={cn('h-10 w-[170px] rounded-[10px] bg-card', className)}
+        className={cn(
+          'h-10 rounded-[10px] bg-card',
+          fluid ? 'w-full @xl/main:w-[170px]' : 'w-[170px]',
+          className,
+        )}
       >
         <SelectValue />
       </SelectTrigger>

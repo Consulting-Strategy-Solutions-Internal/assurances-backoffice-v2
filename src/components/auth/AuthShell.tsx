@@ -9,7 +9,7 @@ const AUTH_BG = '/login-bg.jpg'
  */
 export function AuthShell({ children }: { children: ReactNode }) {
   return (
-    <div className="relative min-h-screen w-full overflow-hidden">
+    <div className="@container/main relative min-h-screen w-full overflow-hidden">
       <div
         className="absolute inset-0 bg-cover bg-center"
         style={{ backgroundImage: `url(${AUTH_BG})` }}
@@ -18,7 +18,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
 
       <div className="relative z-10 flex min-h-screen flex-col lg:flex-row">
         {/* Brand panel */}
-        <div className="flex flex-1 flex-col justify-between gap-10 p-8 text-white lg:p-14">
+        <div className="flex flex-col justify-between gap-10 p-6 pb-2 text-white lg:flex-1 lg:p-14">
           <div className="flex items-center gap-3">
             <div className="flex size-11 items-center justify-center rounded-[12px] bg-white/15 shadow-[0_4px_14px_rgba(0,0,0,0.25)] backdrop-blur">
               <span className="text-[22px] font-extrabold tracking-[-0.03em] text-[#FFC61E]">
@@ -35,6 +35,9 @@ export function AuthShell({ children }: { children: ReactNode }) {
             </div>
           </div>
 
+          <h1 className="sr-only lg:hidden">
+            NSIA Assurances : espace de gestion
+          </h1>
           <div className="hidden max-w-md lg:block">
             <h1 className="text-[40px] leading-[1.08] font-extrabold tracking-[-0.03em]">
               Votre espace de gestion, au même endroit.
@@ -45,14 +48,19 @@ export function AuthShell({ children }: { children: ReactNode }) {
             </p>
           </div>
 
-          <div className="text-[12px] text-white/60">
+          <div className="hidden text-[12px] text-white/60 lg:block">
             © 2026 NSIA Assurances. Tous droits réservés.
           </div>
         </div>
 
         {/* Form panel */}
-        <div className="flex w-full items-center justify-center p-6 lg:w-[520px] lg:p-12">
-          {children}
+        <div className="flex w-full flex-1 flex-col items-center p-6 lg:w-[520px] lg:flex-none lg:justify-center lg:p-12">
+          <div className="flex w-full flex-1 items-center justify-center lg:flex-none">
+            {children}
+          </div>
+          <p className="order-last mt-8 text-center text-[12px] text-white/60 lg:hidden">
+            © 2026 NSIA Assurances. Tous droits réservés.
+          </p>
         </div>
       </div>
     </div>
@@ -90,4 +98,4 @@ export function AuthHeading({
 
 /** Class for the small text links under an auth form (visible focus ring). */
 export const AUTH_LINK_CLASS =
-  'rounded-sm text-[13px] font-semibold text-primary outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50'
+  'inline-flex min-h-9 items-center rounded-sm text-[13px] font-semibold text-primary outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50'
