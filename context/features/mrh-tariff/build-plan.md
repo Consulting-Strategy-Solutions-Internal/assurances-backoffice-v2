@@ -36,18 +36,21 @@
 
 ## Review findings
 
-> Last review: round 1 · 2026-09-30 · base `c38dff8` · HEAD `93bde04` (+ uncommitted: no) · verdict : prêt après le 🟡 (2 relecteurs : grille / accessoires + devis + navigation)
+- [~] **R2-1** ⚪ Vider « Valeur minimale du contenu » affichait un succès sans effet (l'API ne sait pas l'effacer) — `src/components/mrh-tariff/BaseRateDialog.tsx` (fix: da02293)
 
-- [~] **R1-1** 🟡 Nom et description sans limite (colonnes varchar 255) → 409 « Cet élément existe déjà. » trompeur — `src/components/mrh-tariff/LegalQualityDialog.tsx:96`, `WarrantyDialog.tsx` (fix: 0d074c5)
-- [~] **R1-2** ⚪ PUT réussi mais relecture en échec affiché comme un échec — `src/components/mrh-tariff/BaseRateDialog.tsx:39` (fix: 0d074c5)
-- [~] **R1-3** ⚪ Nom technique (`capitalShare`) dans le bandeau d'erreur des lignes — `src/components/mrh-tariff/LineWarrantyDialog.tsx:84` (fix: 0d074c5)
-- [~] **R1-4** ⚪ Erreurs serveur non effacées à la saisie (garantie, situation) — `src/components/mrh-tariff/WarrantyDialog.tsx:82` (fix: 0d074c5)
-- [~] **R1-5** ⚪ Cas « permission connue mais absente » non testé sur la grille (L-009) — `src/components/mrh-tariff/LegalQualitiesScreen.test.tsx:32` (fix: 0d074c5)
-- [~] **R1-6** ⚪ Mode et Obligatoire masqués sur téléphone sans relais (L-008) — `src/components/mrh-tariff/LineWarrantiesScreen.tsx:84` (fix: 0d074c5)
-- [~] **R1-7** ⚪ Montant saisi avec espace (« 15 000 ») refusé — `src/lib/mrh-tariff.ts:77` (fix: 0d074c5)
-- [~] **R1-8** ⚪ Cas « permission connue mais absente » non testé sur les accessoires (L-009) — `src/components/accessories/accessories.test.tsx:31` (fix: 0d074c5)
-- [~] **R1-9** ⚪ Refus de suppression : la confirmation reste ouverte — `src/components/accessories/AccessoriesScreen.tsx:138` — réfuté par un test : la confirmation se ferme déjà d'elle-même après le refus (test « refus 422… » vérifie qu'elle a disparu) (fix: 0d074c5)
-- [~] **R1-10** ⚪ (hors diff, fichier touché) 422 `ErrorResponse` « File is too large » lu comme `ImportResult` → plantage — `src/services/accessories.ts:97` (fix: 0d074c5)
+> Last review: round 2 · 2026-09-30 · base `93bde04` · HEAD `0d074c5` · verdict : prêt après R1-8 et R1-9 (corrigés depuis, à confirmer)
+> Round 1 · 2026-09-30 · base `c38dff8` · HEAD `93bde04` (+ uncommitted: no) · verdict : prêt après le 🟡 (2 relecteurs : grille / accessoires + devis + navigation)
+
+- [x] **R1-1** 🟡 Nom et description sans limite (colonnes varchar 255) → 409 « Cet élément existe déjà. » trompeur — `src/components/mrh-tariff/LegalQualityDialog.tsx:96`, `WarrantyDialog.tsx` (fixed, round 2)
+- [x] **R1-2** ⚪ PUT réussi mais relecture en échec affiché comme un échec — `src/components/mrh-tariff/BaseRateDialog.tsx:39` (fixed, round 2)
+- [x] **R1-3** ⚪ Nom technique (`capitalShare`) dans le bandeau d'erreur des lignes — `src/components/mrh-tariff/LineWarrantyDialog.tsx:84` (fixed, round 2)
+- [x] **R1-4** ⚪ Erreurs serveur non effacées à la saisie (garantie, situation) — `src/components/mrh-tariff/WarrantyDialog.tsx:82` (fixed, round 2)
+- [x] **R1-5** ⚪ Cas « permission connue mais absente » non testé sur la grille (L-009) — `src/components/mrh-tariff/LegalQualitiesScreen.test.tsx:32` (fixed, round 2)
+- [x] **R1-6** ⚪ Mode et Obligatoire masqués sur téléphone sans relais (L-008) — `src/components/mrh-tariff/LineWarrantiesScreen.tsx:84` (fixed, round 2)
+- [x] **R1-7** ⚪ Montant saisi avec espace (« 15 000 ») refusé — `src/lib/mrh-tariff.ts:77` (fixed, round 2)
+- [~] **R1-8** ⚪ Cas « permission connue mais absente » non testé sur les accessoires (L-009) — `src/components/accessories/accessories.test.tsx:31` (fix: da02293)
+- [~] **R1-9** ⚪ Refus de suppression : la confirmation reste ouverte — `src/components/accessories/AccessoriesScreen.tsx:138` (fix: da02293 — l'ancienne « réfutation » était fausse, relevé au round 2)
+- [x] **R1-10** ⚪ (hors diff, fichier touché) 422 `ErrorResponse` « File is too large » lu comme `ImportResult` → plantage — `src/services/accessories.ts:97` (fixed, round 2)
 - Écarts au plan, résolus dans la spec (D-7 révisée, D-8) — fix: 0d074c5
 
 ## Acceptance run
