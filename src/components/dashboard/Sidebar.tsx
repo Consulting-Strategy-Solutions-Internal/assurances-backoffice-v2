@@ -1,5 +1,5 @@
 import { Link, useRouterState } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   ChevronDown,
@@ -29,7 +29,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '#/components/ui/dropdown-menu'
+import { Sheet, SheetContent, SheetTitle } from '#/components/ui/sheet'
 import { cn } from '#/lib/utils'
+import { useShell } from './shell'
+
+const SECTION_LABEL =
+  'px-3 pb-2 text-[10.5px] font-bold tracking-[0.1em] text-muted-foreground uppercase'
 
 interface NavItem {
   to: string
@@ -45,22 +50,34 @@ const PILOTAGE: NavItem[] = [
   { to: '/clients', label: 'Clients', icon: Users },
 ]
 
-const COTATIONS_CHILDREN = [
-  { to: '/cotations', label: 'Liste' },
-  { to: '/cotations/simulation', label: 'Simulation' },
-]
+interface NavChild {
+  to: string
+  label: string
+  /** Stay highlighted on sub-paths (tabs in the URL). */
+  matchChildren?: boolean
+  /** Nested collapsible sub-group; `to` is then its base path. */
+  children?: NavChild[]
+}
 
-const PRODUITS_CHILDREN = [
-  { to: '/products', label: 'Catalogue' },
-  { to: '/products/categories', label: 'Catégories' },
-  { to: '/products/accessoires', label: 'Accessoires' },
-  { to: '/products/grille-tarifaire', label: 'Grille tarifaire' },
+const PRODUITS_CHILDREN: NavChild[] = [
+  {
+    to: '/produits-ia',
+    label: 'Individuel Accidents',
+    children: [
+      {
+        to: '/produits-ia/ia-standard',
+        label: 'IA Standard',
+        matchChildren: true,
+      },
+      { to: '/produits-ia/ia-pour-tous', label: 'IA Pour Tous' },
+    ],
+  },
 ]
 
 const COMMISSIONS_CHILDREN = [
   { to: '/commissions/schemes', label: 'Schémas' },
   { to: '/commissions/distributions', label: 'Distributions' },
-  { to: '/commissions/wallets', label: 'Wallets' },
+  { to: '/commissions/wallets', label: 'Portefeuilles' },
 ]
 
 const RESEAU: NavItem[] = [
@@ -84,12 +101,18 @@ function CollapsibleNavGroup({
 }: {
   icon: LucideIcon
   label: string
-  basePath: string
-  items: { to: string; label: string }[]
+  basePath: string | string[]
+  items: NavChild[]
   pathname: string
 }) {
-  const groupActive = pathname.startsWith(basePath)
+  const groupActive = (Array.isArray(basePath) ? basePath : [basePath]).some(
+    (p) => pathname.startsWith(p),
+  )
   const [open, setOpen] = useState(groupActive)
+  // Deep link / navigation into the group: open it.
+  useEffect(() => {
+    if (groupActive) setOpen(true)
+  }, [groupActive])
   return (
     <>
       <Button
@@ -119,23 +142,81 @@ function CollapsibleNavGroup({
       </Button>
       {open && (
         <div className="my-0.5 ml-[27px] flex flex-col gap-0.5 border-l border-sidebar-border pl-2">
-          {items.map((c) => {
-            const active = pathname === c.to
-            return (
-              <Button
-                key={c.to}
-                asChild
-                variant="ghost"
-                className={cn(
-                  'h-auto w-full justify-start rounded-[8px] px-2.5 py-[7px] text-[13px] font-medium text-muted-foreground',
-                  active &&
-                    'bg-primary/[0.07] font-semibold text-primary hover:bg-primary/[0.07] hover:text-primary',
-                )}
-              >
-                <Link to={c.to}>{c.label}</Link>
-              </Button>
-            )
-          })}
+          {items.map((c) =>
+            c.children ? (
+              <NavSubGroup key={c.to} group={c} pathname={pathname} />
+            ) : (
+              <NavChildLink key={c.to} item={c} pathname={pathname} />
+            ),
+          )}
+        </div>
+      )}
+    </>
+  )
+}
+
+function NavChildLink({
+  item,
+  pathname,
+}: {
+  item: NavChild
+  pathname: string
+}) {
+  const active =
+    pathname === item.to ||
+    (!!item.matchChildren && pathname.startsWith(`${item.to}/`))
+  return (
+    <Button
+      asChild
+      variant="ghost"
+      className={cn(
+        'h-auto w-full justify-start rounded-[8px] px-2.5 py-[7px] text-[13px] font-medium text-muted-foreground',
+        active &&
+          'bg-primary/[0.07] font-semibold text-primary hover:bg-primary/[0.07] hover:text-primary',
+      )}
+    >
+      <Link to={item.to} aria-current={active ? 'page' : undefined}>
+        {item.label}
+      </Link>
+    </Button>
+  )
+}
+
+/** Second-level collapsible entry inside a group (e.g. Produits → Individuel Accidents). */
+function NavSubGroup({
+  group,
+  pathname,
+}: {
+  group: NavChild
+  pathname: string
+}) {
+  const active = pathname.startsWith(group.to)
+  const [open, setOpen] = useState(active)
+  useEffect(() => {
+    if (active) setOpen(true)
+  }, [active])
+  return (
+    <>
+      <Button
+        type="button"
+        variant="ghost"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        className={cn(
+          'h-auto w-full justify-start rounded-[8px] px-2.5 py-[7px] text-[13px] font-medium text-muted-foreground',
+          active && 'font-semibold text-primary hover:text-primary',
+        )}
+      >
+        <span className="flex-1 text-left">{group.label}</span>
+        <ChevronDown
+          className={cn('size-3.5 transition-transform', open && 'rotate-180')}
+        />
+      </Button>
+      {open && (
+        <div className="ml-2.5 flex flex-col gap-0.5 border-l border-sidebar-border pl-2">
+          {(group.children ?? []).map((c) => (
+            <NavChildLink key={c.to} item={c} pathname={pathname} />
+          ))}
         </div>
       )}
     </>
@@ -150,6 +231,23 @@ export function Sidebar({
   onLogout: () => void
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
+  const { navOpen, setNavOpen } = useShell()
+  // The mobile drawer is only CSS-hidden at ≥ lg: if it stays open while the
+  // window is widened, Radix keeps the body scroll-locked and inert. Close it.
+  useEffect(() => {
+    const wide = window.matchMedia('(min-width: 1024px)')
+    const onChange = () => {
+      if (wide.matches) setNavOpen(false)
+    }
+    onChange()
+    wide.addEventListener('change', onChange)
+    return () => wide.removeEventListener('change', onChange)
+  }, [setNavOpen])
+
+  // Close the mobile drawer on navigation.
+  useEffect(() => {
+    setNavOpen(false)
+  }, [pathname, setNavOpen])
   const isAdmin = user?.role.toUpperCase() === 'ADMIN'
 
   // Badge de messages support non lus — la file est commune à tous les
@@ -191,7 +289,7 @@ export function Sidebar({
             'bg-primary/[0.07] font-semibold text-primary hover:bg-primary/[0.07] hover:text-primary',
         )}
       >
-        <Link to={item.to}>
+        <Link to={item.to} aria-current={active ? 'page' : undefined}>
           <Icon
             className={cn(
               'size-[18px]',
@@ -200,7 +298,7 @@ export function Sidebar({
           />
           <span className="flex-1 text-left">{item.label}</span>
           {item.badge && (
-            <Badge className="rounded-full border-transparent bg-[#ffc61e]/25 px-2 py-px text-[11px] font-bold text-[#9a7400]">
+            <Badge className="rounded-full border-transparent bg-[#ffc61e]/25 px-2 py-px text-[11px] font-bold text-[#8a6600]">
               {item.badge}
             </Badge>
           )}
@@ -209,8 +307,8 @@ export function Sidebar({
     )
   }
 
-  return (
-    <aside className="flex h-screen w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar px-[14px] py-5 text-sidebar-foreground">
+  const content = (
+    <div className="flex h-full flex-col bg-sidebar px-[14px] py-5 text-sidebar-foreground">
       <div className="flex items-center gap-[11px] px-2 pt-1.5 pb-5">
         <div className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-primary shadow-[0_4px_12px_rgba(0,51,127,0.25)]">
           <span className="text-[18px] font-extrabold tracking-[-0.03em] text-[#FFC61E]">
@@ -227,46 +325,38 @@ export function Sidebar({
         </div>
       </div>
 
-      <div className="px-3 pt-4 pb-2 text-[10.5px] font-bold tracking-[0.1em] text-muted-foreground">
-        PILOTAGE
+      <div className="-mx-1 min-h-0 flex-1 overflow-y-auto overscroll-contain px-1">
+        <div className={cn(SECTION_LABEL, 'pt-2')}>Pilotage</div>
+        <nav className="flex flex-col gap-[3px]">
+          {PILOTAGE.filter((item) => item.to !== '/sinistres' || isAdmin).map(
+            renderItem,
+          )}
+          {renderItem(supportItem)}
+
+          {renderItem({ to: '/cotations', label: 'Cotations', icon: FileText })}
+
+          <CollapsibleNavGroup
+            icon={Package}
+            label="Produits"
+            basePath="/produits-ia"
+            items={PRODUITS_CHILDREN}
+            pathname={pathname}
+          />
+
+          <CollapsibleNavGroup
+            icon={HandCoins}
+            label="Commissions"
+            basePath="/commissions"
+            items={COMMISSIONS_CHILDREN}
+            pathname={pathname}
+          />
+        </nav>
+
+        <div className={cn(SECTION_LABEL, 'pt-[22px]')}>Réseau &amp; admin</div>
+        <nav className="flex flex-col gap-[3px]">{RESEAU.map(renderItem)}</nav>
       </div>
-      <nav className="flex flex-col gap-[3px]">
-        {PILOTAGE.filter((item) => item.to !== '/sinistres' || isAdmin).map(
-          renderItem,
-        )}
-        {renderItem(supportItem)}
 
-        <CollapsibleNavGroup
-          icon={FileText}
-          label="Cotations"
-          basePath="/cotations"
-          items={COTATIONS_CHILDREN}
-          pathname={pathname}
-        />
-
-        <CollapsibleNavGroup
-          icon={Package}
-          label="Produits"
-          basePath="/products"
-          items={PRODUITS_CHILDREN}
-          pathname={pathname}
-        />
-
-        <CollapsibleNavGroup
-          icon={HandCoins}
-          label="Commissions"
-          basePath="/commissions"
-          items={COMMISSIONS_CHILDREN}
-          pathname={pathname}
-        />
-      </nav>
-
-      <div className="px-3 pt-[22px] pb-2 text-[10.5px] font-bold tracking-[0.1em] text-muted-foreground">
-        RÉSEAU &amp; ADMIN
-      </div>
-      <nav className="flex flex-col gap-[3px]">{RESEAU.map(renderItem)}</nav>
-
-      <div className="mt-auto border-t border-sidebar-border px-1.5 pt-3.5 pb-0.5">
+      <div className="border-t border-sidebar-border px-1.5 pt-3.5 pb-0.5">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
@@ -304,6 +394,24 @@ export function Sidebar({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-    </aside>
+    </div>
+  )
+
+  return (
+    <>
+      <aside className="hidden h-dvh w-64 shrink-0 border-r border-sidebar-border lg:block">
+        {content}
+      </aside>
+      <Sheet open={navOpen} onOpenChange={setNavOpen}>
+        <SheetContent
+          side="left"
+          showCloseButton={false}
+          className="w-64 max-w-[85vw] gap-0 p-0 sm:max-w-[85vw] lg:hidden"
+        >
+          <SheetTitle className="sr-only">Menu de navigation</SheetTitle>
+          {content}
+        </SheetContent>
+      </Sheet>
+    </>
   )
 }

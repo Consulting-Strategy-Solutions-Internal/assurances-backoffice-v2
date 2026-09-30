@@ -25,7 +25,7 @@ vi.mock('#/lib/api', () => ({
 
 const payload: CommissionSchemePayload = {
   partnerId: 1,
-  productId: 4,
+  product: 'IA_STANDARD',
   commissionRate: 12.5,
   maxLevel: 2,
   level2PartnerShare: 40,
@@ -47,7 +47,7 @@ describe('commission services', () => {
   it('utilise uniquement les routes de schémas documentées', async () => {
     await getCommissionSchemes({
       partnerId: 1,
-      productId: 4,
+      product: 'IA_STANDARD',
       page: 0,
       size: 20,
     })
@@ -57,7 +57,7 @@ describe('commission services', () => {
     await deleteCommissionScheme(7)
 
     expect(api.get).toHaveBeenNthCalledWith(1, '/commission-schemes', {
-      params: { partnerId: 1, productId: 4, page: 0, size: 20 },
+      params: { partnerId: 1, product: 'IA_STANDARD', page: 0, size: 20 },
     })
     expect(api.get).toHaveBeenNthCalledWith(2, '/commission-schemes/7')
     expect(api.post).toHaveBeenCalledWith('/commission-schemes', payload)

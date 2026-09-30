@@ -1,17 +1,34 @@
 import { Fragment, useState } from 'react'
 import { useQueries, useQuery } from '@tanstack/react-query'
-import { Building2, ChevronDown, ChevronRight, UserRound } from 'lucide-react'
+import {
+  Building2,
+  ChevronDown,
+  ChevronRight,
+  Users,
+  UserRound,
+} from 'lucide-react'
 import { getPartnerAgencies } from '#/services/agencies'
 import type { AgencyResponse } from '#/services/agencies'
 import { getAgencySellers, getPartnerSellers } from '#/services/sellers'
 import type { SellerResponse } from '#/services/sellers'
-import { getUsers } from '#/services/users'
+import { useAllUsers } from '#/components/users/use-all-users'
 import type { PartnerResponse } from '#/services/partners'
 import { PartnerManagerList } from '#/components/partners/PartnerManagerList'
 import { KpiCard } from '#/components/dashboard/KpiCard'
+import {
+  DataTableHead,
+  FIRST_CELL_CLASS,
+  TableEmptyState,
+  TableErrorState,
+  TableSkeletonRows,
+} from '#/components/layout/DataTable'
+import { EntityAvatar } from '#/components/layout/EntityAvatar'
+import { InfoList, InfoRow } from '#/components/layout/InfoList'
+import { KpiRow } from '#/components/layout/KpiRow'
+import { SectionCard } from '#/components/layout/SectionCard'
 import { Badge } from '#/components/ui/badge'
+import { Skeleton } from '#/components/ui/skeleton'
 import { Button } from '#/components/ui/button'
-import { Card } from '#/components/ui/card'
 import {
   Table,
   TableBody,
@@ -20,10 +37,11 @@ import {
   TableHeader,
   TableRow,
 } from '#/components/ui/table'
-import { cn, formatDate } from '#/lib/utils'
+import { formatClaimDate, mapClaimError } from '#/lib/claims'
+import { formatPhone } from '#/lib/clients'
+import { formatPersonName } from '#/lib/people'
+import { cn } from '#/lib/utils'
 
-const headCls =
-  'h-auto bg-[#fafbfc] px-3 py-3 text-[11px] font-bold uppercase tracking-[0.05em] text-muted-foreground'
 const subHeadCls =
   'h-auto px-3 py-2 text-[10.5px] font-bold uppercase tracking-[0.05em] text-muted-foreground'
 
@@ -54,11 +72,8 @@ export function PartnerOverview({ partner }: { partner: PartnerResponse }) {
     })),
   })
 
-  const { data: usersData, isLoading: usersLoading } = useQuery({
-    queryKey: ['users', 'all'],
-    queryFn: () => getUsers({ page: 0, size: 200 }),
-  })
-  const managers = (usersData?.content ?? []).filter(
+  const { data: usersData, isLoading: usersLoading } = useAllUsers()
+  const managers = (usersData?.items ?? []).filter(
     (u) => u.partnerId === partnerId,
   )
 
@@ -78,36 +93,7 @@ export function PartnerOverview({ partner }: { partner: PartnerResponse }) {
 
   return (
     <div className="flex flex-col gap-[18px]">
-      <div className="grid gap-[18px] lg:grid-cols-2">
-        <Card className="gap-0 p-6">
-          <div className="text-[16px] font-bold tracking-[-0.01em]">
-            Informations
-          </div>
-          <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-4 text-[13.5px]">
-            <Field label="Nom">{partner.name}</Field>
-            <Field label="Code distributeur">{partner.distributorCode}</Field>
-            <Field label="ID site">{partner.idSite}</Field>
-            <Field label="Email">{partner.email ?? '—'}</Field>
-            <Field label="Localisation">{partner.location ?? '—'}</Field>
-            <Field label="Créé le">{formatDate(partner.createdAt)}</Field>
-            <Field label="Dernière mise à jour">
-              {formatDate(partner.updatedAt)}
-            </Field>
-          </dl>
-        </Card>
-
-        <Card className="gap-0 p-6">
-          <div className="text-[16px] font-bold tracking-[-0.01em]">
-            Manager{managers.length > 1 ? 's' : ''}
-          </div>
-          <p className="mt-1 mb-4 text-[13.5px] text-muted-foreground">
-            Responsable(s) qui pilote(nt) ce partenaire.
-          </p>
-          <PartnerManagerList managers={managers} isLoading={usersLoading} />
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-3 gap-4">
+      <KpiRow cols={3} className="mb-0">
         <KpiCard
           icon={<Building2 className="size-5 text-primary" />}
           iconClass="bg-primary/[0.08]"
@@ -115,17 +101,52 @@ export function PartnerOverview({ partner }: { partner: PartnerResponse }) {
           label="Agences"
         />
         <KpiCard
-          icon={<UserRound className="size-5 text-[#1c8a57]" />}
+          icon={<Users className="size-5 text-[#167347]" />}
           iconClass="bg-[#1c8a57]/10"
           value={agencySellersLoading ? '…' : agencySellersCount}
           label="Agents en agence"
         />
         <KpiCard
-          icon={<UserRound className="size-5 text-[#9a7400]" />}
+          icon={<UserRound className="size-5 text-[#8a6600]" />}
           iconClass="bg-[#ffc61e]/20"
           value={directSellersQuery.isLoading ? '…' : directSellers.length}
           label="Agents directs"
         />
+      </KpiRow>
+
+      <div className="grid gap-[18px] lg:grid-cols-2">
+        <SectionCard title="Informations">
+          <InfoList columns={2}>
+            <InfoRow label="Nom">{partner.name}</InfoRow>
+            <InfoRow label="Code distributeur">
+              {partner.distributorCode}
+            </InfoRow>
+            <InfoRow label="ID site">{partner.idSite}</InfoRow>
+            <InfoRow label="Email" placeholder="Non renseigné">
+              {partner.email}
+            </InfoRow>
+            <InfoRow label="Localisation" placeholder="Non renseignée">
+              {partner.location}
+            </InfoRow>
+            <InfoRow label="Créé le">
+              {formatClaimDate(partner.createdAt)}
+            </InfoRow>
+            <InfoRow label="Dernière mise à jour">
+              {formatClaimDate(partner.updatedAt)}
+            </InfoRow>
+          </InfoList>
+        </SectionCard>
+
+        <SectionCard
+          title={`Manager${managers.length > 1 ? 's' : ''}`}
+          description="Responsable(s) qui pilote(nt) ce partenaire."
+        >
+          <PartnerManagerList
+            managers={managers}
+            isLoading={usersLoading}
+            attachToPartnerId={partnerId}
+          />
+        </SectionCard>
       </div>
 
       <AgenciesSection
@@ -146,26 +167,11 @@ export function PartnerOverview({ partner }: { partner: PartnerResponse }) {
       />
 
       {truncated && (
-        <p className="text-[13px] text-[#9a7400]">
+        <p className="rounded-lg bg-[#fef3da] px-3.5 py-2.5 text-[13px] text-[#8a6600]">
           Liste tronquée (100+ éléments) · toutes les agences ou tous les agents
           ne sont pas affichés.
         </p>
       )}
-    </div>
-  )
-}
-
-function Field({
-  label,
-  children,
-}: {
-  label: string
-  children: React.ReactNode
-}) {
-  return (
-    <div>
-      <dt className="text-[12.5px] text-muted-foreground">{label}</dt>
-      <dd className="mt-[3px] font-semibold">{children}</dd>
     </div>
   )
 }
@@ -204,18 +210,14 @@ function AgenciesSection({
     })
   }
 
+  const errorState = error ? mapClaimError(error).kind === 'forbidden' : false
   return (
-    <Card className="gap-0 overflow-hidden py-0">
-      <div className="flex items-center justify-between px-[22px] pt-5 pb-4">
-        <div>
-          <div className="text-[16px] font-bold tracking-[-0.01em]">
-            Agences
-          </div>
-          <p className="mt-1 text-[13.5px] text-muted-foreground">
-            Dépliez une agence pour voir les agents qui y sont rattachés.
-          </p>
-        </div>
-        {!isLoading && !error && (
+    <SectionCard
+      flush
+      title="Agences"
+      description="Dépliez une agence pour voir les agents qui y sont rattachés."
+      action={
+        !isLoading && !error ? (
           <div className="flex items-center gap-2.5">
             <Badge variant="secondary" className="rounded-md text-[11.5px]">
               {agencies.length} agence{agencies.length > 1 ? 's' : ''}
@@ -232,92 +234,110 @@ function AgenciesSection({
               </Button>
             )}
           </div>
-        )}
-      </div>
-      <Table>
-        <TableHeader>
-          <TableRow className="hover:bg-transparent">
-            <TableHead className={cn(headCls, 'w-[52px] pl-[22px]')} />
-            <TableHead className={headCls}>Nom</TableHead>
-            <TableHead className={headCls}>Code distributeur</TableHead>
-            <TableHead className={headCls}>Email</TableHead>
-            <TableHead className={headCls}>Localisation</TableHead>
-            <TableHead className={cn(headCls, 'pr-[22px] text-right')}>
-              Agents
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {isLoading ? (
-            <MessageRow>Chargement des agences…</MessageRow>
-          ) : error ? (
-            <MessageRow destructive>
-              Impossible de charger les agences de ce partenaire.
-            </MessageRow>
-          ) : agencies.length === 0 ? (
-            <MessageRow>Aucune agence pour ce partenaire.</MessageRow>
-          ) : (
-            agencies.map((agency, index) => {
-              const agencySellers = sellersByAgency[index]
-              const open = isOpen(agency.id)
-              return (
-                <Fragment key={agency.id}>
-                  <TableRow>
-                    <TableCell className="py-3 pl-[22px]">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={
-                          open
-                            ? `Masquer les agents de ${agency.name}`
-                            : `Afficher les agents de ${agency.name}`
-                        }
-                        onClick={() => toggle(agency.id)}
-                      >
-                        {open ? <ChevronDown /> : <ChevronRight />}
-                      </Button>
-                    </TableCell>
-                    <TableCell className="py-3 text-[13.5px] font-semibold">
-                      {agency.name}
-                    </TableCell>
-                    <TableCell className="py-3 text-[13px] font-semibold text-muted-foreground">
-                      {agency.distributorCode}
-                    </TableCell>
-                    <TableCell className="py-3 text-[13px] text-muted-foreground">
-                      {agency.email ?? '—'}
-                    </TableCell>
-                    <TableCell className="py-3 text-[13px] text-muted-foreground">
-                      {agency.location ?? '—'}
-                    </TableCell>
-                    <TableCell className="py-3 pr-[22px] text-right text-[13px] font-semibold tabular-nums">
-                      {agencySellers.isLoading
-                        ? '…'
-                        : agencySellers.isError
-                          ? '—'
-                          : agencySellers.sellers.length}
-                    </TableCell>
-                  </TableRow>
-                  {open && (
-                    <TableRow className="bg-muted/20 hover:bg-muted/20">
-                      <TableCell colSpan={6} className="px-[70px] py-4">
-                        <AgencySellersTable data={agencySellers} />
+        ) : undefined
+      }
+    >
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <DataTableHead first className="w-[64px]">
+                <span className="sr-only">Déplier</span>
+              </DataTableHead>
+              <DataTableHead>Nom</DataTableHead>
+              <DataTableHead>Code distributeur</DataTableHead>
+              <DataTableHead>Email</DataTableHead>
+              <DataTableHead>Localisation</DataTableHead>
+              <DataTableHead className="pr-[22px] text-right">
+                Agents
+              </DataTableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableSkeletonRows rows={3} columns={[8, 36, 20, 36, 24, 8]} />
+            ) : error ? (
+              <TableErrorState
+                colSpan={6}
+                forbidden={errorState}
+                title="Impossible de charger les agences de ce partenaire."
+              />
+            ) : agencies.length === 0 ? (
+              <TableEmptyState
+                colSpan={6}
+                icon={Building2}
+                title="Aucune agence pour ce partenaire."
+                description="Utilisez « Ajouter une relation » pour rattacher des agences."
+              />
+            ) : (
+              agencies.map((agency, index) => {
+                const agencySellers = sellersByAgency[index]
+                const open = isOpen(agency.id)
+                return (
+                  <Fragment key={agency.id}>
+                    <TableRow className="hover:bg-[#f6f8fc]">
+                      <TableCell className={FIRST_CELL_CLASS}>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={
+                            open
+                              ? `Masquer les agents de ${agency.name}`
+                              : `Afficher les agents de ${agency.name}`
+                          }
+                          aria-expanded={open}
+                          onClick={() => toggle(agency.id)}
+                        >
+                          {open ? <ChevronDown /> : <ChevronRight />}
+                        </Button>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <EntityAvatar name={agency.name} />
+                          <span className="font-semibold">{agency.name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-semibold text-muted-foreground">
+                        {agency.distributorCode}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {agency.email || '—'}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {agency.location || '—'}
+                      </TableCell>
+                      <TableCell className="pr-[22px] text-right font-semibold tabular-nums">
+                        {agencySellers.isLoading
+                          ? '…'
+                          : agencySellers.isError
+                            ? '—'
+                            : agencySellers.sellers.length}
                       </TableCell>
                     </TableRow>
-                  )}
-                </Fragment>
-              )
-            })
-          )}
-        </TableBody>
-      </Table>
-    </Card>
+                    {open && (
+                      <TableRow className="bg-[#fafbfc] hover:bg-[#fafbfc]">
+                        <TableCell
+                          colSpan={6}
+                          className="px-[22px] py-4 md:pl-[86px]"
+                        >
+                          <AgencySellersTable data={agencySellers} />
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </Fragment>
+                )
+              })
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </SectionCard>
   )
 }
 
 function AgencySellersTable({ data }: { data: AgencySellers }) {
-  if (data.isLoading)
-    return <p className="text-[13px] text-muted-foreground">Chargement…</p>
+  if (data.isLoading) return <Skeleton className="h-16 rounded-lg" />
   if (data.isError) {
     return (
       <p className="text-[13px] text-destructive">
@@ -332,7 +352,7 @@ function AgencySellersTable({ data }: { data: AgencySellers }) {
       </p>
     )
   return (
-    <div className="overflow-hidden rounded-lg border bg-card">
+    <div className="overflow-hidden rounded-lg border bg-card shadow-xs">
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
@@ -346,10 +366,10 @@ function AgencySellersTable({ data }: { data: AgencySellers }) {
           {data.sellers.map((s) => (
             <TableRow key={s.id}>
               <TableCell className="py-2.5 pl-[14px] text-[13px] font-semibold">
-                {s.firstName} {s.lastName}
+                {formatPersonName(s.firstName, s.lastName)}
               </TableCell>
-              <TableCell className="py-2.5 text-[12.5px] text-muted-foreground">
-                {s.phoneNumber}
+              <TableCell className="py-2.5 text-[12.5px] whitespace-nowrap text-muted-foreground tabular-nums">
+                {formatPhone(s.phoneNumber)}
               </TableCell>
               <TableCell className="py-2.5 text-[12.5px] font-semibold text-muted-foreground">
                 {s.distributorCode}
@@ -375,90 +395,79 @@ function DirectSellersSection({
   error: unknown
 }) {
   return (
-    <Card className="gap-0 overflow-hidden py-0">
-      <div className="flex items-center justify-between px-[22px] pt-5 pb-4">
-        <div>
-          <div className="text-[16px] font-bold tracking-[-0.01em]">
-            Agents directs
-          </div>
-          <p className="mt-1 text-[13.5px] text-muted-foreground">
-            Agents rattachés au partenaire, sans passer par une agence.
-          </p>
-        </div>
-        {!isLoading && !error && (
+    <SectionCard
+      flush
+      title="Agents directs"
+      description="Agents rattachés au partenaire, sans passer par une agence."
+      action={
+        !isLoading && !error ? (
           <Badge variant="secondary" className="rounded-md text-[11.5px]">
             {sellers.length} agent{sellers.length > 1 ? 's' : ''}
           </Badge>
-        )}
+        ) : undefined
+      }
+    >
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <DataTableHead first>Agent</DataTableHead>
+              <DataTableHead>Téléphone</DataTableHead>
+              <DataTableHead>Code distributeur</DataTableHead>
+              <DataTableHead>Email</DataTableHead>
+              <DataTableHead className="pr-[22px]">Créé le</DataTableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableSkeletonRows
+                rows={3}
+                columns={[40, 28, 20, 36, 20]}
+                leading="avatar"
+              />
+            ) : error ? (
+              <TableErrorState
+                colSpan={5}
+                forbidden={mapClaimError(error).kind === 'forbidden'}
+                title="Impossible de charger les agents directs de ce partenaire."
+              />
+            ) : sellers.length === 0 ? (
+              <TableEmptyState
+                colSpan={5}
+                icon={UserRound}
+                title="Aucun agent rattaché directement au partenaire."
+              />
+            ) : (
+              sellers.map((s) => (
+                <TableRow key={s.id} className="hover:bg-[#f6f8fc]">
+                  <TableCell className={FIRST_CELL_CLASS}>
+                    <div className="flex items-center gap-3">
+                      <EntityAvatar
+                        name={formatPersonName(s.firstName, s.lastName)}
+                      />
+                      <span className="font-semibold">
+                        {formatPersonName(s.firstName, s.lastName)}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap tabular-nums">
+                    {formatPhone(s.phoneNumber)}
+                  </TableCell>
+                  <TableCell className="font-semibold text-muted-foreground">
+                    {s.distributorCode}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {s.email || '—'}
+                  </TableCell>
+                  <TableCell className="pr-[22px] whitespace-nowrap text-muted-foreground">
+                    {formatClaimDate(s.createdAt)}
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow className="hover:bg-transparent">
-            <TableHead className={cn(headCls, 'pl-[22px]')}>Agent</TableHead>
-            <TableHead className={headCls}>Téléphone</TableHead>
-            <TableHead className={headCls}>Code distributeur</TableHead>
-            <TableHead className={headCls}>Email</TableHead>
-            <TableHead className={cn(headCls, 'pr-[22px]')}>Créé le</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {isLoading ? (
-            <MessageRow colSpan={5}>Chargement des agents…</MessageRow>
-          ) : error ? (
-            <MessageRow colSpan={5} destructive>
-              Impossible de charger les agents directs de ce partenaire.
-            </MessageRow>
-          ) : sellers.length === 0 ? (
-            <MessageRow colSpan={5}>
-              Aucun agent rattaché directement au partenaire.
-            </MessageRow>
-          ) : (
-            sellers.map((s) => (
-              <TableRow key={s.id}>
-                <TableCell className="py-3 pl-[22px] text-[13.5px] font-semibold">
-                  {s.firstName} {s.lastName}
-                </TableCell>
-                <TableCell className="py-3 text-[13px] text-muted-foreground">
-                  {s.phoneNumber}
-                </TableCell>
-                <TableCell className="py-3 text-[13px] font-semibold text-muted-foreground">
-                  {s.distributorCode}
-                </TableCell>
-                <TableCell className="py-3 text-[13px] text-muted-foreground">
-                  {s.email ?? '—'}
-                </TableCell>
-                <TableCell className="py-3 pr-[22px] text-[13px] text-muted-foreground">
-                  {formatDate(s.createdAt)}
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-    </Card>
-  )
-}
-
-function MessageRow({
-  children,
-  colSpan = 6,
-  destructive,
-}: {
-  children: React.ReactNode
-  colSpan?: number
-  destructive?: boolean
-}) {
-  return (
-    <TableRow className="hover:bg-transparent">
-      <TableCell
-        colSpan={colSpan}
-        className={cn(
-          'py-8 text-center text-[13.5px] text-muted-foreground',
-          destructive && 'text-destructive',
-        )}
-      >
-        {children}
-      </TableCell>
-    </TableRow>
+    </SectionCard>
   )
 }

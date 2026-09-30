@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '#/components/ui/dialog'
+import { useConfirmDiscard } from '#/components/forms/unsaved-changes'
 import type { ClaimTransition } from '#/services/claims'
 
 const details: Record<
@@ -57,6 +58,9 @@ export function ClaimActionDialog({
   const config = details[action]
   const [comment, setComment] = useState('')
   const [validation, setValidation] = useState<string | null>(null)
+  const { requestClose, dialog } = useConfirmDiscard(
+    comment.trim() !== '' && !pending,
+  )
   const submit = () => {
     const trimmed = comment.trim()
     if (config.required && !trimmed) {
@@ -73,7 +77,7 @@ export function ClaimActionDialog({
     <Dialog
       open
       onOpenChange={(open) => {
-        if (!open && !pending) onClose()
+        if (!open && !pending) requestClose(onClose)
       }}
     >
       <DialogContent className="sm:max-w-[480px]">
@@ -119,17 +123,24 @@ export function ClaimActionDialog({
           )}
         </div>
         <DialogFooter>
-          <Button variant="outline" disabled={pending} onClick={onClose}>
+          <Button
+            variant="outline"
+            className="rounded-[11px]"
+            disabled={pending}
+            onClick={() => requestClose(onClose)}
+          >
             Annuler
           </Button>
           <Button
             variant={action === 'reject' ? 'destructive' : 'default'}
+            className="rounded-[11px]"
             disabled={pending}
             onClick={submit}
           >
             {pending ? 'Traitement…' : config.label}
           </Button>
         </DialogFooter>
+        {dialog}
       </DialogContent>
     </Dialog>
   )

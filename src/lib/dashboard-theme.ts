@@ -13,10 +13,10 @@ export function statusBadgeClass(status: string): string {
     case 'Validé':
     case 'Actif':
     case 'Sain':
-      return 'bg-[#e7f6ee] text-[#1c8a57]'
+      return 'bg-[#e7f6ee] text-[#167347]'
     case 'En expertise':
     case 'En attente':
-      return 'bg-[#fef3da] text-[#9a7400]'
+      return 'bg-[#fef3da] text-[#8a6600]'
     case 'Onboarding':
     case 'Déclaré':
       return 'bg-[#e7eefb] text-[#1f53b0]'
@@ -25,10 +25,21 @@ export function statusBadgeClass(status: string): string {
       return 'bg-[#fbe9e9] text-[#c0392b]'
     case 'Résilié':
     case 'Inactif':
-      return 'bg-[#f0f1f4] text-[#6b7585]'
+      return 'bg-[#f0f1f4] text-[#5b6577]'
     default:
-      return 'bg-[#f0f1f4] text-[#6b7585]'
+      return 'bg-[#f0f1f4] text-[#5b6577]'
   }
+}
+
+export type PillTone = 'success' | 'warning' | 'info' | 'danger' | 'neutral'
+
+/** Semantic tone → Tailwind classes for a pill/badge (same palette as `statusBadgeClass`). */
+export const PILL_TONES: Record<PillTone, string> = {
+  success: 'bg-[#e7f6ee] text-[#167347]',
+  warning: 'bg-[#fef3da] text-[#8a6600]',
+  info: 'bg-[#e7eefb] text-[#1f53b0]',
+  danger: 'bg-[#fbe9e9] text-[#c0392b]',
+  neutral: 'bg-[#f0f1f4] text-[#5b6577]',
 }
 
 /** Raw hex for data-viz fills (donut, bars) that cannot use a semantic token. */

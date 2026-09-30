@@ -1,4 +1,6 @@
-import { Download } from 'lucide-react'
+import { Download, FileText } from 'lucide-react'
+import { formatPersonName } from '#/lib/people'
+import { EntityAvatar } from '#/components/layout/EntityAvatar'
 import { Button } from '#/components/ui/button'
 import { formatClaimDate, formatFileSize } from '#/lib/claims'
 import { cn } from '#/lib/utils'
@@ -15,55 +17,86 @@ export function SupportMessageBubble({
   onDownload: (attachment: SupportAttachmentResponse) => void
 }) {
   const fromClient = message.senderType === 'CLIENT'
+  const senderLabel = fromClient
+    ? formatPersonName(message.senderLabel)
+    : message.senderLabel
   const attachments = message.attachments ?? []
   return (
     <div
       className={cn(
-        'flex flex-col gap-1',
-        fromClient ? 'items-start' : 'items-end',
+        'flex items-end gap-2.5',
+        fromClient ? 'justify-start' : 'justify-end',
       )}
     >
-      <span className="px-1 text-[11.5px] font-semibold text-muted-foreground">
-        {message.senderLabel} · {formatClaimDate(message.createdAt, true)}
-      </span>
+      {fromClient && (
+        <EntityAvatar
+          name={senderLabel}
+          className="size-8 shrink-0 text-[11px]"
+        />
+      )}
       <div
         className={cn(
-          'max-w-[78%] rounded-2xl border px-4 py-2.5 text-sm',
-          fromClient
-            ? 'rounded-tl-sm border-[#e7eaf0] bg-[#f4f6f9]'
-            : 'rounded-tr-sm border-primary/15 bg-primary/[0.07]',
+          'flex max-w-[78%] flex-col gap-1',
+          fromClient ? 'items-start' : 'items-end',
         )}
       >
-        <p className="whitespace-pre-wrap break-words">{message.body}</p>
-        {attachments.length > 0 && (
-          <ul className="mt-2 space-y-1.5 border-t border-black/[0.06] pt-2">
-            {attachments.map((attachment) => (
-              <li
-                key={attachment.id}
-                className="flex items-center justify-between gap-3"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-[12.5px] font-semibold">
-                    {attachment.name}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground">
-                    {attachment.contentType} ·{' '}
-                    {formatFileSize(attachment.sizeBytes)}
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="size-8 shrink-0 p-0"
-                  aria-label={`Télécharger ${attachment.name}`}
-                  onClick={() => onDownload(attachment)}
+        <span className="px-1 text-[11.5px] font-semibold text-muted-foreground">
+          {senderLabel} · {formatClaimDate(message.createdAt, true)}
+        </span>
+        <div
+          className={cn(
+            'rounded-2xl px-4 py-2.5 text-sm shadow-sm',
+            fromClient
+              ? 'rounded-bl-sm border border-border bg-card'
+              : 'rounded-br-sm bg-primary text-primary-foreground',
+          )}
+        >
+          <p className="whitespace-pre-wrap break-words">{message.body}</p>
+          {attachments.length > 0 && (
+            <ul
+              className={cn(
+                'mt-2 space-y-1.5 border-t pt-2',
+                fromClient ? 'border-border' : 'border-white/20',
+              )}
+            >
+              {attachments.map((attachment) => (
+                <li
+                  key={attachment.id}
+                  className="flex items-center justify-between gap-3"
                 >
-                  <Download className="size-4" />
-                </Button>
-              </li>
-            ))}
-          </ul>
-        )}
+                  <div className="flex min-w-0 items-center gap-2">
+                    <FileText className="size-4 shrink-0 opacity-70" />
+                    <div className="min-w-0">
+                      <p className="truncate text-[12.5px] font-semibold">
+                        {attachment.name}
+                      </p>
+                      <p
+                        className={cn(
+                          'text-[11px]',
+                          fromClient
+                            ? 'text-muted-foreground'
+                            : 'text-primary-foreground/70',
+                        )}
+                      >
+                        {attachment.contentType} ·{' '}
+                        {formatFileSize(attachment.sizeBytes)}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="size-8 shrink-0 rounded-[9px] bg-card p-0 text-foreground"
+                    aria-label={`Télécharger ${attachment.name}`}
+                    onClick={() => onDownload(attachment)}
+                  >
+                    <Download className="size-4" />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
     </div>
   )

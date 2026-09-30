@@ -32,6 +32,8 @@ import { Input } from '#/components/ui/input'
 import { Separator } from '#/components/ui/separator'
 import { Label } from '#/components/ui/label'
 import { ConfirmDialog } from '#/components/dashboard/ConfirmDialog'
+import { useConfirmDiscard } from '#/components/forms/unsaved-changes'
+import { formatRoleName } from '#/lib/admin-roles'
 
 interface PermissionDrawerProps {
   open: boolean
@@ -66,6 +68,7 @@ export function PermissionDrawer({
   const [descriptionTouched, setDescriptionTouched] = useState(false)
   const [openedFor, setOpenedFor] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [initial, setInitial] = useState({ label: '', description: '' })
 
   // Réinitialisation à chaque ouverture (création = clé `new`).
   const openKey = open ? (permission ? `edit-${permission.id}` : 'new') : null
@@ -80,6 +83,10 @@ export function PermissionDrawer({
     setDescription(custom?.description ?? '')
     setLabelTouched(!!custom)
     setDescriptionTouched(!!custom)
+    setInitial({
+      label: custom?.label ?? '',
+      description: custom?.description ?? '',
+    })
   }
 
   // Rôles porteurs de la permission : ce qu'on perd exactement en supprimant.
@@ -180,15 +187,23 @@ export function PermissionDrawer({
     },
   })
 
+  const dirty =
+    open &&
+    (name !== (permission?.name ?? '') ||
+      (labelTouched && label !== initial.label) ||
+      (descriptionTouched && description !== initial.description))
+  const { requestClose, dialog: discardDialog } = useConfirmDiscard(dirty)
+
   const hasOverride = !!permission && !!permissionLabelOverride(permission.name)
 
   return (
-    <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
+    <Sheet open={open} onOpenChange={(o) => !o && requestClose(onClose)}>
       <SheetContent
         side="right"
         showCloseButton={false}
         className="w-[460px] gap-0 p-0 sm:max-w-[460px]"
       >
+        {discardDialog}
         <SheetHeader className="flex-row items-start justify-between gap-3.5 border-b p-[26px] py-[22px]">
           <div className="flex flex-col gap-0">
             <div className="mb-[6px] text-[11.5px] font-bold tracking-[0.06em] text-muted-foreground uppercase">
@@ -310,7 +325,7 @@ export function PermissionDrawer({
                   <p className="max-w-[280px] text-[12px] leading-relaxed text-muted-foreground">
                     {carriedBy.length === 0
                       ? "Aucun rôle ne porte cette permission pour l'instant."
-                      : `Portée par ${carriedBy.length} rôle${carriedBy.length > 1 ? 's' : ''} : ${carriedBy.map((r) => r.name).join(', ')}.`}
+                      : `Portée par ${carriedBy.length} rôle${carriedBy.length > 1 ? 's' : ''} : ${carriedBy.map((r) => formatRoleName(r.name)).join(', ')}.`}
                   </p>
                   <Button
                     type="button"
@@ -359,7 +374,7 @@ export function PermissionDrawer({
           description={
             (carriedBy.length === 0
               ? `La permission ${permission.name} sera retirée du catalogue. `
-              : `La permission ${permission.name} sera retirée du catalogue et des ${carriedBy.length} rôle${carriedBy.length > 1 ? 's' : ''} qui la portent (${carriedBy.map((r) => r.name).join(', ')}) : tous les comptes concernés perdent cet accès immédiatement. `) +
+              : `La permission ${permission.name} sera retirée du catalogue et des ${carriedBy.length} rôle${carriedBy.length > 1 ? 's' : ''} qui la portent (${carriedBy.map((r) => formatRoleName(r.name)).join(', ')}) : tous les comptes concernés perdent cet accès immédiatement. `) +
             "Il n'y a pas de restauration — la recréer obligerait à la rattacher de nouveau à chaque rôle."
           }
           confirmLabel={remove.isPending ? 'Suppression…' : 'Supprimer'}

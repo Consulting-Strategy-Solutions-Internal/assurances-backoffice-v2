@@ -1,69 +1,87 @@
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { pageHead } from '#/lib/page-title'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { Headset } from 'lucide-react'
 import { z } from 'zod'
-import { Badge } from '#/components/ui/badge'
-import { Button } from '#/components/ui/button'
-import { Card } from '#/components/ui/card'
-import { Pagination } from '#/components/ui/Pagination'
-import { FormSelect } from '#/components/forms/FormSelect'
 import { PageHeader } from '#/components/dashboard/PageHeader'
+import { StatusPill } from '#/components/dashboard/StatusPill'
+import {
+  ClickableRow,
+  DataTableCard,
+  DataTableHead,
+  FIRST_CELL_CLASS,
+  RowChevron,
+  TableEmptyState,
+  TableErrorState,
+  TableSkeletonRows,
+} from '#/components/layout/DataTable'
+import { EntityAvatar } from '#/components/layout/EntityAvatar'
+import { SegmentedPills } from '#/components/layout/SegmentedPills'
+import {
+  ResultCount,
+  Toolbar,
+  ToolbarSearch,
+} from '#/components/layout/Toolbar'
+import { TruncatedText } from '#/components/layout/TruncatedText'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '#/components/ui/select'
 import { SupportStatusBadge } from '#/components/support/SupportStatusBadge'
+import { Button } from '#/components/ui/button'
+import { Pagination } from '#/components/ui/Pagination'
 import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from '#/components/ui/table'
-import { formatClaimDate } from '#/lib/claims'
-import { SUPPORT_STATUS_LABELS } from '#/lib/support'
+import { formatClaimDate, mapClaimError } from '#/lib/claims'
+import {
+  filterSupportConversations,
+  SUPPORT_STATUS_LABELS,
+} from '#/lib/support'
+import type { SupportAgentFilter } from '#/lib/support'
+import { formatPersonName } from '#/lib/people'
+import { getMe } from '#/services/auth'
 import { cn } from '#/lib/utils'
 import {
-  getSupportConversations,
+  getAllSupportConversations,
   getSupportUnreadCount,
   SUPPORT_STATUSES,
   supportKeys,
 } from '#/services/support'
-import type {
-  SupportConversationFilters,
-  SupportStatus,
-} from '#/services/support'
+import type { SupportStatus } from '#/services/support'
 
 const searchSchema = z.object({
   status: z.enum(SUPPORT_STATUSES).optional().catch(undefined),
+  agent: z.enum(['me', 'unassigned']).optional().catch(undefined),
+  q: z.string().optional().catch(undefined),
   page: z.coerce.number().int().min(0).catch(0),
   size: z.coerce.number().int().min(1).max(100).catch(20),
 })
 
 export const Route = createFileRoute('/_auth/support')({
+  head: pageHead('Support client'),
   validateSearch: searchSchema,
   component: SupportListRoute,
 })
 
-const headCls =
-  'h-auto bg-[#fafbfc] px-3 py-3 text-[11px] font-bold uppercase tracking-[0.05em] text-muted-foreground'
+const COLUMNS = 6
 
-function MessageRow({ children }: { children: React.ReactNode }) {
-  return (
-    <TableRow className="hover:bg-transparent">
-      <TableCell
-        colSpan={7}
-        className="py-10 text-center text-sm text-muted-foreground"
-      >
-        {children}
-      </TableCell>
-    </TableRow>
-  )
-}
-
-function SupportListRoute() {
+export function SupportListRoute() {
   const search = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
-  const filters: SupportConversationFilters = search
-  const { data, isLoading, error } = useQuery({
-    queryKey: supportKeys.list(filters),
-    queryFn: () => getSupportConversations(filters),
+  // Le backend ne filtre que par statut : on charge toute la file (courte) et
+  // on filtre (recherche, agent) et pagine côté client.
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: supportKeys.queue(search.status),
+    queryFn: () => getAllSupportConversations(search.status),
     // La file est partagée entre agents : on la rafraîchit périodiquement.
     refetchInterval: 30_000,
     retry: false,
@@ -74,156 +92,298 @@ function SupportListRoute() {
     refetchInterval: 30_000,
     retry: false,
   })
+  const { data: me } = useQuery({ queryKey: ['me'], queryFn: getMe })
+  const myName = me ? formatPersonName(me.firstName, me.lastName) : undefined
+
   const updateSearch = (patch: Partial<typeof search>) =>
     navigate({
       search: (previous) => ({ ...previous, ...patch, page: patch.page ?? 0 }),
+      replace: true,
     })
+
+  // Recherche : saisie locale, synchronisée (différée) dans l'URL.
+  const [query, setQuery] = useState(search.q ?? '')
+  const pushedQuery = useRef(search.q ?? '')
+  useEffect(() => {
+    const next = query.trim() === '' ? '' : query
+    if (next === pushedQuery.current) return
+    const timer = setTimeout(() => {
+      pushedQuery.current = next
+      void updateSearch({ q: next === '' ? undefined : next })
+    }, 250)
+    return () => clearTimeout(timer)
+  }, [query])
+  useEffect(() => {
+    const urlValue = search.q ?? ''
+    if (urlValue !== pushedQuery.current) {
+      pushedQuery.current = urlValue
+      setQuery(urlValue)
+    }
+  }, [search.q])
+
+  const all = useMemo(() => data?.items ?? [], [data])
+  const filtered = useMemo(
+    () =>
+      filterSupportConversations(all, {
+        query: search.q ?? '',
+        agent: search.agent ?? 'all',
+        myName,
+      }),
+    [all, search.q, search.agent, myName],
+  )
+  const totalPages = Math.max(1, Math.ceil(filtered.length / search.size))
+  const page = Math.min(search.page, totalPages - 1)
+  const conversations = filtered.slice(
+    page * search.size,
+    (page + 1) * search.size,
+  )
+  const filtering =
+    search.status !== undefined ||
+    search.agent !== undefined ||
+    Boolean(search.q)
+  const forbidden = error ? mapClaimError(error).kind === 'forbidden' : false
+  const open = (id: number) =>
+    navigate({
+      to: '/support/$conversationId',
+      params: { conversationId: String(id) },
+    })
+  const resetFilters = () => {
+    setQuery('')
+    void navigate({ search: { page: 0, size: search.size }, replace: true })
+  }
 
   return (
     <>
       <PageHeader
         title="Support client"
-        subtitle="Demandes envoyées depuis l'application mobile — file commune à tous les agents"
+        subtitle="Demandes envoyées depuis l’application mobile, dans une file commune à tous les agents."
       >
         {unread !== undefined && unread > 0 && (
-          <Badge className="rounded-full border-transparent bg-[#ffc61e]/25 px-3 py-1 text-[12px] font-bold text-[#9a7400]">
+          <StatusPill tone="warning">
             {unread} message{unread > 1 ? 's' : ''} non lu
             {unread > 1 ? 's' : ''}
-          </Badge>
+          </StatusPill>
         )}
       </PageHeader>
-      <Card className="mb-4 gap-4 p-4">
-        <div className="grid gap-3 md:grid-cols-4">
-          <FormSelect
-            id="support-status-filter"
-            label="Statut"
-            value={search.status ?? ''}
-            includeNone
-            noneLabel="Tous les statuts"
-            options={SUPPORT_STATUSES.map((status) => ({
-              value: status,
-              label: SUPPORT_STATUS_LABELS[status],
-            }))}
-            onChange={(value) =>
-              updateSearch({
-                status: value ? (value as SupportStatus) : undefined,
-              })
-            }
+
+      <Toolbar
+        search={
+          <ToolbarSearch
+            label="Rechercher un ticket"
+            placeholder="Sujet, n° de ticket, agent…"
+            value={query}
+            onChange={setQuery}
           />
-        </div>
-      </Card>
-      <Card className="gap-0 overflow-x-auto py-0">
+        }
+        filters={
+          <>
+            <Select
+              value={search.status ?? 'all'}
+              onValueChange={(value) =>
+                void updateSearch({
+                  status:
+                    value === 'all' ? undefined : (value as SupportStatus),
+                })
+              }
+            >
+              <SelectTrigger
+                aria-label="Statut"
+                className="h-10 w-[160px] rounded-[10px] bg-card"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous les statuts</SelectItem>
+                {SUPPORT_STATUSES.map((status) => (
+                  <SelectItem key={status} value={status}>
+                    {SUPPORT_STATUS_LABELS[status]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <SegmentedPills<SupportAgentFilter>
+              label="Agent"
+              value={search.agent ?? 'all'}
+              onChange={(value) =>
+                void updateSearch({
+                  agent: value === 'all' ? undefined : value,
+                })
+              }
+              options={[
+                { value: 'all', label: 'Tous' },
+                { value: 'me', label: 'Mes tickets' },
+                { value: 'unassigned', label: 'Non assignés' },
+              ]}
+            />
+          </>
+        }
+        actions={
+          filtering ? (
+            <Button
+              type="button"
+              variant="ghost"
+              className="rounded-[11px]"
+              onClick={resetFilters}
+            >
+              Réinitialiser les filtres
+            </Button>
+          ) : undefined
+        }
+      />
+
+      <ResultCount
+        note={
+          data?.capped
+            ? `Affichage limité aux ${all.length} tickets les plus récents sur ${data.total}.`
+            : undefined
+        }
+      >
+        {isLoading
+          ? 'Chargement…'
+          : error
+            ? '—'
+            : `${filtered.length} ticket${filtered.length > 1 ? 's' : ''}${
+                filtered.length !== all.length ? ` sur ${all.length}` : ''
+              }`}
+      </ResultCount>
+
+      <DataTableCard>
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              {[
-                'Sujet',
-                'Statut',
-                'Non lus',
-                'Pris en charge par',
-                'Dernière activité',
-                'Créé le',
-                'Actions',
-              ].map((label) => (
-                <TableHead
-                  key={label}
-                  className={cn(headCls, label === 'Sujet' && 'pl-[22px]')}
-                >
-                  {label}
-                </TableHead>
-              ))}
+              <DataTableHead first>Sujet</DataTableHead>
+              <DataTableHead>Statut</DataTableHead>
+              <DataTableHead>Pris en charge par</DataTableHead>
+              <DataTableHead>Dernière activité</DataTableHead>
+              <DataTableHead>Créé le</DataTableHead>
+              <DataTableHead className="w-10" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <MessageRow>Chargement des tickets…</MessageRow>
+              <TableSkeletonRows
+                columns={[56, 18, 32, 32, 32]}
+                trailing
+                rows={6}
+              />
             ) : error ? (
-              <MessageRow>Impossible de charger la file de support.</MessageRow>
-            ) : !data?.content.length ? (
-              <MessageRow>
-                {search.status !== undefined ? (
-                  <span>
-                    Aucun ticket avec ce statut.{' '}
-                    <button
-                      className="font-semibold text-primary underline"
-                      onClick={() =>
-                        navigate({ search: { page: 0, size: search.size } })
-                      }
+              <TableErrorState
+                colSpan={COLUMNS}
+                forbidden={forbidden}
+                title="Impossible de charger la file de support."
+                action={
+                  <Button
+                    variant="outline"
+                    className="rounded-[11px]"
+                    onClick={() => void refetch()}
+                  >
+                    Réessayer
+                  </Button>
+                }
+              />
+            ) : conversations.length === 0 ? (
+              <TableEmptyState
+                colSpan={COLUMNS}
+                icon={Headset}
+                title={
+                  filtering
+                    ? 'Aucun ticket ne correspond à votre recherche.'
+                    : 'Aucune demande de support pour le moment.'
+                }
+                description={
+                  filtering
+                    ? undefined
+                    : 'Les demandes des clients apparaîtront ici dès leur envoi.'
+                }
+                action={
+                  filtering ? (
+                    <Button
+                      variant="outline"
+                      className="rounded-[11px]"
+                      onClick={resetFilters}
                     >
-                      Réinitialiser
-                    </button>
-                  </span>
-                ) : (
-                  'Aucune demande de support pour le moment.'
-                )}
-              </MessageRow>
-            ) : (
-              data.content.map((conversation) => (
-                <TableRow key={conversation.id}>
-                  <TableCell className="max-w-[340px] pl-[22px]">
-                    <Link
-                      to="/support/$conversationId"
-                      params={{ conversationId: String(conversation.id) }}
-                      className={cn(
-                        'block truncate text-primary hover:underline',
-                        conversation.unreadCount > 0
-                          ? 'font-bold'
-                          : 'font-semibold',
-                      )}
-                    >
-                      {conversation.subject}
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <SupportStatusBadge status={conversation.status} />
-                  </TableCell>
-                  <TableCell>
-                    {conversation.unreadCount > 0 ? (
-                      <Badge className="rounded-full border-transparent bg-[#ffc61e]/25 px-2 py-px text-[11px] font-bold text-[#9a7400]">
-                        {conversation.unreadCount}
-                      </Badge>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {conversation.handledByName?.trim() ? (
-                      conversation.handledByName
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {formatClaimDate(conversation.lastMessageAt, true)}
-                  </TableCell>
-                  <TableCell>
-                    {formatClaimDate(conversation.createdAt, true)}
-                  </TableCell>
-                  <TableCell>
-                    <Button asChild variant="outline" size="sm">
-                      <Link
-                        to="/support/$conversationId"
-                        params={{ conversationId: String(conversation.id) }}
-                      >
-                        {conversation.status === 'OPEN' ||
-                        conversation.status === 'IN_PROGRESS'
-                          ? 'Traiter'
-                          : 'Consulter'}
-                      </Link>
+                      Réinitialiser les filtres
                     </Button>
-                  </TableCell>
-                </TableRow>
-              ))
+                  ) : undefined
+                }
+              />
+            ) : (
+              conversations.map((conversation) => {
+                const hasUnread = conversation.unreadCount > 0
+                const handler = conversation.handledByName?.trim()
+                return (
+                  <ClickableRow
+                    key={conversation.id}
+                    onActivate={() => void open(conversation.id)}
+                    aria-label={`Ouvrir le ticket ${conversation.subject}`}
+                  >
+                    <TableCell
+                      className={cn(FIRST_CELL_CLASS, 'max-w-[340px]')}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span
+                          aria-hidden
+                          className={cn(
+                            'size-2 shrink-0 rounded-full',
+                            hasUnread ? 'bg-[#ffc61e]' : 'bg-transparent',
+                          )}
+                        />
+                        <div className="min-w-0">
+                          <TruncatedText
+                            className={cn(
+                              hasUnread ? 'font-bold' : 'font-semibold',
+                            )}
+                          >
+                            {conversation.subject}
+                          </TruncatedText>
+                          <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
+                            Ticket #{conversation.id}
+                            {hasUnread && (
+                              <StatusPill tone="warning">
+                                {conversation.unreadCount} non lu
+                                {conversation.unreadCount > 1 ? 's' : ''}
+                              </StatusPill>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <SupportStatusBadge status={conversation.status} />
+                    </TableCell>
+                    <TableCell>
+                      {handler ? (
+                        <div className="flex items-center gap-2">
+                          <EntityAvatar
+                            name={handler}
+                            className="size-7 text-[11px]"
+                          />
+                          <span className="font-medium">{handler}</span>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap tabular-nums">
+                      {formatClaimDate(conversation.lastMessageAt, true)}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-muted-foreground tabular-nums">
+                      {formatClaimDate(conversation.createdAt, true)}
+                    </TableCell>
+                    <RowChevron />
+                  </ClickableRow>
+                )
+              })
             )}
           </TableBody>
         </Table>
-      </Card>
+      </DataTableCard>
       <Pagination
-        page={search.page}
-        totalPages={data?.totalPages ?? 0}
-        isLast={data?.last ?? true}
-        onPrev={() => updateSearch({ page: search.page - 1 })}
-        onNext={() => updateSearch({ page: search.page + 1 })}
+        page={page}
+        totalPages={totalPages}
+        isLast={page >= totalPages - 1}
+        onPrev={() => void updateSearch({ page: page - 1 })}
+        onNext={() => void updateSearch({ page: page + 1 })}
       />
     </>
   )

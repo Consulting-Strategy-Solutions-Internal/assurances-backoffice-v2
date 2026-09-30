@@ -1,35 +1,54 @@
+import { pageHead } from '#/lib/page-title'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, Plus } from 'lucide-react'
+import { useState } from 'react'
+import { Pencil, Plus, TriangleAlert } from 'lucide-react'
 import { getPartner } from '#/services/partners'
+import { EditPartnerModal } from '#/components/partners/EditPartnerModal'
 import { PartnerOverview } from '#/components/partners/PartnerOverview'
-import { Card } from '#/components/ui/card'
+import { usePermissions } from '#/components/dashboard/use-permissions'
+import { StatusPill } from '#/components/dashboard/StatusPill'
+import { BackLink } from '#/components/layout/BackLink'
+import { DetailHeaderCard } from '#/components/layout/DetailHeaderCard'
+import { EmptyState } from '#/components/layout/EmptyState'
+import { EntityAvatar } from '#/components/layout/EntityAvatar'
 import { Button } from '#/components/ui/button'
-import { Badge } from '#/components/ui/badge'
+import { Skeleton } from '#/components/ui/skeleton'
+import { mapClaimError } from '#/lib/claims'
 
 export const Route = createFileRoute('/_auth/partners_/$partnerId')({
+  head: pageHead('Fiche partenaire'),
   component: PartnerDetailPage,
 })
 
-function BackLink() {
+function StateCard({
+  title,
+  description,
+}: {
+  title: string
+  description: string
+}) {
   return (
-    <Button
-      asChild
-      variant="ghost"
-      size="sm"
-      className="mb-3 -ml-2 rounded-[10px] text-muted-foreground"
-    >
-      <Link to="/partners">
-        <ArrowLeft />
-        Retour aux partenaires
-      </Link>
-    </Button>
+    <EmptyState
+      variant="card"
+      icon={TriangleAlert}
+      title={title}
+      description={description}
+      action={
+        <Button asChild>
+          <Link to="/partners">Retour aux partenaires</Link>
+        </Button>
+      }
+    />
   )
 }
 
 function PartnerDetailPage() {
   const { partnerId } = Route.useParams()
   const id = Number(partnerId)
+  const { can } = usePermissions()
+  const canEdit = can('partner:write')
+  const [editing, setEditing] = useState(false)
 
   const {
     data: partner,
@@ -43,64 +62,92 @@ function PartnerDetailPage() {
 
   if (isLoading) {
     return (
-      <Card className="gap-0 py-0">
-        <div className="p-9 text-center text-sm text-muted-foreground">
-          Chargement…
+      <div className="flex flex-col gap-[18px]">
+        <Skeleton className="h-36 rounded-xl" />
+        <div className="grid grid-cols-3 gap-4">
+          <Skeleton className="h-[122px] rounded-2xl" />
+          <Skeleton className="h-[122px] rounded-2xl" />
+          <Skeleton className="h-[122px] rounded-2xl" />
         </div>
-      </Card>
+        <Skeleton className="h-64 rounded-xl" />
+      </div>
     )
   }
   if (error || !partner) {
+    const kind = error ? mapClaimError(error).kind : 'not-found'
     return (
-      <>
-        <BackLink />
-        <Card className="gap-0 py-0">
-          <div className="p-9 text-center text-[13.5px] text-destructive">
-            Partenaire introuvable.
-          </div>
-        </Card>
-      </>
+      <div className="flex flex-col gap-[18px]">
+        <BackLink to="/partners">Retour aux partenaires</BackLink>
+        {kind === 'forbidden' ? (
+          <StateCard
+            title="Accès refusé."
+            description="Vous n’avez pas les droits nécessaires pour consulter ce partenaire."
+          />
+        ) : kind === 'not-found' ? (
+          <StateCard
+            title="Partenaire introuvable"
+            description="Ce partenaire n’existe pas ou a été supprimé."
+          />
+        ) : (
+          <StateCard
+            title="Impossible de charger le partenaire"
+            description="Une erreur est survenue. Réessayez dans un instant."
+          />
+        )}
+      </div>
     )
   }
 
   return (
-    <>
-      <BackLink />
+    <div className="flex flex-col gap-[18px]">
+      <BackLink to="/partners">Retour aux partenaires</BackLink>
 
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-[26px] font-extrabold tracking-[-0.03em]">
-              {partner.name}
-            </h1>
-            <Badge
-              variant="secondary"
-              className="rounded-md px-2.5 py-1 text-[12px] font-semibold"
+      <DetailHeaderCard
+        leading={
+          <EntityAvatar name={partner.name} className="size-[72px] text-2xl" />
+        }
+        title={partner.name}
+        meta={`Partenaire #${partner.id}${partner.location ? ` · ${partner.location}` : ''}`}
+        pills={
+          <StatusPill tone="info">Code {partner.distributorCode}</StatusPill>
+        }
+        actions={
+          <>
+            <Button
+              variant="outline"
+              className="rounded-[11px]"
+              disabled={!canEdit}
+              title={
+                canEdit
+                  ? undefined
+                  : 'Vous n’avez pas la permission requise (partner:write).'
+              }
+              onClick={() => setEditing(true)}
             >
-              Code {partner.distributorCode}
-            </Badge>
-          </div>
-          <p className="mt-[7px] text-sm text-muted-foreground">
-            Partenaire #{partner.id}
-            {partner.location ? ` · ${partner.location}` : ''} · agences, agents
-            et manager du réseau.
-          </p>
-        </div>
-        <Button
-          asChild
-          className="rounded-[11px] shadow-[0_4px_14px_rgba(0,51,127,0.22)]"
-        >
-          <Link
-            to="/partners/$partnerId/relations"
-            params={{ partnerId: String(partner.id) }}
-          >
-            <Plus />
-            Ajouter une relation
-          </Link>
-        </Button>
-      </div>
+              <Pencil />
+              Modifier
+            </Button>
+            <Button
+              asChild
+              className="rounded-[11px] shadow-[0_4px_14px_rgba(0,51,127,0.22)]"
+            >
+              <Link
+                to="/partners/$partnerId/relations"
+                params={{ partnerId: String(partner.id) }}
+              >
+                <Plus />
+                Ajouter une relation
+              </Link>
+            </Button>
+          </>
+        }
+      />
+
+      {editing && (
+        <EditPartnerModal partner={partner} onClose={() => setEditing(false)} />
+      )}
 
       <PartnerOverview partner={partner} />
-    </>
+    </div>
   )
 }

@@ -1,3 +1,4 @@
+import { pageHead } from '#/lib/page-title'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useForm } from '@tanstack/react-form'
 import { z } from 'zod'
@@ -6,11 +7,16 @@ import { isAxiosError } from 'axios'
 import { ArrowLeft, CheckCircle2, TriangleAlert } from 'lucide-react'
 import { resetPassword } from '#/services/auth'
 import { Button } from '#/components/ui/button'
-import { Card } from '#/components/ui/card'
 import { FormField } from '#/components/forms/FormField'
-import { AuthShell } from '#/components/auth/AuthShell'
+import {
+  AuthCard,
+  AuthHeading,
+  AUTH_LINK_CLASS,
+  AuthShell,
+} from '#/components/auth/AuthShell'
 
 export const Route = createFileRoute('/reset-password')({
+  head: pageHead('Nouveau mot de passe'),
   validateSearch: z.object({
     token: z.string().optional().catch(undefined),
   }),
@@ -67,7 +73,7 @@ function ResetPasswordPage() {
   if (!token) {
     return (
       <AuthShell>
-        <Card className="w-full max-w-[400px] gap-0 rounded-2xl p-7 shadow-[0_20px_60px_rgba(0,20,60,0.35)]">
+        <AuthCard>
           <div className="flex flex-col items-center text-center">
             <div className="mb-4 flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
               <TriangleAlert className="size-6" />
@@ -86,14 +92,14 @@ function ResetPasswordPage() {
               <Link to="/forgot-password">Demander un nouveau lien</Link>
             </Button>
           </div>
-        </Card>
+        </AuthCard>
       </AuthShell>
     )
   }
 
   return (
     <AuthShell>
-      <Card className="w-full max-w-[400px] gap-0 rounded-2xl p-7 shadow-[0_20px_60px_rgba(0,20,60,0.35)]">
+      <AuthCard>
         {done ? (
           <div className="flex flex-col items-center text-center">
             <div className="mb-4 flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -115,14 +121,10 @@ function ResetPasswordPage() {
           </div>
         ) : (
           <>
-            <div className="mb-6">
-              <h2 className="text-[22px] font-extrabold tracking-[-0.02em]">
-                Nouveau mot de passe
-              </h2>
-              <p className="mt-1.5 text-[13.5px] text-muted-foreground">
-                Choisissez un nouveau mot de passe pour votre compte.
-              </p>
-            </div>
+            <AuthHeading
+              title="Nouveau mot de passe"
+              description="Choisissez un nouveau mot de passe pour votre compte."
+            />
 
             <form
               className="flex flex-col gap-4"
@@ -146,6 +148,8 @@ function ResetPasswordPage() {
                     id="newPassword"
                     label="Nouveau mot de passe"
                     type="password"
+                    autoComplete="new-password"
+                    revealable
                     required
                     value={field.state.value}
                     onChange={field.handleChange}
@@ -175,6 +179,8 @@ function ResetPasswordPage() {
                     id="confirmPassword"
                     label="Confirmer le mot de passe"
                     type="password"
+                    autoComplete="new-password"
+                    revealable
                     required
                     value={field.state.value}
                     onChange={field.handleChange}
@@ -208,7 +214,7 @@ function ResetPasswordPage() {
             <div className="mt-5 text-center">
               <Link
                 to="/login"
-                className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-primary hover:underline"
+                className={`inline-flex items-center gap-1.5 ${AUTH_LINK_CLASS}`}
               >
                 <ArrowLeft className="size-3.5" />
                 Retour à la connexion
@@ -216,7 +222,7 @@ function ResetPasswordPage() {
             </div>
           </>
         )}
-      </Card>
+      </AuthCard>
     </AuthShell>
   )
 }

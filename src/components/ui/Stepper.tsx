@@ -25,7 +25,7 @@ export function Stepper({ steps, current, onStepClick }: StepperProps) {
                 isActive
                   ? 'font-semibold text-primary'
                   : isDone
-                    ? 'font-medium text-[#1c8a57]'
+                    ? 'font-medium text-[#167347]'
                     : 'font-medium text-muted-foreground',
               )}
             >
@@ -45,7 +45,10 @@ export function Stepper({ steps, current, onStepClick }: StepperProps) {
             </button>
             {index < steps.length - 1 && (
               <span
-                className={cn('h-px w-8', isDone ? 'bg-[#1c8a57]' : 'bg-border')}
+                className={cn(
+                  'h-px w-8',
+                  isDone ? 'bg-[#1c8a57]' : 'bg-border',
+                )}
               />
             )}
           </div>

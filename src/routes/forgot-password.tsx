@@ -1,3 +1,4 @@
+import { pageHead } from '#/lib/page-title'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useForm } from '@tanstack/react-form'
 import { z } from 'zod'
@@ -6,11 +7,16 @@ import { isAxiosError } from 'axios'
 import { ArrowLeft, MailCheck } from 'lucide-react'
 import { forgotPassword } from '#/services/auth'
 import { Button } from '#/components/ui/button'
-import { Card } from '#/components/ui/card'
 import { FormField } from '#/components/forms/FormField'
-import { AuthShell } from '#/components/auth/AuthShell'
+import {
+  AuthCard,
+  AuthHeading,
+  AUTH_LINK_CLASS,
+  AuthShell,
+} from '#/components/auth/AuthShell'
 
 export const Route = createFileRoute('/forgot-password')({
+  head: pageHead('Mot de passe oublié'),
   component: ForgotPasswordPage,
 })
 
@@ -48,7 +54,7 @@ function ForgotPasswordPage() {
 
   return (
     <AuthShell>
-      <Card className="w-full max-w-[400px] gap-0 rounded-2xl p-7 shadow-[0_20px_60px_rgba(0,20,60,0.35)]">
+      <AuthCard>
         {submitted ? (
           <div className="flex flex-col items-center text-center">
             <div className="mb-4 flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -74,15 +80,10 @@ function ForgotPasswordPage() {
           </div>
         ) : (
           <>
-            <div className="mb-6">
-              <h2 className="text-[22px] font-extrabold tracking-[-0.02em]">
-                Mot de passe oublié
-              </h2>
-              <p className="mt-1.5 text-[13.5px] text-muted-foreground">
-                Entrez votre email, nous vous enverrons un lien de
-                réinitialisation.
-              </p>
-            </div>
+            <AuthHeading
+              title="Mot de passe oublié"
+              description="Entrez votre email, nous vous enverrons un lien de réinitialisation."
+            />
 
             <form
               className="flex flex-col gap-4"
@@ -106,6 +107,7 @@ function ForgotPasswordPage() {
                     id="email"
                     label="Email"
                     type="email"
+                    autoComplete="email"
                     required
                     value={field.state.value}
                     onChange={field.handleChange}
@@ -137,7 +139,7 @@ function ForgotPasswordPage() {
             <div className="mt-5 text-center">
               <Link
                 to="/login"
-                className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-primary hover:underline"
+                className={`inline-flex items-center gap-1.5 ${AUTH_LINK_CLASS}`}
               >
                 <ArrowLeft className="size-3.5" />
                 Retour à la connexion
@@ -145,7 +147,7 @@ function ForgotPasswordPage() {
             </div>
           </>
         )}
-      </Card>
+      </AuthCard>
     </AuthShell>
   )
 }

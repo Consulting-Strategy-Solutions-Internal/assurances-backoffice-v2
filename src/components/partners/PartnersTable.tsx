@@ -1,124 +1,150 @@
-import { Link } from '@tanstack/react-router'
+import { useNavigate } from '@tanstack/react-router'
+import { Share2 } from 'lucide-react'
 import type { PartnerResponse } from '#/services/partners'
-import { Avatar, AvatarFallback } from '#/components/ui/avatar'
+import { EntityAvatar } from '#/components/layout/EntityAvatar'
+import { TruncatedText } from '#/components/layout/TruncatedText'
+import {
+  ClickableRow,
+  DataTableCard,
+  DataTableHead,
+  FIRST_CELL_CLASS,
+  RowChevron,
+  TableEmptyState,
+  TableErrorState,
+  TableSkeletonRows,
+} from '#/components/layout/DataTable'
 import { Button } from '#/components/ui/button'
 import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from '#/components/ui/table'
-import { cn } from '#/lib/utils'
 
 interface PartnersTableProps {
   partners: PartnerResponse[]
-  onEditInfo: (partner: PartnerResponse) => void
-  /** When false, the "Modifier" action is disabled (lacks partner:write). */
-  canEdit?: boolean
+  isLoading?: boolean
+  error?: unknown
+  forbidden?: boolean
+  /** True when a search is active (switches the empty-state wording). */
+  filtering?: boolean
+  onReset?: () => void
+  onRetry?: () => void
 }
 
-const headCls =
-  'h-auto bg-[#fafbfc] px-3 py-3 text-[11px] font-bold uppercase tracking-[0.05em] text-muted-foreground'
-
-function initials(name: string) {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w.charAt(0).toUpperCase())
-    .join('')
-}
+const COLS = 5
 
 export function PartnersTable({
   partners,
-  onEditInfo,
-  canEdit = true,
+  isLoading = false,
+  error,
+  forbidden,
+  filtering = false,
+  onReset,
+  onRetry,
 }: PartnersTableProps) {
+  const navigate = useNavigate()
   return (
-    <Table>
-      <TableHeader>
-        <TableRow className="hover:bg-transparent">
-          <TableHead className={cn(headCls, 'pl-[22px]')}>Partenaire</TableHead>
-          <TableHead className={headCls}>Code distributeur</TableHead>
-          <TableHead className={headCls}>Localisation</TableHead>
-          <TableHead className={headCls}>Email</TableHead>
-          <TableHead className={cn(headCls, 'pr-[22px] text-right')}>
-            Actions
-          </TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {partners.length === 0 ? (
+    <DataTableCard>
+      <Table>
+        <TableHeader>
           <TableRow className="hover:bg-transparent">
-            <TableCell
-              colSpan={5}
-              className="py-9 text-center text-[13.5px] text-muted-foreground"
-            >
-              Aucun partenaire ne correspond à votre recherche.
-            </TableCell>
+            <DataTableHead first>Partenaire</DataTableHead>
+            <DataTableHead>Code distributeur</DataTableHead>
+            <DataTableHead>Localisation</DataTableHead>
+            <DataTableHead>Email</DataTableHead>
+            <DataTableHead className="w-10" />
           </TableRow>
-        ) : (
-          partners.map((partner) => (
-            <TableRow key={partner.id}>
-              <TableCell className="py-3.5 pl-[22px]">
-                <div className="flex items-center gap-[11px]">
-                  <Avatar className="size-[34px]">
-                    <AvatarFallback className="bg-primary/10 text-[12.5px] font-bold text-primary">
-                      {initials(partner.name)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="text-[13.5px] font-semibold">
-                    {partner.name}
-                  </div>
-                </div>
-              </TableCell>
-              <TableCell className="py-3.5 text-[13px] font-semibold text-muted-foreground">
-                {partner.distributorCode}
-              </TableCell>
-              <TableCell className="py-3.5 text-[13px] text-muted-foreground">
-                {partner.location ?? ''}
-              </TableCell>
-              <TableCell className="py-3.5 text-[13px] text-muted-foreground">
-                {partner.email ?? ''}
-              </TableCell>
-              <TableCell className="py-3.5 pr-[22px]">
-                <div className="flex justify-end gap-2">
-                  <Button
+        </TableHeader>
+        <TableBody>
+          {isLoading ? (
+            <TableSkeletonRows
+              columns={[40, 20, 28, 40]}
+              leading="avatar"
+              trailing
+            />
+          ) : error ? (
+            <TableErrorState
+              colSpan={COLS}
+              forbidden={forbidden}
+              title="Impossible de charger les partenaires."
+              action={
+                onRetry && (
+                  <Button variant="outline" size="sm" onClick={onRetry}>
+                    Réessayer
+                  </Button>
+                )
+              }
+            />
+          ) : partners.length === 0 ? (
+            <TableEmptyState
+              colSpan={COLS}
+              icon={Share2}
+              title={
+                filtering
+                  ? 'Aucun partenaire ne correspond à votre recherche.'
+                  : 'Aucun partenaire pour le moment.'
+              }
+              action={
+                filtering && onReset ? (
+                  <button
                     type="button"
-                    variant="outline"
-                    size="sm"
-                    className="rounded-[9px]"
-                    onClick={() => onEditInfo(partner)}
-                    disabled={!canEdit}
-                    title={
-                      canEdit
-                        ? undefined
-                        : "Vous n'avez pas la permission requise (partner:write)."
-                    }
+                    onClick={onReset}
+                    className="text-[13px] font-semibold text-primary hover:underline"
                   >
-                    Modifier
-                  </Button>
-                  <Button
-                    asChild
-                    variant="ghost"
-                    size="sm"
-                    className="rounded-[9px]"
-                  >
-                    <Link
-                      to="/partners/$partnerId"
-                      params={{ partnerId: String(partner.id) }}
-                    >
-                      Détails
-                    </Link>
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))
-        )}
-      </TableBody>
-    </Table>
+                    Réinitialiser les filtres
+                  </button>
+                ) : undefined
+              }
+            />
+          ) : (
+            partners.map((partner) => (
+              <ClickableRow
+                key={partner.id}
+                aria-label={`Voir le partenaire ${partner.name}`}
+                onActivate={() =>
+                  navigate({
+                    to: '/partners/$partnerId',
+                    params: { partnerId: String(partner.id) },
+                  })
+                }
+              >
+                <TableCell className={FIRST_CELL_CLASS}>
+                  <div className="flex items-center gap-3">
+                    <EntityAvatar name={partner.name} />
+                    <div>
+                      <div className="font-semibold">{partner.name}</div>
+                      <div className="text-[12px] text-muted-foreground">
+                        Partenaire #{partner.id}
+                      </div>
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell className="font-semibold whitespace-nowrap text-muted-foreground tabular-nums">
+                  <span className="mr-1 text-[12px] font-medium">Code</span>
+                  {partner.distributorCode}
+                </TableCell>
+                <TableCell className="max-w-[200px] text-muted-foreground">
+                  {partner.location ? (
+                    <TruncatedText>{partner.location}</TruncatedText>
+                  ) : (
+                    '—'
+                  )}
+                </TableCell>
+                <TableCell className="max-w-[240px] text-muted-foreground">
+                  {partner.email ? (
+                    <TruncatedText>{partner.email}</TruncatedText>
+                  ) : (
+                    '—'
+                  )}
+                </TableCell>
+                <RowChevron />
+              </ClickableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </DataTableCard>
   )
 }

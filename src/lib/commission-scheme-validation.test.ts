@@ -10,7 +10,7 @@ function draft(
 ): CommissionSchemeDraft {
   return {
     partnerId: 1,
-    productId: 4,
+    product: 'IA_STANDARD',
     commissionRate: '12.50',
     maxLevel: 2,
     level2PartnerShare: '40.00',
@@ -23,6 +23,12 @@ function draft(
 }
 
 describe('validateCommissionScheme', () => {
+  it('envoie le code produit attendu par l’API, pas un identifiant', () => {
+    const { payload } = validateCommissionScheme(draft())
+    expect(payload?.product).toBe('IA_STANDARD')
+    expect(payload).not.toHaveProperty('productId')
+  })
+
   it('exige un taux négocié valide pour le couple', () => {
     const missing = validateCommissionScheme(draft({ commissionRate: '' }))
     const tooHigh = validateCommissionScheme(
@@ -132,7 +138,7 @@ describe('validateCommissionScheme', () => {
   it('bloque toute modification du couple en édition', () => {
     const result = validateCommissionScheme(draft({ partnerId: 2 }), {
       partnerId: 1,
-      productId: 4,
+      product: 'IA_STANDARD',
     })
 
     expect(result.valid).toBe(false)

@@ -6,8 +6,13 @@
 
 const RESOURCE_LABELS: Record<string, string> = {
   accessory: 'Accessoires',
+  actuator: 'Supervision technique',
   agency: 'Agences',
+  amendment: 'Avenants',
+  apidocs: 'Documentation API',
+  backoffice: 'Back-office',
   baserate: 'Tarifs de base',
+  catalog: 'Catalogue',
   claim: 'Sinistres',
   claimtype: 'Types de sinistre',
   client: 'Clients',
@@ -17,6 +22,7 @@ const RESOURCE_LABELS: Record<string, string> = {
   legalquality: 'Qualités juridiques',
   notification: 'Notifications',
   partner: 'Partenaires',
+  payment: 'Paiements',
   premiummodifier: 'Modificateurs de prime',
   product: 'Produits',
   prorationcoefficient: 'Coefficients de prorata',
@@ -25,6 +31,7 @@ const RESOURCE_LABELS: Record<string, string> = {
   riskclass: 'Classes de risque',
   riskclasspremiumrate: 'Taux de prime par classe de risque',
   seller: 'Vendeurs',
+  subscription: 'Contrats',
   support: 'Support client',
   wallet: 'Portefeuilles',
   warranty: 'Garanties',
@@ -33,8 +40,13 @@ const RESOURCE_LABELS: Record<string, string> = {
 /** Ce que couvre la ressource, formulé pour compléter un verbe d'action. */
 const RESOURCE_OBJECTS: Record<string, string> = {
   accessory: 'les accessoires vendus avec les produits',
+  actuator: "l'état de santé et les indicateurs techniques de la plateforme",
   agency: 'les agences des partenaires',
+  amendment: 'les avenants aux contrats',
+  apidocs: "la documentation technique de l'API",
+  backoffice: 'le back-office',
   baserate: 'les tarifs de base des produits',
+  catalog: 'le catalogue de produits (lecture publique)',
   claim: 'les déclarations de sinistre',
   claimtype: 'les types de sinistre',
   client: 'les clients et leurs souscriptions',
@@ -44,14 +56,16 @@ const RESOURCE_OBJECTS: Record<string, string> = {
   legalquality: 'les qualités juridiques des assurés',
   notification: 'les notifications in-app',
   partner: 'les partenaires distributeurs',
+  payment: 'les paiements de primes',
   premiummodifier: 'les majorations et réductions de prime',
   product: "les produits d'assurance",
   prorationcoefficient: 'les coefficients de prorata (durées partielles)',
-  quotation: 'les cotations et simulations tarifaires',
+  quotation: 'les cotations',
   ratetable: 'les grilles tarifaires',
   riskclass: 'les classes de risque',
   riskclasspremiumrate: 'les taux de prime par classe de risque',
   seller: 'les vendeurs des agences',
+  subscription: 'les contrats (souscriptions)',
   support: 'les conversations du support client',
   wallet: 'les portefeuilles de commissions',
   warranty: 'les garanties des produits',
@@ -61,6 +75,12 @@ const ACTION_LABELS: Record<string, string> = {
   read: 'Consulter',
   write: 'Modifier',
   self: 'Accès personnel',
+  admin: 'Administrer',
+  login: 'Se connecter',
+  validate: 'Valider',
+  terminate: 'Résilier',
+  'read-all': 'Tout consulter',
+  'read-agency': 'Consulter son agence',
 }
 
 const ACTION_VERBS: Record<string, string> = {
@@ -70,6 +90,25 @@ const ACTION_VERBS: Record<string, string> = {
 
 /** Cas particuliers, où la formule verbe + objet ne suffit pas. */
 const PERMISSION_DESCRIPTIONS: Record<string, string> = {
+  'actuator:read':
+    "Consulter l'état de santé et les indicateurs techniques de la plateforme.",
+  'amendment:read-all':
+    'Consulter les avenants de tous les contrats, quel que soit le vendeur.',
+  'amendment:validate':
+    'Valider ou refuser les avenants demandés sur les contrats.',
+  'apidocs:read': "Consulter la documentation technique de l'API.",
+  'backoffice:admin':
+    'Administrer le back-office (accès complet aux réglages).',
+  'backoffice:login': 'Se connecter au back-office.',
+  'catalog:read': 'Consulter le catalogue de produits.',
+  'client:self': 'Consulter et modifier uniquement son propre compte client.',
+  'payment:write': 'Enregistrer les paiements de primes.',
+  'seller:self': 'Consulter uniquement son propre profil de vendeur.',
+  'subscription:read-agency': 'Consulter les contrats de son agence.',
+  'subscription:read-all':
+    'Consulter tous les contrats, quel que soit le vendeur.',
+  'subscription:terminate': 'Résilier un contrat.',
+  'support:self': 'Échanger avec le support client depuis son propre compte.',
   'wallet:self': 'Consulter uniquement son propre portefeuille de commissions.',
   'notification:self': 'Consulter uniquement ses propres notifications in-app.',
   'support:write':

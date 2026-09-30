@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useForm } from '@tanstack/react-form'
+import { useForm, useStore } from '@tanstack/react-form'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
 import { z } from 'zod'
@@ -61,7 +61,9 @@ export function AddPartnerModal({ onClose }: AddPartnerModalProps) {
         if (isAxiosError(error)) {
           const status = error.response?.status
           if (status === 409)
-            setServerError('Un partenaire avec ce code distributeur existe déjà.')
+            setServerError(
+              'Un partenaire avec ce code distributeur existe déjà.',
+            )
           else if (status && status >= 500)
             setServerError('Une erreur serveur est survenue.')
           else setServerError('Une erreur est survenue. Veuillez réessayer.')
@@ -72,8 +74,11 @@ export function AddPartnerModal({ onClose }: AddPartnerModalProps) {
     },
   })
 
+  const dirty = useStore(form.store, (s) => !s.isDefaultValue)
+
   return (
     <FormDialog
+      dirty={dirty}
       onClose={onClose}
       eyebrow="Partenaires"
       title="Nouveau partenaire"

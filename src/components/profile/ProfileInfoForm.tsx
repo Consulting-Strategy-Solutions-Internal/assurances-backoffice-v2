@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useForm } from '@tanstack/react-form'
+import { useForm, useStore } from '@tanstack/react-form'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
 import { toast } from 'sonner'
@@ -8,14 +8,9 @@ import { updateUser } from '#/services/users'
 import type { UserResponse } from '#/services/users'
 import { FormField } from '#/components/forms/FormField'
 import { Button } from '#/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '#/components/ui/card'
+import { SectionCard } from '#/components/layout/SectionCard'
+import { useUnsavedChangesGuard } from '#/components/forms/unsaved-changes'
+import { isPlaceholderPhone } from '#/lib/admin-roles'
 
 const schema = z.object({
   firstName: z.string().min(1, 'Le prénom est requis'),
@@ -42,6 +37,15 @@ const FIELDS = [
     required: false,
   },
 ] as const
+
+/** Explications sous les champs que l'API oblige à renseigner. */
+function hintFor(name: string, value: string): string | undefined {
+  if (name === 'addressLine1')
+    return 'Requise par l’API pour enregistrer le profil ; une adresse professionnelle convient.'
+  if (name === 'phoneNumber' && isPlaceholderPhone(value))
+    return 'Numéro provisoire : renseignez votre vrai numéro.'
+  return undefined
+}
 
 export function ProfileInfoForm({ user }: { user: UserResponse }) {
   const queryClient = useQueryClient()
@@ -72,6 +76,8 @@ export function ProfileInfoForm({ user }: { user: UserResponse }) {
       setServerError(null)
       try {
         await mutateAsync(value)
+        // Les valeurs enregistrées deviennent la référence : plus « modifié ».
+        form.reset(value)
       } catch (error) {
         if (isAxiosError(error)) {
           const status = error.response?.status
@@ -87,24 +93,23 @@ export function ProfileInfoForm({ user }: { user: UserResponse }) {
     },
   })
 
-  return (
-    <Card className="gap-0 py-0">
-      <CardHeader className="gap-0 border-b p-6">
-        <CardTitle className="text-[17px] font-extrabold tracking-[-0.02em]">
-          Informations personnelles
-        </CardTitle>
-        <CardDescription className="mt-[3px] text-[13.5px]">
-          Mettez à jour votre nom, vos coordonnées et votre adresse.
-        </CardDescription>
-      </CardHeader>
+  const dirty = useStore(form.store, (s) => !s.isDefaultValue)
+  const { dialog: guardDialog } = useUnsavedChangesGuard(dirty)
 
+  return (
+    <SectionCard
+      title="Informations personnelles"
+      description="Mettez à jour votre nom, vos coordonnées et votre adresse."
+      bodyClassName="pb-0"
+    >
+      {guardDialog}
       <form
         onSubmit={(e) => {
           e.preventDefault()
           form.handleSubmit()
         }}
       >
-        <CardContent className="flex flex-col gap-4 p-6">
+        <div className="flex flex-col gap-4">
           <div className="grid gap-4 sm:grid-cols-2">
             {FIELDS.map(({ name, label, type, required }) => (
               <form.Field
@@ -144,6 +149,7 @@ export function ProfileInfoForm({ user }: { user: UserResponse }) {
                       onChange={field.handleChange}
                       onBlur={field.handleBlur}
                       error={field.state.meta.errors[0]}
+                      hint={hintFor(name, field.state.value)}
                     />
                   </div>
                 )}
@@ -151,13 +157,13 @@ export function ProfileInfoForm({ user }: { user: UserResponse }) {
             ))}
           </div>
           {serverError && (
-            <p className="rounded-lg bg-destructive/10 px-3 py-2.5 text-[13px] font-medium text-destructive">
+            <p className="rounded-lg bg-[#fbe9e9] px-3 py-2.5 text-[13px] font-medium text-[#c0392b]">
               {serverError}
             </p>
           )}
-        </CardContent>
+        </div>
 
-        <CardFooter className="justify-end border-t p-6">
+        <div className="sticky bottom-0 z-10 -mx-6 mt-5 flex justify-end rounded-b-xl border-t bg-card px-6 py-4">
           <Button
             type="submit"
             disabled={isPending}
@@ -165,8 +171,8 @@ export function ProfileInfoForm({ user }: { user: UserResponse }) {
           >
             {isPending ? 'Enregistrement…' : 'Enregistrer les modifications'}
           </Button>
-        </CardFooter>
+        </div>
       </form>
-    </Card>
+    </SectionCard>
   )
 }

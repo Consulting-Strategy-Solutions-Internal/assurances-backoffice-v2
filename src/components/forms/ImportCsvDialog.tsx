@@ -66,8 +66,11 @@ export function ImportCsvDialog({
     }
   }
 
+  const dirty = file !== null
+
   return (
     <FormDialog
+      dirty={dirty}
       onClose={onClose}
       eyebrow={eyebrow}
       title={title}

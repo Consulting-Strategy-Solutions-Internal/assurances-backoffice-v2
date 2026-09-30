@@ -12,6 +12,10 @@ export interface RoleResponse {
   id: number
   name: string
   description?: string
+  /** Rôle système (CLIENT, AGENT, DEVELOPER, MANAGER) : semé, lecture seule. */
+  system?: boolean
+  /** Accepté par `POST /users` pour un compte back-office (faux : CLIENT, AGENT). */
+  userAssignable?: boolean
   permissions: PermissionResponse[]
   createdAt: string
   updatedAt: string

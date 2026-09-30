@@ -1,4 +1,6 @@
 import { api } from '#/lib/api'
+import { fetchAllPages } from '#/lib/fetch-all-pages'
+import type { AllPages } from '#/lib/fetch-all-pages'
 import type { PageResponse } from '#/services/claims'
 
 export const SUPPORT_STATUSES = [
@@ -51,6 +53,7 @@ export interface SupportConversationFilters {
   status?: SupportStatus
   page: number
   size: number
+  sort?: string
 }
 
 export type SupportTransition = 'handle' | 'release' | 'resolve'
@@ -60,6 +63,8 @@ export const supportKeys = {
   lists: ['support', 'conversations'] as const,
   list: (filters: SupportConversationFilters) =>
     ['support', 'conversations', filters] as const,
+  queue: (status?: SupportStatus) =>
+    ['support', 'conversations', 'all', status ?? null] as const,
   detail: (id: number) => ['support', 'conversation', id] as const,
   messages: (id: number) => ['support', 'messages', id] as const,
   unread: ['support', 'unread-count'] as const,
@@ -75,10 +80,29 @@ export async function getSupportConversations(
         status: filters.status,
         page: Math.max(0, filters.page),
         size: Math.min(100, Math.max(1, filters.size)),
+        sort: filters.sort,
       },
     },
   )
   return response.data
+}
+
+/**
+ * Whole queue (optionally one status): the API only filters by status, so
+ * search / « mes tickets » / pagination are done client-side on this list.
+ */
+export function getAllSupportConversations(
+  status?: SupportStatus,
+): Promise<AllPages<SupportConversationResponse>> {
+  return fetchAllPages((page, size) =>
+    getSupportConversations({
+      status,
+      page,
+      size,
+      // Plus récente activité d'abord : le plafond garde les tickets actifs.
+      sort: 'lastMessageAt,desc',
+    }),
+  )
 }
 
 export async function getSupportConversation(

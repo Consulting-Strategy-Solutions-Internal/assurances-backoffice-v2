@@ -1,4 +1,5 @@
 import { api } from '#/lib/api'
+import type { PageResponse } from '#/lib/page'
 
 export interface UserResponse {
   id: number
@@ -16,18 +17,13 @@ export interface UserResponse {
   updatedAt: string
 }
 
-export interface PageResponse<T> {
-  content: T[]
-  page: number
-  size: number
-  totalElements: number
-  totalPages: number
-  last: boolean
-}
+export type { PageResponse }
 
 export interface UsersParams {
   page?: number
   size?: number
+  /** Spring pageable sort, ex. `createdAt,desc`. */
+  sort?: string
 }
 
 export async function getUsers(
@@ -37,6 +33,7 @@ export async function getUsers(
     params: {
       page: params.page ?? 0,
       size: params.size ?? 20,
+      sort: params.sort,
     },
   })
   return response.data

@@ -218,4 +218,32 @@ describe('ClaimDetailContent', () => {
     expect(await screen.findByText('En instruction')).toBeTruthy()
     expect(mocks.getClaim.mock.calls.length).toBeGreaterThan(1)
   })
+
+  it('shows the policy number in the contract context, falling back to #id', async () => {
+    renderDetail({ policyNumber: 'POL-2026-0007' })
+    expect(await screen.findByText('POL-2026-0007')).toBeTruthy()
+    cleanup()
+    renderDetail({ policyNumber: null })
+    await screen.findByText('SIN-2026-0042')
+    expect(screen.getByText('#7')).toBeTruthy()
+  })
+
+  it('offers « Réessayer » on a generic load error and refetches', async () => {
+    mocks.getClaim.mockRejectedValueOnce({
+      isAxiosError: true,
+      response: { status: 500 },
+    })
+    mocks.getClaim.mockResolvedValue(claim)
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ClaimDetailContent claimId={42} />
+      </QueryClientProvider>,
+    )
+    fireEvent.click(await screen.findByRole('button', { name: 'Réessayer' }))
+    expect(await screen.findByText('SIN-2026-0042')).toBeTruthy()
+    expect(mocks.getClaim).toHaveBeenCalledTimes(2)
+  })
 })

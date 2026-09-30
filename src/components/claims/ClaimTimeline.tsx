@@ -1,5 +1,6 @@
-import { Badge } from '#/components/ui/badge'
+import { StatusPill } from '#/components/dashboard/StatusPill'
 import { CLAIM_STATUS_LABELS, formatClaimDate } from '#/lib/claims'
+import { cn } from '#/lib/utils'
 import type { ClaimEventResponse } from '#/services/claims'
 
 const eventLabels = {
@@ -14,46 +15,57 @@ export function ClaimTimeline({ events }: { events: ClaimEventResponse[] }) {
     left.createdAt.localeCompare(right.createdAt),
   )
   return (
-    <ol className="space-y-4">
+    <ol className="relative space-y-5 before:absolute before:top-2 before:bottom-2 before:left-[5px] before:w-px before:bg-border">
       {ordered.map((event) => (
-        <li
-          key={event.id}
-          className={`border-l-2 pl-4 ${event.internal ? 'border-violet-500 bg-violet-50/60 py-3 pr-3' : 'border-primary/30'}`}
-        >
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-semibold">{eventLabels[event.type]}</span>
-            {event.internal && (
-              <Badge
-                variant="outline"
-                className="border-violet-300 text-violet-800"
-              >
-                Note interne · non visible du client
-              </Badge>
+        <li key={event.id} className="relative pl-7">
+          <span
+            aria-hidden="true"
+            className={cn(
+              'absolute top-1.5 left-0 size-[11px] rounded-full ring-4 ring-card',
+              event.internal ? 'bg-[#9a7400]' : 'bg-primary',
             )}
+          />
+          <div
+            className={cn(
+              event.internal && 'rounded-[10px] bg-[#fef3da]/60 px-3 py-2.5',
+            )}
+          >
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[14px] font-semibold">
+                {eventLabels[event.type]}
+              </span>
+              {event.internal && (
+                <StatusPill tone="warning">
+                  Note interne · non visible du client
+                </StatusPill>
+              )}
+            </div>
+            {event.fromStatus && event.toStatus && (
+              <p className="mt-1 text-[13.5px]">
+                {CLAIM_STATUS_LABELS[event.fromStatus]} →{' '}
+                {CLAIM_STATUS_LABELS[event.toStatus]}
+              </p>
+            )}
+            {event.comment && (
+              <p className="mt-1 text-[13.5px] whitespace-pre-wrap text-muted-foreground">
+                {event.comment}
+              </p>
+            )}
+            <p className="mt-1 text-[12px] text-muted-foreground">
+              {event.actorType === 'CLIENT'
+                ? 'Client'
+                : event.actorType === 'BACKOFFICE'
+                  ? 'Back-office'
+                  : 'Système'}{' '}
+              · {formatClaimDate(event.createdAt, true)}
+            </p>
           </div>
-          {event.fromStatus && event.toStatus && (
-            <p className="mt-1 text-sm">
-              {CLAIM_STATUS_LABELS[event.fromStatus]} →{' '}
-              {CLAIM_STATUS_LABELS[event.toStatus]}
-            </p>
-          )}
-          {event.comment && (
-            <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">
-              {event.comment}
-            </p>
-          )}
-          <p className="mt-1 text-xs text-muted-foreground">
-            {event.actorType === 'CLIENT'
-              ? 'Client'
-              : event.actorType === 'BACKOFFICE'
-                ? 'Back-office'
-                : 'Système'}{' '}
-            · {formatClaimDate(event.createdAt, true)}
-          </p>
         </li>
       ))}
       {!ordered.length && (
-        <li className="text-sm text-muted-foreground">Aucun événement.</li>
+        <li className="pl-7 text-[13.5px] text-muted-foreground">
+          Aucun événement.
+        </li>
       )}
     </ol>
   )

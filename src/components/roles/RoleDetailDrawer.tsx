@@ -8,6 +8,9 @@ import type { MeResponse } from '#/services/auth'
 import { updateRole } from '#/services/roles'
 import { getMe } from '#/services/auth'
 import { usePermissions } from '#/components/dashboard/use-permissions'
+import { useConfirmDiscard } from '#/components/forms/unsaved-changes'
+import { formatRoleName } from '#/lib/admin-roles'
+import { translateRoleDescription } from '#/lib/backend-messages'
 import { RolePermissionsEditor } from '#/components/roles/RolePermissionsEditor'
 import {
   Sheet,
@@ -18,6 +21,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '#/components/ui/sheet'
+import { EntityAvatar } from '#/components/layout/EntityAvatar'
 import { Badge } from '#/components/ui/badge'
 import { Button } from '#/components/ui/button'
 import { Input } from '#/components/ui/input'
@@ -94,8 +98,13 @@ export function RoleDetailDrawer({ role, onClose }: RoleDetailDrawerProps) {
     (name.trim() !== data.name ||
       description.trim() !== (data.description ?? ''))
 
+  const { requestClose, dialog: discardDialog } = useConfirmDiscard(dirty)
+
   return (
-    <Sheet open={!!role} onOpenChange={(open) => !open && onClose()}>
+    <Sheet
+      open={!!role}
+      onOpenChange={(open) => !open && requestClose(onClose)}
+    >
       <SheetContent
         side="right"
         showCloseButton={false}
@@ -103,25 +112,33 @@ export function RoleDetailDrawer({ role, onClose }: RoleDetailDrawerProps) {
       >
         {data && (
           <>
+            {discardDialog}
             <SheetHeader className="flex-row items-start justify-between gap-3.5 border-b p-[26px] py-[22px]">
-              <div className="flex flex-col gap-0">
-                <div className="mb-[6px] text-[11.5px] font-bold tracking-[0.06em] text-muted-foreground uppercase">
-                  Rôle
+              <div className="flex items-center gap-3">
+                <EntityAvatar
+                  name={formatRoleName(data.name)}
+                  className="size-11"
+                />
+                <div className="flex flex-col gap-0">
+                  <div className="mb-[3px] text-[11.5px] font-bold tracking-[0.06em] text-muted-foreground uppercase">
+                    Rôle
+                  </div>
+                  <SheetTitle className="flex items-center gap-2 text-[21px] font-extrabold tracking-[-0.025em]">
+                    {data.name}
+                    {isOwnRole && (
+                      <Badge
+                        variant="secondary"
+                        className="px-2.5 py-0.5 text-[12px] font-bold"
+                      >
+                        Mon rôle
+                      </Badge>
+                    )}
+                  </SheetTitle>
+                  <SheetDescription className="mt-[3px] text-[13.5px]">
+                    {translateRoleDescription(data.description) ||
+                      'Aucune description'}
+                  </SheetDescription>
                 </div>
-                <SheetTitle className="flex items-center gap-2 text-[21px] font-extrabold tracking-[-0.025em]">
-                  {data.name}
-                  {isOwnRole && (
-                    <Badge
-                      variant="secondary"
-                      className="px-2.5 py-0.5 text-[12px] font-bold"
-                    >
-                      Mon rôle
-                    </Badge>
-                  )}
-                </SheetTitle>
-                <SheetDescription className="mt-[3px] text-[13.5px]">
-                  {data.description ?? 'Aucune description'}
-                </SheetDescription>
               </div>
               <SheetClose asChild>
                 <Button

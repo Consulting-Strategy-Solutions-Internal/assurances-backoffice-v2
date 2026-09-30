@@ -1,10 +1,30 @@
+import { pageHead } from '#/lib/page-title'
 import { useEffect, useMemo, useState } from 'react'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { z } from 'zod'
 import { useQuery } from '@tanstack/react-query'
+import { Banknote, TriangleAlert, Wallet, WalletCards } from 'lucide-react'
 import { PageHeader } from '#/components/dashboard/PageHeader'
-import { WalletStatementAction } from '#/components/commissions/CommissionDisplays'
-import { FormSelect } from '#/components/forms/FormSelect'
-import { Card } from '#/components/ui/card'
+import {
+  OWNER_TYPE_LABELS,
+  WalletStatementAction,
+} from '#/components/commissions/CommissionDisplays'
+import { SearchableSelect } from '#/components/layout/SearchableSelect'
+import { KpiCard } from '#/components/dashboard/KpiCard'
+import { StatusPill } from '#/components/dashboard/StatusPill'
+import {
+  DataTableCard,
+  DataTableHead,
+  FIRST_CELL_CLASS,
+  TableEmptyState,
+  TableErrorState,
+  TableSkeletonRows,
+} from '#/components/layout/DataTable'
+import { EmptyState } from '#/components/layout/EmptyState'
+import { KpiRow } from '#/components/layout/KpiRow'
+import { SegmentedPills } from '#/components/layout/SegmentedPills'
+import { ResultCount, Toolbar } from '#/components/layout/Toolbar'
+import { Button } from '#/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -13,16 +33,18 @@ import {
   DialogTitle,
 } from '#/components/ui/dialog'
 import { Pagination } from '#/components/ui/Pagination'
+import { Skeleton } from '#/components/ui/skeleton'
 import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from '#/components/ui/table'
-import { formatDecimal2 } from '#/lib/commission-format'
-import { cn, formatDate } from '#/lib/utils'
+import { mapClaimError } from '#/lib/claims'
+import { fetchAllPages } from '#/lib/fetch-all-pages'
+import { formatPersonName } from '#/lib/people'
+import { formatDate, formatFcfa } from '#/lib/utils'
 import type { CommissionOwnerType } from '#/services/commission-distributions'
 import {
   getAllAgencySellers,
@@ -33,24 +55,50 @@ import {
 import { getWallets, getWalletTransactions } from '#/services/wallets'
 import type { WalletResponse } from '#/services/wallets'
 
+const PAGE_SIZE = 20
+
+const searchSchema = z.object({
+  ownerType: z
+    .enum(['PARTNER', 'AGENCY', 'SELLER'])
+    .optional()
+    .catch(undefined),
+  partnerId: z.coerce.number().int().positive().optional().catch(undefined),
+  agencyId: z.coerce.number().int().positive().optional().catch(undefined),
+  sellerScope: z.enum(['DIRECT', 'AGENCY']).optional().catch(undefined),
+  sellerId: z.coerce.number().int().positive().optional().catch(undefined),
+  page: z.coerce.number().int().min(0).optional().catch(undefined),
+})
+
 export const Route = createFileRoute('/_auth/commissions/wallets')({
+  head: pageHead('Portefeuilles'),
+  validateSearch: searchSchema,
   component: WalletsPage,
 })
 
-const headClass =
-  'h-auto bg-[#fafbfc] px-3 py-3 text-[11px] font-bold uppercase tracking-[0.05em] text-muted-foreground'
+const COLUMNS = 5
 
 export function walletOwnerLabel(wallet: WalletResponse): string {
-  return wallet.ownerName ?? 'Propriétaire supprimé'
+  if (wallet.ownerName === null) return 'Propriétaire supprimé'
+  return wallet.ownerType === 'SELLER'
+    ? formatPersonName(wallet.ownerName)
+    : wallet.ownerName
 }
 
 function WalletsPage() {
-  const [ownerType, setOwnerType] = useState<CommissionOwnerType | ''>('')
-  const [partnerId, setPartnerId] = useState('')
-  const [agencyId, setAgencyId] = useState('')
-  const [sellerScope, setSellerScope] = useState<'DIRECT' | 'AGENCY'>('DIRECT')
-  const [sellerId, setSellerId] = useState('')
-  const [page, setPage] = useState(0)
+  const navigate = useNavigate({ from: Route.fullPath })
+  const search = Route.useSearch()
+  const ownerType: CommissionOwnerType | '' = search.ownerType ?? ''
+  const partnerId = search.partnerId ? String(search.partnerId) : ''
+  const agencyId = search.agencyId ? String(search.agencyId) : ''
+  const sellerScope: 'DIRECT' | 'AGENCY' = search.sellerScope ?? 'DIRECT'
+  const sellerId = search.sellerId ? String(search.sellerId) : ''
+  const requestedPage = search.page ?? 0
+  const setSearch = (next: z.input<typeof searchSchema>) =>
+    void navigate({
+      search: (prev) => ({ ...prev, ...next }),
+      replace: true,
+    })
+  const num = (value: string) => (value ? Number(value) : undefined)
   const [selectedWallet, setSelectedWallet] = useState<WalletResponse | null>(
     null,
   )
@@ -89,22 +137,21 @@ function WalletsPage() {
           ? sellerId
           : ''
   const wallets = useQuery({
-    queryKey: ['wallets', ownerType, ownerId, page],
+    // All wallets of the selection are loaded so the KPIs cover the whole
+    // selection and not just the visible page.
+    queryKey: ['wallets', ownerType, ownerId],
     queryFn: () =>
-      getWallets({
-        ownerType: ownerType || undefined,
-        ownerId: ownerId ? Number(ownerId) : undefined,
-        page,
-        size: 20,
-      }),
+      fetchAllPages((page, size) =>
+        getWallets({
+          ownerType: ownerType || undefined,
+          ownerId: ownerId ? Number(ownerId) : undefined,
+          page,
+          size,
+        }),
+      ),
     retry: false,
   })
 
-  useEffect(() => setPage(0), [ownerType, ownerId])
-  const resetDescendants = () => {
-    setAgencyId('')
-    setSellerId('')
-  }
   const ownerOptions = useMemo(() => {
     if (ownerType === 'PARTNER')
       return (partners.data ?? []).map((item) => ({
@@ -118,161 +165,281 @@ function WalletsPage() {
       }))
     return (sellers.data ?? []).map((item) => ({
       value: String(item.id),
-      label: `${item.firstName} ${item.lastName}`,
+      label: formatPersonName(item.firstName, item.lastName),
     }))
   }, [ownerType, partners.data, agencies.data, sellers.data])
+
+  const all = wallets.data?.items ?? []
+  const totalPages = Math.max(1, Math.ceil(all.length / PAGE_SIZE))
+  const page = Math.min(requestedPage, totalPages - 1)
+  const content = all.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
+  const total = wallets.data?.total ?? all.length
+  const failure = wallets.error
+  const forbidden =
+    failure !== null && mapClaimError(failure).kind === 'forbidden'
+  const loading = wallets.isLoading
+  const pageBalance = all.reduce((sum, item) => sum + item.balance, 0)
+  const neverCredited = all.filter((item) => item.id === null).length
+  const filtering = ownerType !== ''
+  const kpi = (value: number | string) =>
+    loading ? '…' : failure ? '—' : value
+  const reset = () =>
+    setSearch({
+      ownerType: undefined,
+      partnerId: undefined,
+      agencyId: undefined,
+      sellerScope: undefined,
+      sellerId: undefined,
+      page: undefined,
+    })
 
   return (
     <>
       <PageHeader
-        title="Wallets de commission"
-        subtitle="Soldes et relevés en lecture seule"
+        title="Portefeuilles de commission"
+        subtitle="Soldes et relevés en lecture seule : aucun ajustement de solde n’est possible depuis le back-office."
       />
-      <Card className="mb-4 grid gap-4 p-4 md:grid-cols-2 xl:grid-cols-4">
-        <FormSelect
-          id="wallet-owner-type"
-          label="Type de propriétaire"
-          value={ownerType}
-          includeNone
-          noneLabel="Tous les types"
-          options={[
-            { value: 'PARTNER', label: 'Partenaire' },
-            { value: 'AGENCY', label: 'Agence' },
-            { value: 'SELLER', label: 'Vendeur' },
-          ]}
-          onChange={(value) => {
-            setOwnerType(value as CommissionOwnerType | '')
-            setPartnerId('')
-            resetDescendants()
-          }}
+
+      <KpiRow cols={3}>
+        <KpiCard
+          icon={<Wallet className="size-5 text-primary" />}
+          iconClass="bg-primary/[0.08]"
+          value={kpi(total)}
+          label="Portefeuilles"
         />
-        {ownerType !== '' && (
-          <FormSelect
-            id="wallet-partner"
-            label={
-              ownerType === 'PARTNER'
-                ? 'Partenaire propriétaire'
-                : 'Partenaire de rattachement'
-            }
-            value={partnerId}
-            includeNone
-            noneLabel={
-              ownerType === 'PARTNER'
-                ? 'Tous les partenaires'
-                : 'Sélectionner un partenaire'
-            }
-            options={(partners.data ?? []).map((item) => ({
-              value: String(item.id),
-              label: item.name,
-            }))}
-            onChange={(value) => {
-              setPartnerId(value)
-              resetDescendants()
-            }}
-          />
-        )}
-        {ownerType === 'SELLER' && partnerId !== '' && (
-          <FormSelect
-            id="wallet-seller-scope"
-            label="Rattachement du vendeur"
-            value={sellerScope}
-            options={[
-              { value: 'DIRECT', label: 'Directement au partenaire' },
-              { value: 'AGENCY', label: 'Dans une agence' },
-            ]}
-            onChange={(value) => {
-              setSellerScope(value as 'DIRECT' | 'AGENCY')
-              resetDescendants()
-            }}
-          />
-        )}
-        {((ownerType === 'AGENCY' && partnerId !== '') ||
-          (ownerType === 'SELLER' &&
-            sellerScope === 'AGENCY' &&
-            partnerId !== '')) && (
-          <FormSelect
-            id="wallet-agency"
-            label={
-              ownerType === 'AGENCY'
-                ? 'Agence propriétaire'
-                : 'Agence de rattachement'
-            }
-            value={agencyId}
-            includeNone
-            noneLabel={
-              ownerType === 'AGENCY'
-                ? 'Toutes les agences'
-                : 'Sélectionner une agence'
-            }
-            options={(agencies.data ?? []).map((item) => ({
-              value: String(item.id),
-              label: item.name,
-            }))}
-            onChange={(value) => {
-              setAgencyId(value)
-              setSellerId('')
-            }}
-          />
-        )}
-        {ownerType === 'SELLER' &&
-          partnerId !== '' &&
-          (sellerScope === 'DIRECT' || agencyId !== '') && (
-            <FormSelect
-              id="wallet-seller"
-              label="Vendeur propriétaire"
-              value={sellerId}
-              includeNone
-              noneLabel="Tous les vendeurs de ce rattachement"
-              options={ownerOptions}
-              onChange={setSellerId}
+        <KpiCard
+          icon={<Banknote className="size-5 text-[#167347]" />}
+          iconClass="bg-[#1c8a57]/10"
+          value={kpi(formatFcfa(pageBalance))}
+          label="Solde cumulé"
+        />
+        <KpiCard
+          icon={<WalletCards className="size-5 text-[#8a6600]" />}
+          iconClass="bg-[#ffc61e]/20"
+          value={kpi(neverCredited)}
+          label="Jamais crédités"
+        />
+      </KpiRow>
+
+      <Toolbar
+        filters={
+          <>
+            <SegmentedPills<CommissionOwnerType | ''>
+              label="Type de propriétaire"
+              value={ownerType}
+              options={[
+                { value: '', label: 'Tous' },
+                { value: 'PARTNER', label: 'Partenaires' },
+                { value: 'AGENCY', label: 'Agences' },
+                { value: 'SELLER', label: 'Vendeurs' },
+              ]}
+              onChange={(value) =>
+                setSearch({
+                  ownerType: value || undefined,
+                  partnerId: undefined,
+                  agencyId: undefined,
+                  sellerScope: undefined,
+                  sellerId: undefined,
+                  page: undefined,
+                })
+              }
             />
-          )}
-      </Card>
-      <p className="mb-4 text-[12px] text-muted-foreground">
-        Les soldes ne peuvent être ni ajustés ni retirés depuis le back-office :
-        aucun endpoint d'écriture n'est exposé.
-      </p>
-      <Card className="gap-0 overflow-hidden py-0">
+            {ownerType !== '' && (
+              <SearchableSelect
+                id="wallet-partner"
+                label={
+                  ownerType === 'PARTNER'
+                    ? 'Partenaire propriétaire'
+                    : 'Partenaire de rattachement'
+                }
+                value={partnerId}
+                allLabel={
+                  ownerType === 'PARTNER'
+                    ? 'Tous les partenaires'
+                    : 'Sélectionner un partenaire'
+                }
+                options={(partners.data ?? []).map((item) => ({
+                  value: String(item.id),
+                  label: item.name,
+                }))}
+                loading={partners.isLoading}
+                onChange={(value) =>
+                  setSearch({
+                    partnerId: num(value),
+                    agencyId: undefined,
+                    sellerId: undefined,
+                    page: undefined,
+                  })
+                }
+              />
+            )}
+            {ownerType === 'SELLER' && partnerId !== '' && (
+              <SearchableSelect
+                id="wallet-seller-scope"
+                label="Rattachement du vendeur"
+                value={sellerScope}
+                allLabel="Directement au partenaire"
+                className="w-[220px]"
+                options={[
+                  { value: 'DIRECT', label: 'Directement au partenaire' },
+                  { value: 'AGENCY', label: 'Dans une agence' },
+                ]}
+                onChange={(value) =>
+                  setSearch({
+                    sellerScope: value === 'AGENCY' ? 'AGENCY' : undefined,
+                    agencyId: undefined,
+                    sellerId: undefined,
+                    page: undefined,
+                  })
+                }
+              />
+            )}
+            {((ownerType === 'AGENCY' && partnerId !== '') ||
+              (ownerType === 'SELLER' &&
+                sellerScope === 'AGENCY' &&
+                partnerId !== '')) && (
+              <SearchableSelect
+                id="wallet-agency"
+                label={
+                  ownerType === 'AGENCY'
+                    ? 'Agence propriétaire'
+                    : 'Agence de rattachement'
+                }
+                value={agencyId}
+                allLabel={
+                  ownerType === 'AGENCY'
+                    ? 'Toutes les agences'
+                    : 'Sélectionner une agence'
+                }
+                options={(agencies.data ?? []).map((item) => ({
+                  value: String(item.id),
+                  label: item.name,
+                }))}
+                loading={agencies.isLoading}
+                onChange={(value) =>
+                  setSearch({
+                    agencyId: num(value),
+                    sellerId: undefined,
+                    page: undefined,
+                  })
+                }
+              />
+            )}
+            {ownerType === 'SELLER' &&
+              partnerId !== '' &&
+              (sellerScope === 'DIRECT' || agencyId !== '') && (
+                <SearchableSelect
+                  id="wallet-seller"
+                  label="Vendeur propriétaire"
+                  value={sellerId}
+                  allLabel="Tous les vendeurs"
+                  options={ownerOptions}
+                  loading={sellers.isLoading}
+                  onChange={(value) =>
+                    setSearch({ sellerId: num(value), page: undefined })
+                  }
+                />
+              )}
+          </>
+        }
+        actions={
+          filtering ? (
+            <Button
+              type="button"
+              variant="ghost"
+              className="rounded-[11px]"
+              onClick={reset}
+            >
+              Réinitialiser les filtres
+            </Button>
+          ) : undefined
+        }
+      />
+      <ResultCount>
+        {loading
+          ? 'Chargement…'
+          : failure
+            ? ''
+            : `${total} portefeuille${total > 1 ? 's' : ''}${wallets.data?.capped ? ` (${all.length} chargés)` : ''}`}
+      </ResultCount>
+
+      <DataTableCard>
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead className={cn(headClass, 'pl-[22px]')}>
-                Propriétaire
-              </TableHead>
-              <TableHead className={headClass}>Type</TableHead>
-              <TableHead className={headClass}>Identifiant</TableHead>
-              <TableHead className={headClass}>Solde</TableHead>
-              <TableHead className={cn(headClass, 'pr-[22px] text-right')}>
+              <DataTableHead first>Propriétaire</DataTableHead>
+              <DataTableHead>Type</DataTableHead>
+              <DataTableHead>Identifiant</DataTableHead>
+              <DataTableHead className="text-right">Solde</DataTableHead>
+              <DataTableHead className="pr-[22px] text-right">
                 Relevé
-              </TableHead>
+              </DataTableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {wallets.isLoading ? (
-              <WalletMessage>Chargement…</WalletMessage>
-            ) : wallets.error ? (
-              <WalletMessage destructive>
-                Impossible de charger les wallets.
-              </WalletMessage>
-            ) : wallets.data?.content.length === 0 ? (
-              <WalletMessage>
-                Aucun wallet ne correspond aux filtres.
-              </WalletMessage>
+            {loading ? (
+              <TableSkeletonRows columns={[40, 20, 14, 24, 28]} />
+            ) : failure ? (
+              <TableErrorState
+                colSpan={COLUMNS}
+                forbidden={forbidden}
+                title="Impossible de charger les portefeuilles."
+                action={
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="rounded-[11px]"
+                    onClick={() => void wallets.refetch()}
+                  >
+                    Réessayer
+                  </Button>
+                }
+              />
+            ) : content.length === 0 ? (
+              <TableEmptyState
+                colSpan={COLUMNS}
+                icon={Wallet}
+                title={
+                  filtering
+                    ? 'Aucun portefeuille ne correspond à ces filtres.'
+                    : 'Aucun portefeuille pour le moment.'
+                }
+                action={
+                  filtering ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="rounded-[11px]"
+                      onClick={reset}
+                    >
+                      Réinitialiser les filtres
+                    </Button>
+                  ) : undefined
+                }
+              />
             ) : (
-              wallets.data?.content.map((wallet, index) => (
+              content.map((wallet, index) => (
                 <TableRow
                   key={wallet.id ?? `empty-${index}`}
-                  className="hover:bg-transparent"
+                  className="hover:bg-[#f6f8fc]"
                 >
-                  <TableCell className="pl-[22px] font-semibold">
+                  <TableCell className={`${FIRST_CELL_CLASS} font-semibold`}>
                     {walletOwnerLabel(wallet)}
                   </TableCell>
-                  <TableCell>{wallet.ownerType ?? '—'}</TableCell>
                   <TableCell>
+                    {wallet.ownerType ? (
+                      <StatusPill tone="info">
+                        {OWNER_TYPE_LABELS[wallet.ownerType]}
+                      </StatusPill>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground tabular-nums">
                     {wallet.ownerId === null ? '—' : `#${wallet.ownerId}`}
                   </TableCell>
-                  <TableCell className="text-[15px] font-extrabold tabular-nums">
-                    {formatDecimal2(wallet.balance)}
+                  <TableCell className="text-right text-[15px] font-extrabold whitespace-nowrap tabular-nums">
+                    {formatFcfa(wallet.balance)}
                   </TableCell>
                   <TableCell className="pr-[22px] text-right">
                     <WalletStatementAction
@@ -285,41 +452,19 @@ function WalletsPage() {
             )}
           </TableBody>
         </Table>
-      </Card>
+      </DataTableCard>
       <Pagination
         page={page}
-        totalPages={wallets.data?.totalPages ?? 0}
-        isLast={wallets.data?.last ?? true}
-        onPrev={() => setPage((current) => current - 1)}
-        onNext={() => setPage((current) => current + 1)}
+        totalPages={totalPages}
+        isLast={page >= totalPages - 1}
+        onPrev={() => setSearch({ page: page - 1 || undefined })}
+        onNext={() => setSearch({ page: page + 1 })}
       />
       <WalletTransactionsDialog
         wallet={selectedWallet}
         onClose={() => setSelectedWallet(null)}
       />
     </>
-  )
-}
-
-function WalletMessage({
-  children,
-  destructive,
-}: {
-  children: React.ReactNode
-  destructive?: boolean
-}) {
-  return (
-    <TableRow>
-      <TableCell
-        colSpan={5}
-        className={cn(
-          'py-9 text-center text-muted-foreground',
-          destructive && 'text-destructive',
-        )}
-      >
-        {children}
-      </TableCell>
-    </TableRow>
   )
 }
 
@@ -349,8 +494,11 @@ function WalletTransactionsDialog({
     >
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-4xl">
         <DialogHeader>
-          <DialogTitle>
-            Relevé de {wallet ? walletOwnerLabel(wallet) : ''}
+          <p className="text-[11.5px] font-bold tracking-[0.06em] text-muted-foreground uppercase">
+            Relevé du portefeuille
+          </p>
+          <DialogTitle className="text-[20px] font-extrabold tracking-[-0.02em]">
+            {wallet ? walletOwnerLabel(wallet) : ''}
           </DialogTitle>
           <DialogDescription>
             Transactions les plus récentes en premier. Le sens est porté par le
@@ -358,46 +506,89 @@ function WalletTransactionsDialog({
           </DialogDescription>
         </DialogHeader>
         {transactions.isLoading ? (
-          <p className="py-8 text-center text-muted-foreground">Chargement…</p>
+          <div className="space-y-2.5 py-2">
+            {Array.from({ length: 5 }, (_, i) => (
+              <Skeleton key={i} className="h-9 w-full" />
+            ))}
+          </div>
         ) : transactions.error ? (
-          <p className="py-8 text-center text-destructive">
-            Impossible de charger le relevé.
-          </p>
+          <EmptyState
+            icon={TriangleAlert}
+            tone="error"
+            title="Impossible de charger le relevé."
+            description="Réessayez dans un instant."
+            action={
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-[11px]"
+                onClick={() => void transactions.refetch()}
+              >
+                Réessayer
+              </Button>
+            }
+          />
         ) : transactions.data?.content.length === 0 ? (
-          <p className="py-8 text-center text-muted-foreground">
-            Aucune transaction.
-          </p>
+          <EmptyState icon={Wallet} title="Aucune transaction." />
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Produit</TableHead>
-                <TableHead>Cotation</TableHead>
-                <TableHead>Niveau</TableHead>
-                <TableHead>Montant</TableHead>
-                <TableHead>Solde après</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {transactions.data?.content.map((transaction) => (
-                <TableRow key={transaction.id}>
-                  <TableCell>{formatDate(transaction.createdAt)}</TableCell>
-                  <TableCell>{transaction.type}</TableCell>
-                  <TableCell>{transaction.productName}</TableCell>
-                  <TableCell>#{transaction.quotationId}</TableCell>
-                  <TableCell>N{transaction.appliedLevel}</TableCell>
-                  <TableCell className="font-semibold tabular-nums">
-                    {formatDecimal2(transaction.amount)}
-                  </TableCell>
-                  <TableCell className="font-bold tabular-nums">
-                    {formatDecimal2(transaction.balanceAfter)}
-                  </TableCell>
+          <div className="overflow-x-auto rounded-xl border">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <DataTableHead first>Date</DataTableHead>
+                  <DataTableHead>Type</DataTableHead>
+                  <DataTableHead>Produit</DataTableHead>
+                  <DataTableHead>Cotation</DataTableHead>
+                  <DataTableHead>Niveau</DataTableHead>
+                  <DataTableHead className="text-right">Montant</DataTableHead>
+                  <DataTableHead className="pr-[22px] text-right">
+                    Solde après
+                  </DataTableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {transactions.data?.content.map((transaction) => (
+                  <TableRow key={transaction.id} className="hover:bg-[#f6f8fc]">
+                    <TableCell
+                      className={`${FIRST_CELL_CLASS} whitespace-nowrap text-muted-foreground`}
+                    >
+                      {formatDate(transaction.createdAt)}
+                    </TableCell>
+                    <TableCell>
+                      <StatusPill
+                        tone={
+                          transaction.type === 'CREDIT'
+                            ? 'success'
+                            : transaction.type === 'DEBIT'
+                              ? 'warning'
+                              : 'neutral'
+                        }
+                      >
+                        {transaction.type === 'CREDIT'
+                          ? 'Crédit'
+                          : transaction.type === 'DEBIT'
+                            ? 'Débit'
+                            : transaction.type}
+                      </StatusPill>
+                    </TableCell>
+                    <TableCell>{transaction.productName}</TableCell>
+                    <TableCell className="tabular-nums">
+                      #{transaction.quotationId}
+                    </TableCell>
+                    <TableCell className="tabular-nums">
+                      N{transaction.appliedLevel}
+                    </TableCell>
+                    <TableCell className="text-right font-semibold whitespace-nowrap tabular-nums">
+                      {formatFcfa(transaction.amount)}
+                    </TableCell>
+                    <TableCell className="pr-[22px] text-right font-bold whitespace-nowrap tabular-nums">
+                      {formatFcfa(transaction.balanceAfter)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
         <Pagination
           page={page}

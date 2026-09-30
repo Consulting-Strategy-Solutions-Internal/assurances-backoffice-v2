@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useForm } from '@tanstack/react-form'
+import { useForm, useStore } from '@tanstack/react-form'
 import {
   useMutation,
   useQueries,
@@ -9,6 +9,9 @@ import {
 import { Plus } from 'lucide-react'
 import { z } from 'zod'
 import { apiErrorMessage } from '#/lib/api-error'
+import { formatPersonName } from '#/lib/people'
+import { SearchableSelect } from '#/components/layout/SearchableSelect'
+import { useUnsavedChangesGuard } from '#/components/forms/unsaved-changes'
 import { usePermissions } from '#/components/dashboard/use-permissions'
 import { getPartnerAgencies } from '#/services/agencies'
 import {
@@ -20,15 +23,9 @@ import {
 import type { CreateSellerPayload, SellerResponse } from '#/services/sellers'
 import { cn } from '#/lib/utils'
 import { Button } from '#/components/ui/button'
+import { Skeleton } from '#/components/ui/skeleton'
 import { Badge } from '#/components/ui/badge'
 import { Label } from '#/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '#/components/ui/select'
 import {
   Table,
   TableBody,
@@ -168,16 +165,20 @@ export function SellersStep({ partnerId }: { partnerId: number }) {
     },
   })
 
+  const dirty = useStore(form.store, (s) => !s.isDefaultValue) && showForm
+  const { dialog: guardDialog } = useUnsavedChangesGuard(dirty)
+
   return (
     <div>
-      <div className="text-[16px] font-bold tracking-[-0.01em]">Agents</div>
+      {guardDialog}
+      <h2 className="text-[16px] font-bold tracking-[-0.01em]">Agents</h2>
       <p className="mt-1 mb-4 text-[13.5px] text-muted-foreground">
         Ajoutez des agents rattachés directement au partenaire ou à l'une de ses
         agences.
       </p>
 
       {listLoading ? (
-        <p className="text-[13.5px] text-muted-foreground">Chargement…</p>
+        <Skeleton className="h-32 rounded-xl" />
       ) : (
         <div className="overflow-hidden rounded-xl border">
           <Table>
@@ -206,7 +207,7 @@ export function SellersStep({ partnerId }: { partnerId: number }) {
                 rows.map((s) => (
                   <TableRow key={`${s.attachment}-${s.id}`}>
                     <TableCell className="py-3 pl-[18px] text-[13.5px] font-semibold">
-                      {s.firstName} {s.lastName}
+                      {formatPersonName(s.firstName, s.lastName)}
                     </TableCell>
                     <TableCell className="py-3 text-[13px] text-muted-foreground">
                       {s.phoneNumber}
@@ -234,7 +235,7 @@ export function SellersStep({ partnerId }: { partnerId: number }) {
       )}
 
       {truncated && (
-        <p className="mt-2 text-[13px] text-[#9a7400]">
+        <p className="mt-2 text-[13px] text-[#8a6600]">
           Liste tronquée (100+ éléments) · tous les agents ne sont pas affichés.
         </p>
       )}
@@ -269,22 +270,19 @@ export function SellersStep({ partnerId }: { partnerId: number }) {
             <Label htmlFor="seller-target" className="text-[13px]">
               Rattachement<span className="text-destructive">*</span>
             </Label>
-            <Select value={target} onValueChange={setTarget}>
-              <SelectTrigger
-                id="seller-target"
-                className="h-10 w-full rounded-[10px]"
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="partner">Partenaire (direct)</SelectItem>
-                {agencies.map((a) => (
-                  <SelectItem key={a.id} value={`agency-${a.id}`}>
-                    Agence : {a.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              id="seller-target"
+              label="Rattachement"
+              value={target === 'partner' ? '' : target}
+              onChange={(v) => setTarget(v === '' ? 'partner' : v)}
+              allLabel="Partenaire (direct)"
+              placeholder="Rechercher une agence…"
+              options={agencies.map((a) => ({
+                value: `agency-${a.id}`,
+                label: `Agence : ${a.name}`,
+                hint: a.distributorCode,
+              }))}
+            />
           </div>
 
           {TEXT_FIELDS.map(({ name, label, type, required }) => (

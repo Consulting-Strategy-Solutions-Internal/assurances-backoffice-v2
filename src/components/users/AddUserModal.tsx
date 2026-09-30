@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { useForm } from '@tanstack/react-form'
+import { useForm, useStore } from '@tanstack/react-form'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
 import { z } from 'zod'
 import { createUser } from '#/services/users'
 import { getRoles } from '#/services/roles'
+import { formatRoleName, isAdminRoleEntity } from '#/lib/admin-roles'
 import { FormDialog } from '#/components/forms/FormDialog'
 import { FormField } from '#/components/forms/FormField'
 import { Label } from '#/components/ui/label'
@@ -26,14 +27,16 @@ const schema = z.object({
   phoneNumber: z.string().min(1, 'Le téléphone est requis'),
   addressLine1: z.string().min(1, "L'adresse est requise"),
   addressLine2: z.string().optional(),
-  roleId: z.number({ message: 'Le rôle est requis' }).min(1, 'Le rôle est requis'),
+  roleId: z
+    .number({ message: 'Le rôle est requis' })
+    .min(1, 'Le rôle est requis'),
 })
 
 const FIELDS = [
   { name: 'firstName', label: 'Prénom', type: 'text', required: true },
   { name: 'lastName', label: 'Nom', type: 'text', required: true },
   { name: 'email', label: 'Email', type: 'email', required: true },
-  { name: 'phoneNumber', label: 'Téléphone', type: 'text', required: true },
+  { name: 'phoneNumber', label: 'Téléphone', type: 'tel', required: true },
   { name: 'addressLine1', label: 'Adresse', type: 'text', required: true },
   {
     name: 'addressLine2',
@@ -55,6 +58,12 @@ export function AddUserModal({ onClose }: AddUserModalProps) {
     queryKey: ['roles-all'],
     queryFn: () => getRoles(0, 200),
   })
+
+  // Les rôles clients, agents, managers et développeurs sont des comptes
+  // métier : ils ne se créent pas ici (voir `lib/admin-roles.ts`).
+  const adminRoles = (rolesData?.content ?? []).filter((r) =>
+    isAdminRoleEntity(r),
+  )
 
   const { mutateAsync, isPending } = useMutation({
     mutationFn: createUser,
@@ -93,14 +102,17 @@ export function AddUserModal({ onClose }: AddUserModalProps) {
     },
   })
 
+  const dirty = useStore(form.store, (s) => !s.isDefaultValue)
+
   return (
     <FormDialog
+      dirty={dirty}
       onClose={onClose}
       eyebrow="Administrateurs"
-      title="Inviter un administrateur"
-      description="Créez un compte interne et attribuez-lui un rôle."
+      title="Ajouter un administrateur"
+      description="Créez le compte d’un administrateur du back-office et attribuez-lui un rôle interne."
       onSubmit={() => form.handleSubmit()}
-      submitLabel={isPending ? 'Création…' : "Créer l'administrateur"}
+      submitLabel={isPending ? 'Ajout…' : 'Ajouter l’administrateur'}
       pending={isPending}
       error={serverError}
     >
@@ -135,9 +147,9 @@ export function AddUserModal({ onClose }: AddUserModalProps) {
                   <SelectValue placeholder="Sélectionner un rôle" />
                 </SelectTrigger>
                 <SelectContent>
-                  {rolesData?.content.map((r) => (
+                  {adminRoles.map((r) => (
                     <SelectItem key={r.id} value={String(r.id)}>
-                      {r.name}
+                      {formatRoleName(r.name)}
                     </SelectItem>
                   ))}
                 </SelectContent>

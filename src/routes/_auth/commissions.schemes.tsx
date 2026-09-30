@@ -1,7 +1,11 @@
+import { pageHead } from '#/lib/page-title'
 import { useMemo, useState } from 'react'
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { z } from 'zod'
+import { PRODUCT_CODES } from '#/services/products'
+import type { ProductCode } from '#/services/products'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plus } from 'lucide-react'
+import { Layers, Percent, Plus, TriangleAlert, Workflow } from 'lucide-react'
 import { toast } from 'sonner'
 import { ConfirmDialog } from '#/components/dashboard/ConfirmDialog'
 import {
@@ -10,20 +14,31 @@ import {
 } from '#/components/commissions/CommissionDisplays'
 import { PageHeader } from '#/components/dashboard/PageHeader'
 import { usePermissions } from '#/components/dashboard/use-permissions'
-import { FormSelect } from '#/components/forms/FormSelect'
+import { SearchableSelect } from '#/components/layout/SearchableSelect'
+import { KpiCard } from '#/components/dashboard/KpiCard'
+import {
+  DataTableCard,
+  DataTableHead,
+  FIRST_CELL_CLASS,
+  TableEmptyState,
+  TableErrorState,
+  TableSkeletonRows,
+} from '#/components/layout/DataTable'
+import { KpiRow } from '#/components/layout/KpiRow'
+import { ResultCount, Toolbar } from '#/components/layout/Toolbar'
 import { Button } from '#/components/ui/button'
-import { Card } from '#/components/ui/card'
 import { Pagination } from '#/components/ui/Pagination'
 import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from '#/components/ui/table'
 import { apiErrorMessage } from '#/lib/api-error'
-import { cn, formatDate } from '#/lib/utils'
+import { mapClaimError } from '#/lib/claims'
+import { fetchAllPages } from '#/lib/fetch-all-pages'
+import { formatDate } from '#/lib/utils'
 import {
   deleteCommissionScheme,
   getCommissionSchemes,
@@ -34,20 +49,38 @@ import {
   getAllProducts,
 } from '#/services/commission-reference-data'
 
-export const Route = createFileRoute('/_auth/commissions/schemes')({
-  component: CommissionSchemesPage,
+const PAGE_SIZE = 20
+
+const searchSchema = z.object({
+  partnerId: z.coerce.number().int().positive().optional().catch(undefined),
+  product: z.enum(PRODUCT_CODES).optional().catch(undefined),
+  page: z.coerce.number().int().min(0).optional().catch(undefined),
 })
 
-const headClass =
-  'h-auto bg-[#fafbfc] px-3 py-3 text-[11px] font-bold uppercase tracking-[0.05em] text-muted-foreground'
+export const Route = createFileRoute('/_auth/commissions/schemes')({
+  head: pageHead('Schémas de commission'),
+  validateSearch: searchSchema,
+  component: CommissionSchemesPage,
+})
 
 function CommissionSchemesPage() {
   const queryClient = useQueryClient()
   const { can } = usePermissions()
   const canWrite = can('commissionscheme:write')
-  const [partnerId, setPartnerId] = useState('')
-  const [productId, setProductId] = useState('')
-  const [page, setPage] = useState(0)
+  const navigate = useNavigate({ from: Route.fullPath })
+  const search = Route.useSearch()
+  const partnerId = search.partnerId ? String(search.partnerId) : ''
+  const product = search.product ?? ''
+  const requestedPage = search.page ?? 0
+  const setSearch = (next: {
+    partnerId?: number | undefined
+    product?: ProductCode | undefined
+    page?: number | undefined
+  }) =>
+    void navigate({
+      search: (prev) => ({ ...prev, ...next }),
+      replace: true,
+    })
   const [deleting, setDeleting] = useState<CommissionSchemeResponse | null>(
     null,
   )
@@ -63,14 +96,18 @@ function CommissionSchemesPage() {
     retry: false,
   })
   const schemes = useQuery({
-    queryKey: ['commission-schemes', partnerId, productId, page],
+    // Every scheme matching the filters is loaded (a handful per partner and
+    // product), so the KPIs describe the whole selection, not one page.
+    queryKey: ['commission-schemes', partnerId, product],
     queryFn: () =>
-      getCommissionSchemes({
-        partnerId: partnerId ? Number(partnerId) : undefined,
-        productId: productId ? Number(productId) : undefined,
-        page,
-        size: 20,
-      }),
+      fetchAllPages((page, size) =>
+        getCommissionSchemes({
+          partnerId: partnerId ? Number(partnerId) : undefined,
+          product: product || undefined,
+          page,
+          size,
+        }),
+      ),
     retry: false,
   })
   const partnerNames = useMemo(
@@ -83,7 +120,7 @@ function CommissionSchemesPage() {
   const productNames = useMemo(
     () =>
       new Map(
-        references.data?.products.map((item) => [item.id, item.label]) ?? [],
+        references.data?.products.map((item) => [item.code, item.label]) ?? [],
       ),
     [references.data],
   )
@@ -99,14 +136,42 @@ function CommissionSchemesPage() {
     onError: (error) => toast.error(apiErrorMessage(error)),
   })
 
+  const all = schemes.data?.items ?? []
+  const totalPages = Math.max(1, Math.ceil(all.length / PAGE_SIZE))
+  const page = Math.min(requestedPage, totalPages - 1)
+  const content = all.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
+  const loading = schemes.isLoading || references.isLoading
+  const failure = schemes.error ?? references.error
+  const forbidden =
+    failure !== null && mapClaimError(failure).kind === 'forbidden'
+  const filtering = partnerId !== '' || product !== ''
+  const total = schemes.data?.total ?? all.length
+  const level2 = all.filter((item) => item.maxLevel === 2).length
+  const level3 = all.filter((item) => item.maxLevel === 3).length
+  const unset = all.filter((item) => item.commissionRate === null).length
+  const kpi = (value: number) => (loading ? '…' : failure ? '—' : value)
+  const resetFilters = () =>
+    setSearch({ partnerId: undefined, product: undefined, page: undefined })
+  const newSchemeButton = canWrite ? (
+    <Button asChild className="rounded-[11px]">
+      <Link to="/commissions/schemes/new">
+        <Plus />
+        Nouveau schéma
+      </Link>
+    </Button>
+  ) : undefined
+
   return (
     <>
       <PageHeader
         title="Schémas de commission"
-        subtitle="Répartition du pot par partenaire, produit et niveau de vente"
+        subtitle="Répartition du pot par partenaire, produit et niveau de vente."
       >
         {canWrite && (
-          <Button asChild className="rounded-[11px]">
+          <Button
+            asChild
+            className="rounded-[11px] shadow-[0_4px_14px_rgba(0,51,127,0.22)]"
+          >
             <Link to="/commissions/schemes/new">
               <Plus />
               Nouveau schéma
@@ -115,96 +180,170 @@ function CommissionSchemesPage() {
         )}
       </PageHeader>
 
-      <Card className="mb-4 grid gap-4 p-4 md:grid-cols-2">
-        <FormSelect
-          id="scheme-partner-filter"
-          label="Partenaire"
-          value={partnerId}
-          includeNone
-          noneLabel="Tous les partenaires"
-          options={(references.data?.partners ?? []).map((item) => ({
-            value: String(item.id),
-            label: item.name,
-          }))}
-          onChange={(value) => {
-            setPartnerId(value)
-            setPage(0)
-          }}
+      <KpiRow>
+        <KpiCard
+          icon={<Layers className="size-5 text-primary" />}
+          iconClass="bg-primary/[0.08]"
+          value={kpi(total)}
+          label="Schémas"
         />
-        <FormSelect
-          id="scheme-product-filter"
-          label="Produit"
-          value={productId}
-          includeNone
-          noneLabel="Tous les produits"
-          options={(references.data?.products ?? []).map((item) => ({
-            value: String(item.id),
-            label: item.label,
-          }))}
-          onChange={(value) => {
-            setProductId(value)
-            setPage(0)
-          }}
+        <KpiCard
+          icon={<Workflow className="size-5 text-[#1f53b0]" />}
+          iconClass="bg-[#1f53b0]/10"
+          value={kpi(level2)}
+          label="Schémas de niveau 2"
         />
-      </Card>
+        <KpiCard
+          icon={<Percent className="size-5 text-[#167347]" />}
+          iconClass="bg-[#1c8a57]/10"
+          value={kpi(level3)}
+          label="Schémas de niveau 3"
+        />
+        <KpiCard
+          icon={<TriangleAlert className="size-5 text-[#8a6600]" />}
+          iconClass="bg-[#ffc61e]/20"
+          value={kpi(unset)}
+          label="Taux à configurer"
+        />
+      </KpiRow>
 
-      <Card className="gap-0 overflow-hidden py-0">
+      <Toolbar
+        filters={
+          <>
+            <SearchableSelect
+              id="scheme-partner-filter"
+              label="Partenaire"
+              value={partnerId}
+              allLabel="Tous les partenaires"
+              options={(references.data?.partners ?? []).map((item) => ({
+                value: String(item.id),
+                label: item.name,
+              }))}
+              loading={references.isLoading}
+              onChange={(value) =>
+                setSearch({
+                  partnerId: value ? Number(value) : undefined,
+                  page: undefined,
+                })
+              }
+            />
+            <SearchableSelect
+              id="scheme-product-filter"
+              label="Produit"
+              value={product}
+              allLabel="Tous les produits"
+              options={(references.data?.products ?? []).map((item) => ({
+                value: item.code,
+                label: item.label,
+              }))}
+              loading={references.isLoading}
+              onChange={(value) =>
+                setSearch({
+                  product: value ? (value as ProductCode) : undefined,
+                  page: undefined,
+                })
+              }
+            />
+          </>
+        }
+        actions={
+          filtering ? (
+            <Button
+              type="button"
+              variant="ghost"
+              className="rounded-[11px]"
+              onClick={resetFilters}
+            >
+              Réinitialiser les filtres
+            </Button>
+          ) : undefined
+        }
+      />
+      <ResultCount>
+        {loading
+          ? 'Chargement…'
+          : failure
+            ? ''
+            : `${total} schéma${total > 1 ? 's' : ''}${filtering ? ' pour ces filtres' : ''}${schemes.data?.capped ? ` (${all.length} chargés)` : ''}`}
+      </ResultCount>
+
+      <DataTableCard>
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead className={cn(headClass, 'pl-[22px]')}>
-                Partenaire
-              </TableHead>
-              <TableHead className={headClass}>Produit</TableHead>
-              <TableHead className={headClass}>Taux négocié</TableHead>
-              <TableHead className={headClass}>Niveau max.</TableHead>
-              <TableHead className={headClass}>Répartition</TableHead>
-              <TableHead className={headClass}>Mise à jour</TableHead>
-              <TableHead className={cn(headClass, 'pr-[22px] text-right')}>
+              <DataTableHead first>Partenaire</DataTableHead>
+              <DataTableHead>Produit</DataTableHead>
+              <DataTableHead>Taux négocié</DataTableHead>
+              <DataTableHead>Niveau max.</DataTableHead>
+              <DataTableHead>Répartition</DataTableHead>
+              <DataTableHead>Mise à jour</DataTableHead>
+              <DataTableHead className="pr-[22px] text-right">
                 Actions
-              </TableHead>
+              </DataTableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {schemes.isLoading || references.isLoading ? (
-              <TableRow>
-                <TableCell
-                  colSpan={7}
-                  className="py-9 text-center text-muted-foreground"
-                >
-                  Chargement…
-                </TableCell>
-              </TableRow>
-            ) : schemes.error || references.error ? (
-              <TableRow>
-                <TableCell
-                  colSpan={7}
-                  className="py-9 text-center text-destructive"
-                >
-                  Impossible de charger les schémas.
-                </TableCell>
-              </TableRow>
-            ) : schemes.data?.content.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={7}
-                  className="py-9 text-center text-muted-foreground"
-                >
-                  Aucun schéma ne correspond aux filtres.
-                </TableCell>
-              </TableRow>
+            {loading ? (
+              <TableSkeletonRows columns={[36, 30, 16, 12, 60, 24, 32]} />
+            ) : failure ? (
+              <TableErrorState
+                colSpan={7}
+                forbidden={forbidden}
+                title="Impossible de charger les schémas."
+                action={
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="rounded-[11px]"
+                    onClick={() => {
+                      void schemes.refetch()
+                      void references.refetch()
+                    }}
+                  >
+                    Réessayer
+                  </Button>
+                }
+              />
+            ) : content.length === 0 ? (
+              <TableEmptyState
+                colSpan={7}
+                icon={Layers}
+                title={
+                  filtering
+                    ? 'Aucun schéma ne correspond à ces filtres.'
+                    : 'Aucun schéma de commission pour le moment.'
+                }
+                description={
+                  filtering
+                    ? undefined
+                    : 'Sans schéma, les ventes de niveaux 2 et 3 sont mises en attente.'
+                }
+                action={
+                  filtering ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="rounded-[11px]"
+                      onClick={resetFilters}
+                    >
+                      Réinitialiser les filtres
+                    </Button>
+                  ) : (
+                    newSchemeButton
+                  )
+                }
+              />
             ) : (
-              schemes.data?.content.map((scheme) => (
-                <TableRow key={scheme.id} className="hover:bg-transparent">
-                  <TableCell className="pl-[22px] font-semibold">
+              content.map((scheme) => (
+                <TableRow key={scheme.id} className="hover:bg-[#f6f8fc]">
+                  <TableCell className={`${FIRST_CELL_CLASS} font-semibold`}>
                     {partnerNames.get(scheme.partnerId) ??
                       `Partenaire #${scheme.partnerId}`}
                   </TableCell>
                   <TableCell>
-                    {productNames.get(scheme.productId) ??
-                      `Produit #${scheme.productId}`}
+                    {productNames.get(scheme.product) ?? scheme.product}
                   </TableCell>
-                  <TableCell className="font-bold tabular-nums text-primary">
+                  <TableCell className="font-bold whitespace-nowrap tabular-nums text-primary">
                     <CommissionSchemeRate rate={scheme.commissionRate} />
                   </TableCell>
                   <TableCell className="tabular-nums">
@@ -213,13 +352,18 @@ function CommissionSchemesPage() {
                   <TableCell className="max-w-[460px] whitespace-normal text-[12.5px] text-muted-foreground">
                     <CommissionSchemeShares scheme={scheme} />
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
+                  <TableCell className="whitespace-nowrap text-muted-foreground">
                     {formatDate(scheme.updatedAt)}
                   </TableCell>
                   <TableCell className="pr-[22px]">
                     {canWrite && (
                       <div className="flex justify-end gap-2">
-                        <Button asChild size="sm" variant="outline">
+                        <Button
+                          asChild
+                          size="sm"
+                          variant="outline"
+                          className="rounded-[9px]"
+                        >
                           <Link
                             to="/commissions/schemes/$schemeId/edit"
                             params={{ schemeId: String(scheme.id) }}
@@ -231,7 +375,7 @@ function CommissionSchemesPage() {
                           type="button"
                           size="sm"
                           variant="ghost"
-                          className="text-destructive hover:text-destructive"
+                          className="rounded-[9px] text-destructive hover:text-destructive"
                           onClick={() => setDeleting(scheme)}
                         >
                           Supprimer
@@ -244,13 +388,13 @@ function CommissionSchemesPage() {
             )}
           </TableBody>
         </Table>
-      </Card>
+      </DataTableCard>
       <Pagination
         page={page}
-        totalPages={schemes.data?.totalPages ?? 0}
-        isLast={schemes.data?.last ?? true}
-        onPrev={() => setPage((current) => current - 1)}
-        onNext={() => setPage((current) => current + 1)}
+        totalPages={totalPages}
+        isLast={page >= totalPages - 1}
+        onPrev={() => setSearch({ page: page - 1 || undefined })}
+        onNext={() => setSearch({ page: page + 1 })}
       />
       <ConfirmDialog
         open={deleting !== null}

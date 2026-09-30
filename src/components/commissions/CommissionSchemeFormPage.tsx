@@ -2,15 +2,27 @@ import { useEffect, useMemo, useState } from 'react'
 import { isAxiosError } from 'axios'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Check } from 'lucide-react'
+import { Check, TriangleAlert } from 'lucide-react'
 import { toast } from 'sonner'
 import { FormField } from '#/components/forms/FormField'
-import { FormSelect } from '#/components/forms/FormSelect'
+import { useUnsavedChangesGuard } from '#/components/forms/unsaved-changes'
+import { Label } from '#/components/ui/label'
+import { SearchableSelect } from '#/components/layout/SearchableSelect'
 import { Button } from '#/components/ui/button'
+import { PageHeader } from '#/components/dashboard/PageHeader'
+import { BackLink } from '#/components/layout/BackLink'
+import { EmptyState } from '#/components/layout/EmptyState'
+import { SectionCard } from '#/components/layout/SectionCard'
 import { Card } from '#/components/ui/card'
-import { apiErrorMessage } from '#/lib/api-error'
+import { Skeleton } from '#/components/ui/skeleton'
+import { mapClaimError } from '#/lib/claims'
+import { cn } from '#/lib/utils'
+import { parseSchemeError } from '#/lib/commission-scheme-errors'
+import { ShareSplitter } from './ShareSplitter'
+import type { ProductCode } from '#/services/products'
 import {
   formatShareTotal,
+  percentToCents,
   validateCommissionScheme,
 } from '#/lib/commission-scheme-validation'
 import type { CommissionSchemeDraft } from '#/lib/commission-scheme-validation'
@@ -32,7 +44,7 @@ import {
 
 const EMPTY_DRAFT: CommissionSchemeDraft = {
   partnerId: null,
-  productId: null,
+  product: null,
   commissionRate: '',
   maxLevel: 1,
   level2PartnerShare: '',
@@ -42,26 +54,15 @@ const EMPTY_DRAFT: CommissionSchemeDraft = {
   level3SellerShare: '',
 }
 
-const NETWORK_MESSAGES: Record<string, string> = {
-  'Level 2 scheme requires a direct seller':
-    'Le niveau 2 exige au moins un vendeur rattaché directement au partenaire.',
-  'Level 2 scheme is forbidden for a partner with agency sellers: their sales are level 3':
-    "Le niveau 2 est impossible : ce partenaire possède des vendeurs d'agence, dont les ventes relèvent du niveau 3.",
-  'Level 3 scheme requires an agency with a seller':
-    'Le niveau 3 exige au moins une agence contenant au moins un vendeur.',
-}
+type ShareBlockId = 'level2' | 'level3'
 
-function serverSchemeError(error: unknown): string {
-  if (isAxiosError(error)) {
-    const data = error.response?.data
-    if (data && typeof data === 'object' && 'message' in data) {
-      const raw = data.message
-      if (typeof raw === 'string' && NETWORK_MESSAGES[raw]) {
-        return `${NETWORK_MESSAGES[raw]} Message serveur : ${raw}`
-      }
-    }
-  }
-  return apiErrorMessage(error)
+/** A block loaded from an existing scheme, already at 100 %, counts as confirmed. */
+function loadedBlockConfirmed(values: string[]): boolean {
+  const cents = values.map(percentToCents)
+  return (
+    cents.every((c): c is number => c !== null) &&
+    cents.reduce((sum, c) => sum + c, 0) === 10_000
+  )
 }
 
 function initialDraft(
@@ -70,7 +71,7 @@ function initialDraft(
   const value = (rate: number | null) => (rate === null ? '' : String(rate))
   return {
     partnerId: scheme.partnerId,
-    productId: scheme.productId,
+    product: scheme.product,
     commissionRate: value(scheme.commissionRate),
     maxLevel: scheme.maxLevel,
     level2PartnerShare: value(scheme.level2PartnerShare),
@@ -95,7 +96,24 @@ export function CommissionSchemeFormPage({
   const [draft, setDraft] = useState<CommissionSchemeDraft>(EMPTY_DRAFT)
   const [submitted, setSubmitted] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
+  // Field errors returned by the backend, shown under the fields until edited.
+  const [serverFields, setServerFields] = useState<
+    Partial<Record<keyof CommissionSchemeDraft, string>>
+  >({})
+  const fieldError = (field: keyof CommissionSchemeDraft) =>
+    (submitted ? validation.errors[field] : undefined) ?? serverFields[field]
+  // Blocks whose split the administrator has confirmed (moved a thumb, clicked
+  // « Confirmer », or loaded from an existing scheme). A pre-filled default
+  // split is not saveable until confirmed (R1-13).
+  const [confirmedBlocks, setConfirmedBlocks] = useState<
+    Record<ShareBlockId, boolean>
+  >({ level2: false, level3: false })
+  const setBlockConfirmed = (block: ShareBlockId) => (value: boolean) =>
+    setConfirmedBlocks((current) =>
+      current[block] === value ? current : { ...current, [block]: value },
+    )
   const [existingId, setExistingId] = useState<number | null>(null)
+  const [saved, setSaved] = useState(false)
   const schemeQuery = useQuery({
     queryKey: ['commission-scheme', schemeId],
     queryFn: () => getCommissionScheme(schemeId as number),
@@ -121,8 +139,32 @@ export function CommissionSchemeFormPage({
   })
 
   useEffect(() => {
-    if (schemeQuery.data) setDraft(initialDraft(schemeQuery.data))
+    if (!schemeQuery.data) return
+    const loaded = initialDraft(schemeQuery.data)
+    setDraft(loaded)
+    setConfirmedBlocks({
+      level2: loadedBlockConfirmed([
+        loaded.level2PartnerShare,
+        loaded.level2SellerShare,
+      ]),
+      level3: loadedBlockConfirmed([
+        loaded.level3PartnerShare,
+        loaded.level3AgencyShare,
+        loaded.level3SellerShare,
+      ]),
+    })
   }, [schemeQuery.data])
+
+  const baseline = useMemo(
+    () => (schemeQuery.data ? initialDraft(schemeQuery.data) : EMPTY_DRAFT),
+    [schemeQuery.data],
+  )
+  const dirty =
+    !saved &&
+    (Object.keys(baseline) as Array<keyof CommissionSchemeDraft>).some(
+      (key) => draft[key] !== baseline[key],
+    )
+  const { dialog: unsavedDialog } = useUnsavedChangesGuard(dirty)
 
   const validation = useMemo(
     () =>
@@ -131,12 +173,27 @@ export function CommissionSchemeFormPage({
         schemeQuery.data
           ? {
               partnerId: schemeQuery.data.partnerId,
-              productId: schemeQuery.data.productId,
+              product: schemeQuery.data.product,
             }
           : undefined,
       ),
     [draft, schemeQuery.data],
   )
+  const unconfirmedBlocks: string[] =
+    draft.maxLevel === 1
+      ? []
+      : [
+          ...(confirmedBlocks.level2
+            ? []
+            : [
+                draft.maxLevel === 3
+                  ? 'le barème de compatibilité niveau 2'
+                  : 'les parts du niveau 2',
+              ]),
+          ...(draft.maxLevel === 3 && !confirmedBlocks.level3
+            ? ['la répartition principale niveau 3']
+            : []),
+        ]
   const level2Reason = !network.data
     ? null
     : network.data.directSellers.length === 0
@@ -166,15 +223,21 @@ export function CommissionSchemeFormPage({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['commission-schemes'] })
       toast.success(editing ? 'Schéma mis à jour.' : 'Schéma créé.')
-      navigate({ to: '/commissions/schemes' })
+      // The unsaved-changes guard is lifted first; the effect below navigates.
+      setSaved(true)
     },
   })
+  useEffect(() => {
+    if (saved) void navigate({ to: '/commissions/schemes' })
+  }, [saved, navigate])
 
   const submit = async () => {
     setSubmitted(true)
     setExistingId(null)
     setServerError(null)
+    setServerFields({})
     if (!validation.payload || selectedLevelReason) return
+    if (unconfirmedBlocks.length > 0) return
     try {
       await mutation.mutateAsync(validation.payload)
     } catch (error) {
@@ -183,12 +246,12 @@ export function CommissionSchemeFormPage({
         isAxiosError(error) &&
         error.response?.status === 409 &&
         draft.partnerId !== null &&
-        draft.productId !== null
+        draft.product !== null
       ) {
         try {
           const existing = await getCommissionSchemes({
             partnerId: draft.partnerId,
-            productId: draft.productId,
+            product: draft.product,
             page: 0,
             size: 1,
           })
@@ -199,214 +262,357 @@ export function CommissionSchemeFormPage({
         setServerError(
           'Un schéma actif existe déjà pour ce couple partenaire / produit.',
         )
+        toast.error('Ce schéma existe déjà', {
+          description:
+            'Un schéma actif existe déjà pour ce couple partenaire / produit : modifiez-le plutôt que d’en créer un second.',
+        })
       } else {
-        setServerError(serverSchemeError(error))
+        const parsed = parseSchemeError(error)
+        setServerFields(parsed.fields)
+        setServerError(parsed.details.join(' '))
+        const target = parsed.step
+        toast.error(parsed.title, {
+          description: (
+            <ul className="mt-1 list-disc space-y-0.5 pl-4">
+              {parsed.details.map((detail) => (
+                <li key={detail}>{detail}</li>
+              ))}
+            </ul>
+          ),
+          duration: 10_000,
+          action:
+            target !== null && target !== step
+              ? {
+                  label: `Corriger (étape ${target})`,
+                  onClick: () => setStep(target),
+                }
+              : undefined,
+        })
       }
     }
   }
   const update = <TField extends keyof CommissionSchemeDraft>(
     field: TField,
     value: CommissionSchemeDraft[TField],
-  ) => setDraft((current) => ({ ...current, [field]: value }))
+  ) => {
+    setDraft((current) => ({ ...current, [field]: value }))
+    setServerFields((current) => {
+      if (!(field in current)) return current
+      const next = { ...current }
+      delete next[field]
+      return next
+    })
+  }
 
   if ((editing && schemeQuery.isLoading) || references.isLoading) {
     return (
-      <Card className="p-9 text-center text-muted-foreground">Chargement…</Card>
+      <div className="mx-auto flex max-w-4xl flex-col gap-[18px]">
+        <Skeleton className="h-16 rounded-xl" />
+        <Skeleton className="h-12 rounded-xl" />
+        <Skeleton className="h-64 rounded-xl" />
+      </div>
     )
   }
   if (
     (editing && (schemeQuery.error || !schemeQuery.data)) ||
     references.error
   ) {
+    const loadError = editing
+      ? (schemeQuery.error ?? references.error)
+      : references.error
+    const forbidden =
+      loadError !== null && mapClaimError(loadError).kind === 'forbidden'
+    const notFound =
+      !forbidden &&
+      editing &&
+      schemeQuery.error !== null &&
+      isAxiosError(schemeQuery.error) &&
+      schemeQuery.error.response?.status === 404
     return (
-      <Card className="p-9 text-center text-destructive">
-        Impossible de charger le formulaire.
-      </Card>
+      <div className="mx-auto flex max-w-4xl flex-col gap-[18px]">
+        <BackLink to="/commissions/schemes">Retour aux schémas</BackLink>
+        <EmptyState
+          variant="card"
+          icon={TriangleAlert}
+          tone="error"
+          title={
+            forbidden
+              ? 'Accès refusé.'
+              : notFound
+                ? 'Schéma introuvable.'
+                : 'Le serveur n’a pas pu charger le formulaire.'
+          }
+          description={
+            forbidden
+              ? 'Vous n’avez pas les droits nécessaires pour consulter ces données.'
+              : notFound
+                ? 'Ce schéma n’existe plus : il a peut-être été supprimé. Retournez à la liste pour choisir un autre schéma.'
+                : 'Vérifiez votre connexion, puis réessayez. Si le problème persiste, contactez l’équipe technique.'
+          }
+          action={
+            forbidden || notFound ? undefined : (
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-[11px]"
+                onClick={() => {
+                  void schemeQuery.refetch()
+                  void references.refetch()
+                }}
+              >
+                Réessayer
+              </Button>
+            )
+          }
+        />
+      </div>
     )
   }
 
+  const continueBlocked =
+    (step === 1 &&
+      (draft.partnerId === null ||
+        draft.product === null ||
+        validation.errors.commissionRate !== undefined)) ||
+    (step === 2 &&
+      (network.isLoading ||
+        network.error !== null ||
+        selectedLevelReason !== null))
+  const blockReason: string | undefined =
+    step === 1
+      ? draft.partnerId === null
+        ? 'Choisissez un partenaire pour continuer.'
+        : draft.product === null
+          ? 'Choisissez un produit pour continuer.'
+          : validation.errors.commissionRate !== undefined
+            ? 'Saisissez un taux de commission valide pour continuer.'
+            : undefined
+      : step === 2
+        ? network.isLoading
+          ? 'Analyse du réseau du partenaire en cours…'
+          : network.error !== null
+            ? 'Le réseau du partenaire n’a pas pu être analysé : rechargez la page.'
+            : (selectedLevelReason ?? undefined)
+        : !validation.valid
+          ? 'Complétez les pourcentages : chaque bloc doit totaliser 100 %.'
+          : unconfirmedBlocks.length > 0
+            ? `Confirmez ${unconfirmedBlocks.join(' et ')} (répartition par défaut) : déplacez un curseur ou cliquez sur « Confirmer cette répartition ».`
+            : undefined
+
+  const steps = ['Couple', 'Niveau', 'Répartition']
+
   return (
     <div className="mx-auto max-w-4xl">
-      <Button asChild variant="ghost" size="sm" className="mb-3 -ml-2">
-        <Link to="/commissions/schemes">
-          <ArrowLeft />
-          Retour aux schémas
-        </Link>
-      </Button>
-      <div className="mb-6">
-        <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-primary">
-          Commissions
-        </p>
-        <h1 className="mt-1 text-[26px] font-extrabold tracking-[-0.03em]">
-          {editing ? 'Modifier le schéma' : 'Nouveau schéma'}
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Le taux modifié ne vaut que pour les nouveaux contrats. Les parts
-          modifiées s'appliquent aux encaissements pas encore distribués, y
-          compris ceux rejoués ; aucune distribution historique n'est réécrite.
-        </p>
+      {unsavedDialog}
+      <BackLink to="/commissions/schemes">Retour aux schémas</BackLink>
+      <div className="mt-3">
+        <PageHeader
+          title={editing ? 'Modifier le schéma' : 'Nouveau schéma'}
+          subtitle={
+            editing
+              ? 'Le taux modifié ne vaut que pour les nouveaux contrats. Les parts modifiées s’appliquent aux encaissements pas encore distribués, y compris ceux rejoués ; aucune distribution historique n’est réécrite.'
+              : 'Définissez le taux négocié et la répartition de la commission pour un partenaire et un produit, en trois étapes. Le schéma s’appliquera aux nouveaux contrats de ce couple.'
+          }
+        />
       </div>
-      <div className="mb-5 grid grid-cols-3 gap-2">
-        {['Couple', 'Niveau', 'Répartition'].map((label, index) => (
-          <div
-            key={label}
-            className={`rounded-[10px] border px-3 py-2 text-[12px] font-semibold ${step === index + 1 ? 'border-primary bg-primary/5 text-primary' : 'text-muted-foreground'}`}
-          >
-            {index + 1}. {label}
-          </div>
-        ))}
-      </div>
-      <Card className="p-6">
+      <ol className="mb-[18px] grid grid-cols-3 gap-2">
+        {steps.map((label, index) => {
+          const current = step === index + 1
+          const done = step > index + 1
+          return (
+            <li
+              key={label}
+              aria-current={current ? 'step' : undefined}
+              className={cn(
+                'flex items-center gap-2 rounded-[10px] border px-3 py-2 text-[12.5px] font-semibold',
+                current
+                  ? 'border-primary bg-primary/5 text-primary'
+                  : done
+                    ? 'border-[#1c8a57]/30 bg-[#e7f6ee] text-[#167347]'
+                    : 'bg-card text-muted-foreground',
+              )}
+            >
+              <span
+                className={cn(
+                  'flex size-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold',
+                  current
+                    ? 'bg-primary text-primary-foreground'
+                    : done
+                      ? 'bg-[#1c8a57] text-white'
+                      : 'bg-[#f0f1f4]',
+                )}
+              >
+                {done ? <Check className="size-3" /> : index + 1}
+              </span>
+              {label}
+            </li>
+          )
+        })}
+      </ol>
+      <div className="flex flex-col gap-[18px]">
         {step === 1 && (
-          <div className="grid gap-5 md:grid-cols-2">
-            <FormSelect
-              id="scheme-partner"
-              label="Partenaire"
-              required
-              value={draft.partnerId === null ? '' : String(draft.partnerId)}
-              disabled={editing}
-              options={(references.data?.partners ?? []).map((item) => ({
-                value: String(item.id),
-                label: item.name,
-              }))}
-              onChange={(value) =>
-                update('partnerId', value ? Number(value) : null)
+          <>
+            <SectionCard
+              title="Partenaire et produit"
+              description={
+                editing
+                  ? 'Le couple partenaire / produit est immuable en édition.'
+                  : 'Un seul schéma actif est possible par couple partenaire / produit.'
               }
-              error={submitted ? validation.errors.partnerId : undefined}
-            />
-            <FormSelect
-              id="scheme-product"
-              label="Produit"
-              required
-              value={draft.productId === null ? '' : String(draft.productId)}
-              disabled={editing}
-              options={(references.data?.products ?? []).map((item) => ({
-                value: String(item.id),
-                label: item.label,
-              }))}
-              onChange={(value) =>
-                update('productId', value ? Number(value) : null)
-              }
-              error={submitted ? validation.errors.productId : undefined}
-            />
-            <div className="md:col-span-2 rounded-[12px] border border-primary/20 bg-primary/[0.03] p-4">
-              <FormField
-                id="scheme-commission-rate"
-                label="Taux de commission négocié (%)"
-                required
-                type="text"
-                value={draft.commissionRate}
-                onChange={(value) => update('commissionRate', value)}
-                error={
-                  draft.commissionRate !== '' || submitted
-                    ? validation.errors.commissionRate
-                    : undefined
-                }
-                hint="Pourcentage de la prime nette constituant le pot à répartir pour ce partenaire et ce produit. 0 % signifie que les encaissements seront ignorés."
-              />
-              <p className="mt-3 text-[12px] leading-relaxed text-muted-foreground">
-                Ce taux est gelé sur chaque contrat à la souscription. Une
-                modification ne change jamais les contrats déjà souscrits, même
-                lors d'un rejeu.
-              </p>
-            </div>
-            {editing && (
-              <p className="md:col-span-2 text-[12.5px] text-muted-foreground">
-                Le couple partenaire / produit est immuable en édition.
-              </p>
-            )}
-          </div>
+            >
+              <div className="grid gap-5 md:grid-cols-2">
+                <SchemeSelect
+                  id="scheme-partner"
+                  label="Partenaire"
+                  value={
+                    draft.partnerId === null ? '' : String(draft.partnerId)
+                  }
+                  disabled={editing}
+                  placeholder="Sélectionner un partenaire"
+                  searchPlaceholder="Rechercher un partenaire…"
+                  options={(references.data?.partners ?? []).map((item) => ({
+                    value: String(item.id),
+                    label: item.name,
+                    hint: item.distributorCode,
+                  }))}
+                  onChange={(value) =>
+                    update('partnerId', value ? Number(value) : null)
+                  }
+                  error={fieldError('partnerId')}
+                />
+                <SchemeSelect
+                  id="scheme-product"
+                  label="Produit"
+                  value={draft.product ?? ''}
+                  disabled={editing}
+                  placeholder="Sélectionner un produit"
+                  searchPlaceholder="Rechercher un produit…"
+                  options={(references.data?.products ?? []).map((item) => ({
+                    value: item.code,
+                    label: item.label,
+                  }))}
+                  onChange={(value) =>
+                    update('product', value ? (value as ProductCode) : null)
+                  }
+                  error={fieldError('product')}
+                />
+              </div>
+            </SectionCard>
+            <SectionCard
+              title="Taux de commission"
+              description="Ce taux est gelé sur chaque contrat à la souscription : une modification ne change jamais les contrats déjà souscrits, même lors d’un rejeu."
+            >
+              <div className="max-w-sm">
+                <FormField
+                  id="scheme-commission-rate"
+                  label="Taux de commission négocié (%)"
+                  required
+                  type="text"
+                  value={draft.commissionRate}
+                  onChange={(value) => update('commissionRate', value)}
+                  error={
+                    (draft.commissionRate !== '' || submitted
+                      ? validation.errors.commissionRate
+                      : undefined) ?? serverFields.commissionRate
+                  }
+                  hint="Pourcentage de la prime nette constituant le pot à répartir pour ce partenaire et ce produit. 0 % signifie que les encaissements seront ignorés."
+                />
+              </div>
+            </SectionCard>
+          </>
         )}
         {step === 2 && (
-          <div className="space-y-4">
-            <div>
-              <h2 className="font-bold">Niveau maximal du réseau</h2>
-              <p className="mt-1 text-[12.5px] text-muted-foreground">
-                Le niveau réellement appliqué dépend de la chaîne de la vente,
-                jamais du seul niveau maximal choisi ici.
-              </p>
+          <SectionCard
+            title="Niveau maximal du réseau"
+            description="Le niveau réellement appliqué dépend de la chaîne de la vente, jamais du seul niveau maximal choisi ici."
+          >
+            <div className="space-y-4">
+              {network.isLoading ? (
+                <Skeleton className="h-28 rounded-xl" />
+              ) : network.error ? (
+                <p className="text-sm text-destructive">
+                  Impossible d'analyser le réseau de ce partenaire.
+                </p>
+              ) : (
+                <div className="grid gap-3 md:grid-cols-3">
+                  {([1, 2, 3] as CommissionLevel[]).map((level) => {
+                    const reason =
+                      level === 2
+                        ? level2Reason
+                        : level === 3
+                          ? level3Reason
+                          : null
+                    return (
+                      <button
+                        key={level}
+                        type="button"
+                        disabled={reason !== null}
+                        onClick={() => update('maxLevel', level)}
+                        className={`min-h-28 rounded-[12px] border p-4 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${draft.maxLevel === level ? 'border-primary bg-primary/5' : 'hover:border-primary/40'}`}
+                      >
+                        <span className="font-extrabold">Niveau {level}</span>
+                        <span className="mt-2 block text-[12px] leading-relaxed text-muted-foreground">
+                          {level === 1
+                            ? 'Vente self-service : 100 % au partenaire, implicite.'
+                            : (reason ??
+                              (level === 2
+                                ? 'Partenaire + vendeur direct.'
+                                : 'Partenaire + agence + vendeur, avec maintien du niveau 2.'))}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+              {selectedLevelReason && (
+                <p
+                  role="alert"
+                  className="text-sm font-medium text-destructive"
+                >
+                  {selectedLevelReason}
+                </p>
+              )}
             </div>
-            {network.isLoading ? (
-              <p className="text-sm text-muted-foreground">
-                Analyse du réseau…
-              </p>
-            ) : network.error ? (
-              <p className="text-sm text-destructive">
-                Impossible d'analyser le réseau de ce partenaire.
-              </p>
-            ) : (
-              <div className="grid gap-3 md:grid-cols-3">
-                {([1, 2, 3] as CommissionLevel[]).map((level) => {
-                  const reason =
-                    level === 2
-                      ? level2Reason
-                      : level === 3
-                        ? level3Reason
-                        : null
-                  return (
-                    <button
-                      key={level}
-                      type="button"
-                      disabled={reason !== null}
-                      onClick={() => update('maxLevel', level)}
-                      className={`min-h-28 rounded-[12px] border p-4 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${draft.maxLevel === level ? 'border-primary bg-primary/5' : 'hover:border-primary/40'}`}
-                    >
-                      <span className="font-extrabold">Niveau {level}</span>
-                      <span className="mt-2 block text-[12px] leading-relaxed text-muted-foreground">
-                        {level === 1
-                          ? 'Vente self-service : 100 % au partenaire, implicite.'
-                          : (reason ??
-                            (level === 2
-                              ? 'Partenaire + vendeur direct.'
-                              : 'Partenaire + agence + vendeur, avec maintien du niveau 2.'))}
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
-            )}
-            {selectedLevelReason && (
-              <p role="alert" className="text-sm font-medium text-destructive">
-                {selectedLevelReason}
-              </p>
-            )}
-          </div>
+          </SectionCard>
         )}
         {step === 3 && (
-          <div className="space-y-6">
+          <div className="flex flex-col gap-[18px]">
             {draft.maxLevel === 1 ? (
-              <div className="rounded-[12px] border border-primary/20 bg-primary/5 p-5">
-                <p className="font-bold text-primary">
-                  100 % au partenaire, implicite
-                </p>
-                <p className="mt-1 text-[12.5px] text-muted-foreground">
-                  Aucune part n'est stockée ni envoyée pour le niveau 1.
-                </p>
-              </div>
+              <SectionCard
+                title="100 % au partenaire, implicite"
+                description="Aucune part n’est stockée ni envoyée pour le niveau 1."
+              />
             ) : draft.maxLevel === 2 ? (
-              <ShareBlock title="Parts niveau 2" total={validation.level2Total}>
-                <ShareField
-                  id="level2PartnerShare"
-                  label="Partenaire (%)"
-                  value={draft.level2PartnerShare}
-                  onChange={(value) => update('level2PartnerShare', value)}
-                  error={
-                    submitted ? validation.errors.level2PartnerShare : undefined
-                  }
-                />
-                <ShareField
-                  id="level2SellerShare"
-                  label="Vendeur direct (%)"
-                  value={draft.level2SellerShare}
-                  onChange={(value) => update('level2SellerShare', value)}
-                  error={
-                    submitted ? validation.errors.level2SellerShare : undefined
-                  }
+              <ShareBlock
+                title="Parts niveau 2"
+                total={validation.level2Total}
+                unconfirmed={!confirmedBlocks.level2}
+              >
+                <ShareSplitter
+                  label="Répartition niveau 2"
+                  confirmed={confirmedBlocks.level2}
+                  onConfirmedChange={setBlockConfirmed('level2')}
+                  parts={[
+                    {
+                      id: 'level2PartnerShare',
+                      label: 'Partenaire',
+                      value: draft.level2PartnerShare,
+                      onChange: (value) => update('level2PartnerShare', value),
+                      error: fieldError('level2PartnerShare'),
+                    },
+                    {
+                      id: 'level2SellerShare',
+                      label: 'Vendeur direct',
+                      value: draft.level2SellerShare,
+                      onChange: (value) => update('level2SellerShare', value),
+                      error: fieldError('level2SellerShare'),
+                    },
+                  ]}
                 />
               </ShareBlock>
             ) : (
               <>
-                <div className="rounded-[12px] border border-blue-200 bg-blue-50 p-4 text-[12.5px] leading-relaxed text-blue-950">
+                <div className="rounded-lg bg-[#e7eefb] px-4 py-3 text-[13px] leading-relaxed text-[#1f53b0]">
                   Le taux négocié crée un seul pot. Les blocs ci-dessous
                   indiquent comment ce pot est réparti selon la chaîne réelle de
                   la vente. Le barème N2 reste obligatoire dans un schéma N3,
@@ -415,67 +621,65 @@ export function CommissionSchemeFormPage({
                 <ShareBlock
                   title="Répartition principale niveau 3"
                   total={validation.level3Total}
+                  unconfirmed={!confirmedBlocks.level3}
                 >
-                  <ShareField
-                    id="level3PartnerShare"
-                    label="Partenaire (%)"
-                    value={draft.level3PartnerShare}
-                    onChange={(value) => update('level3PartnerShare', value)}
-                    error={
-                      submitted
-                        ? validation.errors.level3PartnerShare
-                        : undefined
-                    }
-                  />
-                  <ShareField
-                    id="level3AgencyShare"
-                    label="Agence (%)"
-                    value={draft.level3AgencyShare}
-                    onChange={(value) => update('level3AgencyShare', value)}
-                    error={
-                      submitted
-                        ? validation.errors.level3AgencyShare
-                        : undefined
-                    }
-                  />
-                  <ShareField
-                    id="level3SellerShare"
-                    label="Vendeur d'agence (%)"
-                    value={draft.level3SellerShare}
-                    onChange={(value) => update('level3SellerShare', value)}
-                    error={
-                      submitted
-                        ? validation.errors.level3SellerShare
-                        : undefined
-                    }
+                  <ShareSplitter
+                    label="Répartition principale niveau 3"
+                    confirmed={confirmedBlocks.level3}
+                    onConfirmedChange={setBlockConfirmed('level3')}
+                    parts={[
+                      {
+                        id: 'level3PartnerShare',
+                        label: 'Partenaire',
+                        value: draft.level3PartnerShare,
+                        onChange: (value) =>
+                          update('level3PartnerShare', value),
+                        error: fieldError('level3PartnerShare'),
+                      },
+                      {
+                        id: 'level3AgencyShare',
+                        label: 'Agence',
+                        value: draft.level3AgencyShare,
+                        onChange: (value) => update('level3AgencyShare', value),
+                        error: fieldError('level3AgencyShare'),
+                      },
+                      {
+                        id: 'level3SellerShare',
+                        label: "Vendeur d'agence",
+                        value: draft.level3SellerShare,
+                        onChange: (value) => update('level3SellerShare', value),
+                        error: fieldError('level3SellerShare'),
+                      },
+                    ]}
                   />
                 </ShareBlock>
                 <ShareBlock
                   title="Barème de compatibilité niveau 2 (obligatoire)"
                   total={validation.level2Total}
+                  unconfirmed={!confirmedBlocks.level2}
                   description="Utilisé pour toute vente d'un vendeur directement rattaché au partenaire, présent aujourd'hui ou ajouté ultérieurement."
                 >
-                  <ShareField
-                    id="level2PartnerShare"
-                    label="Partenaire (%)"
-                    value={draft.level2PartnerShare}
-                    onChange={(value) => update('level2PartnerShare', value)}
-                    error={
-                      submitted
-                        ? validation.errors.level2PartnerShare
-                        : undefined
-                    }
-                  />
-                  <ShareField
-                    id="level2SellerShare"
-                    label="Vendeur direct (%)"
-                    value={draft.level2SellerShare}
-                    onChange={(value) => update('level2SellerShare', value)}
-                    error={
-                      submitted
-                        ? validation.errors.level2SellerShare
-                        : undefined
-                    }
+                  <ShareSplitter
+                    label="Barème de compatibilité niveau 2"
+                    confirmed={confirmedBlocks.level2}
+                    onConfirmedChange={setBlockConfirmed('level2')}
+                    parts={[
+                      {
+                        id: 'level2PartnerShare',
+                        label: 'Partenaire',
+                        value: draft.level2PartnerShare,
+                        onChange: (value) =>
+                          update('level2PartnerShare', value),
+                        error: fieldError('level2PartnerShare'),
+                      },
+                      {
+                        id: 'level2SellerShare',
+                        label: 'Vendeur direct',
+                        value: draft.level2SellerShare,
+                        onChange: (value) => update('level2SellerShare', value),
+                        error: fieldError('level2SellerShare'),
+                      },
+                    ]}
                   />
                 </ShareBlock>
               </>
@@ -485,14 +689,14 @@ export function CommissionSchemeFormPage({
         {serverError && (
           <div
             role="alert"
-            className="mt-5 rounded-[10px] bg-destructive/10 p-3 text-sm text-destructive"
+            className="rounded-lg bg-[#fbe9e9] px-4 py-3 text-sm text-[#c0392b]"
           >
             {serverError}
             {existingId !== null && (
               <Button
                 asChild
                 variant="link"
-                className="ml-2 h-auto p-0 text-destructive underline"
+                className="ml-2 h-auto p-0 text-[#c0392b] underline"
               >
                 <Link
                   to="/commissions/schemes/$schemeId/edit"
@@ -504,28 +708,31 @@ export function CommissionSchemeFormPage({
             )}
           </div>
         )}
-        <div className="mt-7 flex items-center justify-between border-t pt-5">
+        <Card className="flex-row flex-wrap items-center justify-between gap-3 p-4">
           <Button
             type="button"
-            variant="ghost"
+            variant="outline"
+            className="rounded-[11px]"
             disabled={step === 1 || mutation.isPending}
+            title={step === 1 ? 'Vous êtes à la première étape.' : undefined}
             onClick={() => setStep((current) => current - 1)}
           >
             Précédent
           </Button>
+          {blockReason && (
+            <p
+              role="status"
+              className="min-w-0 flex-1 text-right text-[12.5px] text-muted-foreground"
+            >
+              {blockReason}
+            </p>
+          )}
           {step < 3 ? (
             <Button
               type="button"
-              disabled={
-                (step === 1 &&
-                  (draft.partnerId === null ||
-                    draft.productId === null ||
-                    validation.errors.commissionRate !== undefined)) ||
-                (step === 2 &&
-                  (network.isLoading ||
-                    network.error !== null ||
-                    selectedLevelReason !== null))
-              }
+              className="rounded-[11px] shadow-[0_4px_14px_rgba(0,51,127,0.22)]"
+              disabled={continueBlocked}
+              title={continueBlocked ? blockReason : undefined}
               onClick={() => setStep((current) => current + 1)}
             >
               Continuer
@@ -533,19 +740,74 @@ export function CommissionSchemeFormPage({
           ) : (
             <Button
               type="button"
+              className="rounded-[11px] shadow-[0_4px_14px_rgba(0,51,127,0.22)]"
               disabled={
                 !validation.valid ||
+                unconfirmedBlocks.length > 0 ||
                 selectedLevelReason !== null ||
                 mutation.isPending
               }
+              title={blockReason}
               onClick={submit}
             >
               <Check />
               {mutation.isPending ? 'Enregistrement…' : 'Enregistrer le schéma'}
             </Button>
           )}
-        </div>
-      </Card>
+        </Card>
+      </div>
+    </div>
+  )
+}
+
+function SchemeSelect({
+  id,
+  label,
+  value,
+  options,
+  onChange,
+  disabled,
+  placeholder,
+  searchPlaceholder,
+  error,
+}: {
+  id: string
+  label: string
+  value: string
+  options: Array<{ value: string; label: string; hint?: string }>
+  onChange: (value: string) => void
+  disabled?: boolean
+  placeholder: string
+  searchPlaceholder: string
+  error?: string
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor={id} className="text-[13px]">
+        {label}
+        <span className="text-destructive">*</span>
+      </Label>
+      <SearchableSelect
+        id={id}
+        label={label}
+        value={value}
+        allLabel={placeholder}
+        placeholder={searchPlaceholder}
+        options={options}
+        onChange={onChange}
+        disabled={disabled}
+        disabledHint={
+          disabled
+            ? 'Le couple partenaire / produit ne peut pas être modifié : supprimez le schéma puis recréez-le.'
+            : undefined
+        }
+        className="w-full"
+      />
+      {error && (
+        <p role="alert" className="text-[12px] text-destructive">
+          {error}
+        </p>
+      )}
     </div>
   )
 }
@@ -553,59 +815,37 @@ export function CommissionSchemeFormPage({
 function ShareBlock({
   title,
   total,
+  unconfirmed,
   description,
   children,
 }: {
   title: string
   total: number | null
+  /** The block only shows the pre-filled default split. */
+  unconfirmed?: boolean
   description?: string
   children: React.ReactNode
 }) {
   return (
-    <section className="rounded-[12px] border p-5">
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h3 className="font-extrabold">{title}</h3>
-          {description && (
-            <p className="mt-1 max-w-2xl text-[12px] leading-relaxed text-muted-foreground">
-              {description}
-            </p>
-          )}
-        </div>
+    <SectionCard
+      title={title}
+      description={description}
+      action={
         <span
-          className={`rounded-full px-3 py-1 text-[12px] font-bold tabular-nums ${total === 10_000 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-800'}`}
+          className={cn(
+            'rounded-full px-3 py-1 text-[12px] font-bold tabular-nums',
+            total === 10_000 && !unconfirmed
+              ? 'bg-[#e7f6ee] text-[#167347]'
+              : 'bg-[#fef3da] text-[#8a6600]',
+          )}
         >
-          {formatShareTotal(total)}
+          {unconfirmed
+            ? 'Répartition par défaut — à confirmer'
+            : formatShareTotal(total)}
         </span>
-      </div>
-      <div className="grid gap-4 md:grid-cols-3">{children}</div>
-    </section>
-  )
-}
-
-function ShareField({
-  id,
-  label,
-  value,
-  onChange,
-  error,
-}: {
-  id: string
-  label: string
-  value: string
-  onChange: (value: string) => void
-  error?: string
-}) {
-  return (
-    <FormField
-      id={id}
-      label={label}
-      required
-      type="text"
-      value={value}
-      onChange={onChange}
-      error={error}
-      hint="0,00 à 100,00"
-    />
+      }
+    >
+      {children}
+    </SectionCard>
   )
 }

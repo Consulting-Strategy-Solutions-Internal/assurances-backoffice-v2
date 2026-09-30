@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useForm } from '@tanstack/react-form'
+import { useMemo, useState } from 'react'
+import { useForm, useStore } from '@tanstack/react-form'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { z } from 'zod'
 import { Label } from '#/components/ui/label'
@@ -7,11 +7,22 @@ import { Input } from '#/components/ui/input'
 import { FormDialog } from '#/components/forms/FormDialog'
 import { FormField } from '#/components/forms/FormField'
 import { FormSelect } from '#/components/forms/FormSelect'
-import { mapClaimError } from '#/lib/claims'
+import { ClientPicker } from '#/components/claims/ClientPicker'
+import {
+  mapClaimError,
+  maskFrDate,
+  parseFrDate,
+  validateOccurredOn,
+} from '#/lib/claims'
 import { cn } from '#/lib/utils'
 import { getClaimTypes } from '#/services/claim-types'
-import { getClients } from '#/services/clients'
 import { claimsKeys, createClaim } from '#/services/claims'
+import {
+  getAllSubscriptions,
+  subscriptionLabel,
+  subscriptionsAllKey,
+  subscriptionsOfClient,
+} from '#/services/subscriptions-by-client'
 
 const schema = z.object({
   clientId: z.string().min(1, 'Le client est requis'),
@@ -19,7 +30,10 @@ const schema = z.object({
     .string()
     .regex(/^\d+$/, "L'identifiant du contrat est requis"),
   claimTypeId: z.string().min(1, 'Le type de sinistre est requis'),
-  occurredOn: z.string().min(1, 'La date de survenance est requise'),
+  occurredOn: z.string().superRefine((value, ctx) => {
+    const message = validateOccurredOn(value)
+    if (message) ctx.addIssue({ code: 'custom', message })
+  }),
   location: z.string().max(255, '255 caractères maximum'),
   description: z
     .string()
@@ -30,15 +44,23 @@ const schema = z.object({
 
 type FieldName = keyof typeof schema.shape
 
-export function CreateClaimDialog({ onClose }: { onClose: () => void }) {
+export function CreateClaimDialog({
+  onClose,
+  defaultClientId,
+}: {
+  onClose: () => void
+  /** Pre-selects the client (declaration started from a client record). */
+  defaultClientId?: number
+}) {
   const queryClient = useQueryClient()
   const [serverError, setServerError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<
     Partial<Record<FieldName, string>>
   >({})
-  const { data: clients } = useQuery({
-    queryKey: ['clients', 'claim-picker'],
-    queryFn: () => getClients(),
+  const subscriptionsQuery = useQuery({
+    queryKey: subscriptionsAllKey,
+    queryFn: getAllSubscriptions,
+    staleTime: 60_000,
     retry: false,
   })
   const { data: types } = useQuery({
@@ -49,7 +71,7 @@ export function CreateClaimDialog({ onClose }: { onClose: () => void }) {
   const mutation = useMutation({ mutationFn: createClaim })
   const form = useForm({
     defaultValues: {
-      clientId: '',
+      clientId: defaultClientId ? String(defaultClientId) : '',
       subscriptionId: '',
       claimTypeId: '',
       occurredOn: '',
@@ -64,7 +86,7 @@ export function CreateClaimDialog({ onClose }: { onClose: () => void }) {
           clientId: Number(value.clientId),
           subscriptionId: Number(value.subscriptionId),
           claimTypeId: Number(value.claimTypeId),
-          occurredOn: value.occurredOn,
+          occurredOn: parseFrDate(value.occurredOn) ?? value.occurredOn,
           location: value.location.trim() || undefined,
           description: value.description.trim(),
         })
@@ -88,10 +110,6 @@ export function CreateClaimDialog({ onClose }: { onClose: () => void }) {
       return result.success ? undefined : result.error.issues[0].message
     },
   })
-  const clientsOptions = (clients?.content ?? []).map((client) => ({
-    value: String(client.id),
-    label: `${client.lastName} ${client.firstName} · ${client.phoneNumber}`,
-  }))
   const typeOptions = (types?.content ?? [])
     .filter((type) => type.active)
     .map((type) => ({
@@ -99,8 +117,29 @@ export function CreateClaimDialog({ onClose }: { onClose: () => void }) {
       label: `${type.name} · ${type.productLabel}`,
     }))
 
+  const dirty = useStore(form.store, (s) => !s.isDefaultValue)
+  const clientId = useStore(form.store, (s) => s.values.clientId)
+  const contracts = useMemo(
+    () =>
+      clientId
+        ? subscriptionsOfClient(
+            subscriptionsQuery.data?.items ?? [],
+            Number(clientId),
+          )
+        : [],
+    [clientId, subscriptionsQuery.data],
+  )
+  const contractOptions = contracts.map((contract) => ({
+    value: String(contract.id),
+    label: subscriptionLabel(contract),
+  }))
+  const contractsUnavailable =
+    subscriptionsQuery.isError ||
+    (!!clientId && !subscriptionsQuery.isLoading && contracts.length === 0)
+
   return (
     <FormDialog
+      dirty={dirty}
       onClose={onClose}
       eyebrow="Sinistres"
       title="Déclarer un sinistre"
@@ -111,37 +150,85 @@ export function CreateClaimDialog({ onClose }: { onClose: () => void }) {
       error={serverError}
     >
       <form.Field name="clientId" validators={validator('clientId')}>
-        {(field) => (
-          <FormSelect
-            id="claim-client"
-            label="Client"
-            required
-            value={field.state.value}
-            options={clientsOptions}
-            onChange={field.handleChange}
-            onBlur={field.handleBlur}
-            error={fieldErrors.clientId ?? field.state.meta.errors[0]}
-            placeholder="Sélectionner un client"
-          />
-        )}
+        {(field) => {
+          const error = fieldErrors.clientId ?? field.state.meta.errors[0]
+          return (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="claim-client" className="text-[13px]">
+                Client<span className="text-destructive">*</span>
+              </Label>
+              <ClientPicker
+                id="claim-client"
+                label="Client"
+                value={field.state.value}
+                allLabel="Rechercher un client…"
+                hideAllOption
+                className="w-full"
+                onChange={(next) => {
+                  field.handleChange(next)
+                  field.handleBlur()
+                  form.setFieldValue('subscriptionId', '')
+                }}
+              />
+              {error && (
+                <p
+                  role="alert"
+                  className="text-[12px] font-medium text-destructive"
+                >
+                  {error}
+                </p>
+              )}
+            </div>
+          )
+        }}
       </form.Field>
       <form.Field
         name="subscriptionId"
         validators={validator('subscriptionId')}
       >
-        {(field) => (
-          <FormField
-            id="subscription-id"
-            label="Identifiant du contrat"
-            type="number"
-            required
-            value={field.state.value}
-            onChange={field.handleChange}
-            onBlur={field.handleBlur}
-            error={fieldErrors.subscriptionId ?? field.state.meta.errors[0]}
-            hint="L’API administrateur ne permet pas de lister les contrats. Saisissez l’identifiant communiqué; la validité sera contrôlée à l’envoi."
-          />
-        )}
+        {(field) =>
+          contractsUnavailable ? (
+            <FormField
+              id="subscription-id"
+              label="Identifiant du contrat"
+              type="number"
+              required
+              value={field.state.value}
+              onChange={field.handleChange}
+              onBlur={field.handleBlur}
+              error={fieldErrors.subscriptionId ?? field.state.meta.errors[0]}
+              hint={
+                subscriptionsQuery.isError
+                  ? 'La liste des contrats est indisponible : saisissez l’identifiant du contrat. Sa validité sera contrôlée à l’envoi.'
+                  : 'Aucun contrat trouvé pour ce client : saisissez l’identifiant du contrat si vous le connaissez. Sa validité sera contrôlée à l’envoi.'
+              }
+            />
+          ) : (
+            <FormSelect
+              id="subscription-id"
+              label="Contrat concerné"
+              required
+              value={field.state.value}
+              options={contractOptions}
+              disabled={!clientId || subscriptionsQuery.isLoading}
+              placeholder={
+                !clientId
+                  ? 'Choisissez d’abord un client'
+                  : subscriptionsQuery.isLoading
+                    ? 'Chargement des contrats…'
+                    : 'Sélectionner un contrat'
+              }
+              onChange={field.handleChange}
+              onBlur={field.handleBlur}
+              error={fieldErrors.subscriptionId ?? field.state.meta.errors[0]}
+              hint={
+                clientId
+                  ? 'Contrats de ce client : numéro de police, produit, statut et période de couverture.'
+                  : undefined
+              }
+            />
+          )
+        }
       </form.Field>
       <form.Field name="claimTypeId" validators={validator('claimTypeId')}>
         {(field) => (
@@ -165,18 +252,26 @@ export function CreateClaimDialog({ onClose }: { onClose: () => void }) {
             </Label>
             <Input
               id="occurred-on"
-              type="date"
-              max={new Date().toLocaleDateString('en-CA')}
+              inputMode="numeric"
+              autoComplete="off"
+              placeholder="jj/mm/aaaa"
+              maxLength={10}
               value={field.state.value}
-              onChange={(event) => field.handleChange(event.target.value)}
+              onChange={(event) =>
+                field.handleChange(maskFrDate(event.target.value))
+              }
               onBlur={field.handleBlur}
               aria-invalid={
                 !!(fieldErrors.occurredOn ?? field.state.meta.errors[0])
               }
             />
-            {(fieldErrors.occurredOn ?? field.state.meta.errors[0]) && (
+            {(fieldErrors.occurredOn ?? field.state.meta.errors[0]) ? (
               <p role="alert" className="text-xs font-medium text-destructive">
                 {fieldErrors.occurredOn ?? field.state.meta.errors[0]}
+              </p>
+            ) : (
+              <p className="text-[12px] text-muted-foreground">
+                Format jj/mm/aaaa, par exemple 03/09/2026.
               </p>
             )}
           </div>

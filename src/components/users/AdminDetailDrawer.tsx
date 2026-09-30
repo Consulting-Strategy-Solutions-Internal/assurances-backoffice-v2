@@ -15,9 +15,15 @@ import {
   SheetHeader,
   SheetTitle,
 } from '#/components/ui/sheet'
-import { Avatar, AvatarFallback } from '#/components/ui/avatar'
+import { StatusPill } from '#/components/dashboard/StatusPill'
+import { EntityAvatar } from '#/components/layout/EntityAvatar'
 import { Badge } from '#/components/ui/badge'
 import { Button } from '#/components/ui/button'
+import { formatPersonName } from '#/lib/people'
+import { formatPhone } from '#/lib/clients'
+import { translateRoleDescription } from '#/lib/backend-messages'
+import { formatRoleName, isPlaceholderPhone } from '#/lib/admin-roles'
+import { InfoList, InfoRow } from '#/components/layout/InfoList'
 
 interface AdminDetailDrawerProps {
   user: UserResponse | null
@@ -65,17 +71,16 @@ export function AdminDetailDrawer({ user, onClose }: AdminDetailDrawerProps) {
           <>
             <SheetHeader className="flex-row items-start justify-between gap-3.5 border-b p-[26px] py-[22px]">
               <div className="flex items-center gap-3">
-                <Avatar className="size-11">
-                  <AvatarFallback className="bg-primary/10 text-[15px] font-bold text-primary">
-                    {`${data.firstName.charAt(0)}${data.lastName.charAt(0)}`.toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+                <EntityAvatar
+                  name={formatPersonName(data.firstName, data.lastName)}
+                  className="size-11 text-[15px]"
+                />
                 <div className="flex flex-col gap-0">
                   <div className="mb-[3px] text-[11.5px] font-bold tracking-[0.06em] text-muted-foreground uppercase">
                     Administrateur
                   </div>
                   <SheetTitle className="text-[19px] font-extrabold tracking-[-0.025em]">
-                    {data.firstName} {data.lastName}
+                    {formatPersonName(data.firstName, data.lastName)}
                   </SheetTitle>
                   <SheetDescription className="mt-[2px] text-[13px]">
                     {data.email}
@@ -99,9 +104,7 @@ export function AdminDetailDrawer({ user, onClose }: AdminDetailDrawerProps) {
                 <span className="text-[13px] font-medium text-muted-foreground">
                   Rôle
                 </span>
-                <Badge className="border-transparent bg-primary/10 px-2.5 py-0.5 text-[12px] font-bold text-primary">
-                  {data.role}
-                </Badge>
+                <StatusPill tone="info">{formatRoleName(data.role)}</StatusPill>
                 {isOwnRole && (
                   <Badge
                     variant="secondary"
@@ -114,16 +117,30 @@ export function AdminDetailDrawer({ user, onClose }: AdminDetailDrawerProps) {
 
               {role?.description && (
                 <p className="mb-5 text-[13px] leading-relaxed text-muted-foreground">
-                  {role.description}
+                  {translateRoleDescription(role.description)}
                 </p>
               )}
+
+              <div className="mb-5 rounded-xl border px-4 py-3">
+                <InfoList>
+                  <InfoRow label="Téléphone" placeholder="Non renseigné">
+                    {isPlaceholderPhone(data.phoneNumber)
+                      ? null
+                      : formatPhone(data.phoneNumber)}
+                  </InfoRow>
+                  <InfoRow label="Email vérifié">
+                    {data.emailVerified ? 'Oui' : 'Non'}
+                  </InfoRow>
+                </InfoList>
+              </div>
 
               {role ? (
                 <RolePermissionsEditor role={role} isOwnRole={isOwnRole} />
               ) : (
                 <p className="text-[13px] text-muted-foreground">
-                  Le rôle « {data.role} » n'est pas lisible avec vos accès
-                  actuels (droits « Rôles &amp; accès — Consulter » requis).
+                  Le rôle « {formatRoleName(data.role)} » n'est pas lisible avec
+                  vos accès actuels (droits « Rôles &amp; accès — Consulter »
+                  requis).
                 </p>
               )}
             </div>

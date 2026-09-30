@@ -19,7 +19,6 @@ import { Route as AuthCotationsRouteImport } from './routes/_auth/cotations'
 import { Route as AuthDashboardRouteImport } from './routes/_auth/dashboard'
 import { Route as AuthPartnersRouteImport } from './routes/_auth/partners'
 import { Route as AuthPermissionsRouteImport } from './routes/_auth/permissions'
-import { Route as AuthProductsRouteImport } from './routes/_auth/products'
 import { Route as AuthProfilRouteImport } from './routes/_auth/profil'
 import { Route as AuthRolesRouteImport } from './routes/_auth/roles'
 import { Route as AuthSinistresRouteImport } from './routes/_auth/sinistres'
@@ -29,18 +28,21 @@ import { Route as AuthClientsClientIdRouteImport } from './routes/_auth/clients_
 import { Route as AuthCommissionsDistributionsRouteImport } from './routes/_auth/commissions.distributions'
 import { Route as AuthCommissionsSchemesRouteImport } from './routes/_auth/commissions.schemes'
 import { Route as AuthCommissionsWalletsRouteImport } from './routes/_auth/commissions.wallets'
-import { Route as AuthCotationsSimulationRouteImport } from './routes/_auth/cotations_.simulation'
 import { Route as AuthPartnersPartnerIdRouteImport } from './routes/_auth/partners_.$partnerId'
-import { Route as AuthProductsProductIdRouteImport } from './routes/_auth/products_.$productId'
-import { Route as AuthProductsAccessoiresRouteImport } from './routes/_auth/products_.accessoires'
-import { Route as AuthProductsCategoriesRouteImport } from './routes/_auth/products_.categories'
-import { Route as AuthProductsGrilleTarifaireRouteImport } from './routes/_auth/products_.grille-tarifaire'
+import { Route as AuthProduitsIaIaPourTousRouteImport } from './routes/_auth/produits-ia.ia-pour-tous'
+import { Route as AuthProduitsIaIaStandardRouteImport } from './routes/_auth/produits-ia.ia-standard'
 import { Route as AuthSinistresClaimIdRouteImport } from './routes/_auth/sinistres_.$claimId'
 import { Route as AuthSinistresTypesRouteImport } from './routes/_auth/sinistres_.types'
 import { Route as AuthSupportConversationIdRouteImport } from './routes/_auth/support_.$conversationId'
 import { Route as AuthCommissionsSchemesNewRouteImport } from './routes/_auth/commissions.schemes_.new'
 import { Route as AuthPartnersPartnerIdRelationsRouteImport } from './routes/_auth/partners_.$partnerId_.relations'
-import { Route as AuthProductsGrilleTarifaireRateTableIdRouteImport } from './routes/_auth/products_.grille-tarifaire_.$rateTableId'
+import { Route as AuthProduitsIaIaStandardIndexRouteImport } from './routes/_auth/produits-ia.ia-standard.index'
+import { Route as AuthProduitsIaIaStandardAccessoiresRouteImport } from './routes/_auth/produits-ia.ia-standard.accessoires'
+import { Route as AuthProduitsIaIaStandardBaremesRouteImport } from './routes/_auth/produits-ia.ia-standard.baremes'
+import { Route as AuthProduitsIaIaStandardClassesRouteImport } from './routes/_auth/produits-ia.ia-standard.classes'
+import { Route as AuthProduitsIaIaStandardMajorationsRouteImport } from './routes/_auth/produits-ia.ia-standard.majorations'
+import { Route as AuthProduitsIaIaStandardProrataRouteImport } from './routes/_auth/produits-ia.ia-standard.prorata'
+import { Route as AuthProduitsIaIaStandardReglagesRouteImport } from './routes/_auth/produits-ia.ia-standard.reglages'
 import { Route as AuthCommissionsSchemesSchemeIdEditRouteImport } from './routes/_auth/commissions.schemes_.$schemeId.edit'
 
 const IndexRoute = IndexRouteImport.update({
@@ -92,11 +94,6 @@ const AuthPermissionsRoute = AuthPermissionsRouteImport.update({
   path: '/permissions',
   getParentRoute: () => AuthRoute,
 } as any)
-const AuthProductsRoute = AuthProductsRouteImport.update({
-  id: '/products',
-  path: '/products',
-  getParentRoute: () => AuthRoute,
-} as any)
 const AuthProfilRoute = AuthProfilRouteImport.update({
   id: '/profil',
   path: '/profil',
@@ -143,35 +140,21 @@ const AuthCommissionsWalletsRoute = AuthCommissionsWalletsRouteImport.update({
   path: '/commissions/wallets',
   getParentRoute: () => AuthRoute,
 } as any)
-const AuthCotationsSimulationRoute = AuthCotationsSimulationRouteImport.update({
-  id: '/cotations_/simulation',
-  path: '/cotations/simulation',
-  getParentRoute: () => AuthRoute,
-} as any)
 const AuthPartnersPartnerIdRoute = AuthPartnersPartnerIdRouteImport.update({
   id: '/partners_/$partnerId',
   path: '/partners/$partnerId',
   getParentRoute: () => AuthRoute,
 } as any)
-const AuthProductsProductIdRoute = AuthProductsProductIdRouteImport.update({
-  id: '/products_/$productId',
-  path: '/products/$productId',
-  getParentRoute: () => AuthRoute,
-} as any)
-const AuthProductsAccessoiresRoute = AuthProductsAccessoiresRouteImport.update({
-  id: '/products_/accessoires',
-  path: '/products/accessoires',
-  getParentRoute: () => AuthRoute,
-} as any)
-const AuthProductsCategoriesRoute = AuthProductsCategoriesRouteImport.update({
-  id: '/products_/categories',
-  path: '/products/categories',
-  getParentRoute: () => AuthRoute,
-} as any)
-const AuthProductsGrilleTarifaireRoute =
-  AuthProductsGrilleTarifaireRouteImport.update({
-    id: '/products_/grille-tarifaire',
-    path: '/products/grille-tarifaire',
+const AuthProduitsIaIaPourTousRoute =
+  AuthProduitsIaIaPourTousRouteImport.update({
+    id: '/produits-ia/ia-pour-tous',
+    path: '/produits-ia/ia-pour-tous',
+    getParentRoute: () => AuthRoute,
+  } as any)
+const AuthProduitsIaIaStandardRoute =
+  AuthProduitsIaIaStandardRouteImport.update({
+    id: '/produits-ia/ia-standard',
+    path: '/produits-ia/ia-standard',
     getParentRoute: () => AuthRoute,
   } as any)
 const AuthSinistresClaimIdRoute = AuthSinistresClaimIdRouteImport.update({
@@ -202,11 +185,47 @@ const AuthPartnersPartnerIdRelationsRoute =
     path: '/partners/$partnerId/relations',
     getParentRoute: () => AuthRoute,
   } as any)
-const AuthProductsGrilleTarifaireRateTableIdRoute =
-  AuthProductsGrilleTarifaireRateTableIdRouteImport.update({
-    id: '/products_/grille-tarifaire_/$rateTableId',
-    path: '/products/grille-tarifaire/$rateTableId',
-    getParentRoute: () => AuthRoute,
+const AuthProduitsIaIaStandardIndexRoute =
+  AuthProduitsIaIaStandardIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthProduitsIaIaStandardRoute,
+  } as any)
+const AuthProduitsIaIaStandardAccessoiresRoute =
+  AuthProduitsIaIaStandardAccessoiresRouteImport.update({
+    id: '/accessoires',
+    path: '/accessoires',
+    getParentRoute: () => AuthProduitsIaIaStandardRoute,
+  } as any)
+const AuthProduitsIaIaStandardBaremesRoute =
+  AuthProduitsIaIaStandardBaremesRouteImport.update({
+    id: '/baremes',
+    path: '/baremes',
+    getParentRoute: () => AuthProduitsIaIaStandardRoute,
+  } as any)
+const AuthProduitsIaIaStandardClassesRoute =
+  AuthProduitsIaIaStandardClassesRouteImport.update({
+    id: '/classes',
+    path: '/classes',
+    getParentRoute: () => AuthProduitsIaIaStandardRoute,
+  } as any)
+const AuthProduitsIaIaStandardMajorationsRoute =
+  AuthProduitsIaIaStandardMajorationsRouteImport.update({
+    id: '/majorations',
+    path: '/majorations',
+    getParentRoute: () => AuthProduitsIaIaStandardRoute,
+  } as any)
+const AuthProduitsIaIaStandardProrataRoute =
+  AuthProduitsIaIaStandardProrataRouteImport.update({
+    id: '/prorata',
+    path: '/prorata',
+    getParentRoute: () => AuthProduitsIaIaStandardRoute,
+  } as any)
+const AuthProduitsIaIaStandardReglagesRoute =
+  AuthProduitsIaIaStandardReglagesRouteImport.update({
+    id: '/reglages',
+    path: '/reglages',
+    getParentRoute: () => AuthProduitsIaIaStandardRoute,
   } as any)
 const AuthCommissionsSchemesSchemeIdEditRoute =
   AuthCommissionsSchemesSchemeIdEditRouteImport.update({
@@ -225,7 +244,6 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthDashboardRoute
   '/partners': typeof AuthPartnersRoute
   '/permissions': typeof AuthPermissionsRoute
-  '/products': typeof AuthProductsRoute
   '/profil': typeof AuthProfilRoute
   '/roles': typeof AuthRolesRoute
   '/sinistres': typeof AuthSinistresRoute
@@ -235,18 +253,21 @@ export interface FileRoutesByFullPath {
   '/commissions/distributions': typeof AuthCommissionsDistributionsRoute
   '/commissions/schemes': typeof AuthCommissionsSchemesRoute
   '/commissions/wallets': typeof AuthCommissionsWalletsRoute
-  '/cotations/simulation': typeof AuthCotationsSimulationRoute
   '/partners/$partnerId': typeof AuthPartnersPartnerIdRoute
-  '/products/$productId': typeof AuthProductsProductIdRoute
-  '/products/accessoires': typeof AuthProductsAccessoiresRoute
-  '/products/categories': typeof AuthProductsCategoriesRoute
-  '/products/grille-tarifaire': typeof AuthProductsGrilleTarifaireRoute
+  '/produits-ia/ia-pour-tous': typeof AuthProduitsIaIaPourTousRoute
+  '/produits-ia/ia-standard': typeof AuthProduitsIaIaStandardRouteWithChildren
   '/sinistres/$claimId': typeof AuthSinistresClaimIdRoute
   '/sinistres/types': typeof AuthSinistresTypesRoute
   '/support/$conversationId': typeof AuthSupportConversationIdRoute
   '/commissions/schemes/new': typeof AuthCommissionsSchemesNewRoute
   '/partners/$partnerId/relations': typeof AuthPartnersPartnerIdRelationsRoute
-  '/products/grille-tarifaire/$rateTableId': typeof AuthProductsGrilleTarifaireRateTableIdRoute
+  '/produits-ia/ia-standard/accessoires': typeof AuthProduitsIaIaStandardAccessoiresRoute
+  '/produits-ia/ia-standard/baremes': typeof AuthProduitsIaIaStandardBaremesRoute
+  '/produits-ia/ia-standard/classes': typeof AuthProduitsIaIaStandardClassesRoute
+  '/produits-ia/ia-standard/majorations': typeof AuthProduitsIaIaStandardMajorationsRoute
+  '/produits-ia/ia-standard/prorata': typeof AuthProduitsIaIaStandardProrataRoute
+  '/produits-ia/ia-standard/reglages': typeof AuthProduitsIaIaStandardReglagesRoute
+  '/produits-ia/ia-standard/': typeof AuthProduitsIaIaStandardIndexRoute
   '/commissions/schemes/$schemeId/edit': typeof AuthCommissionsSchemesSchemeIdEditRoute
 }
 export interface FileRoutesByTo {
@@ -259,7 +280,6 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthDashboardRoute
   '/partners': typeof AuthPartnersRoute
   '/permissions': typeof AuthPermissionsRoute
-  '/products': typeof AuthProductsRoute
   '/profil': typeof AuthProfilRoute
   '/roles': typeof AuthRolesRoute
   '/sinistres': typeof AuthSinistresRoute
@@ -269,18 +289,20 @@ export interface FileRoutesByTo {
   '/commissions/distributions': typeof AuthCommissionsDistributionsRoute
   '/commissions/schemes': typeof AuthCommissionsSchemesRoute
   '/commissions/wallets': typeof AuthCommissionsWalletsRoute
-  '/cotations/simulation': typeof AuthCotationsSimulationRoute
   '/partners/$partnerId': typeof AuthPartnersPartnerIdRoute
-  '/products/$productId': typeof AuthProductsProductIdRoute
-  '/products/accessoires': typeof AuthProductsAccessoiresRoute
-  '/products/categories': typeof AuthProductsCategoriesRoute
-  '/products/grille-tarifaire': typeof AuthProductsGrilleTarifaireRoute
+  '/produits-ia/ia-pour-tous': typeof AuthProduitsIaIaPourTousRoute
   '/sinistres/$claimId': typeof AuthSinistresClaimIdRoute
   '/sinistres/types': typeof AuthSinistresTypesRoute
   '/support/$conversationId': typeof AuthSupportConversationIdRoute
   '/commissions/schemes/new': typeof AuthCommissionsSchemesNewRoute
   '/partners/$partnerId/relations': typeof AuthPartnersPartnerIdRelationsRoute
-  '/products/grille-tarifaire/$rateTableId': typeof AuthProductsGrilleTarifaireRateTableIdRoute
+  '/produits-ia/ia-standard/accessoires': typeof AuthProduitsIaIaStandardAccessoiresRoute
+  '/produits-ia/ia-standard/baremes': typeof AuthProduitsIaIaStandardBaremesRoute
+  '/produits-ia/ia-standard/classes': typeof AuthProduitsIaIaStandardClassesRoute
+  '/produits-ia/ia-standard/majorations': typeof AuthProduitsIaIaStandardMajorationsRoute
+  '/produits-ia/ia-standard/prorata': typeof AuthProduitsIaIaStandardProrataRoute
+  '/produits-ia/ia-standard/reglages': typeof AuthProduitsIaIaStandardReglagesRoute
+  '/produits-ia/ia-standard': typeof AuthProduitsIaIaStandardIndexRoute
   '/commissions/schemes/$schemeId/edit': typeof AuthCommissionsSchemesSchemeIdEditRoute
 }
 export interface FileRoutesById {
@@ -295,7 +317,6 @@ export interface FileRoutesById {
   '/_auth/dashboard': typeof AuthDashboardRoute
   '/_auth/partners': typeof AuthPartnersRoute
   '/_auth/permissions': typeof AuthPermissionsRoute
-  '/_auth/products': typeof AuthProductsRoute
   '/_auth/profil': typeof AuthProfilRoute
   '/_auth/roles': typeof AuthRolesRoute
   '/_auth/sinistres': typeof AuthSinistresRoute
@@ -305,18 +326,21 @@ export interface FileRoutesById {
   '/_auth/commissions/distributions': typeof AuthCommissionsDistributionsRoute
   '/_auth/commissions/schemes': typeof AuthCommissionsSchemesRoute
   '/_auth/commissions/wallets': typeof AuthCommissionsWalletsRoute
-  '/_auth/cotations_/simulation': typeof AuthCotationsSimulationRoute
   '/_auth/partners_/$partnerId': typeof AuthPartnersPartnerIdRoute
-  '/_auth/products_/$productId': typeof AuthProductsProductIdRoute
-  '/_auth/products_/accessoires': typeof AuthProductsAccessoiresRoute
-  '/_auth/products_/categories': typeof AuthProductsCategoriesRoute
-  '/_auth/products_/grille-tarifaire': typeof AuthProductsGrilleTarifaireRoute
+  '/_auth/produits-ia/ia-pour-tous': typeof AuthProduitsIaIaPourTousRoute
+  '/_auth/produits-ia/ia-standard': typeof AuthProduitsIaIaStandardRouteWithChildren
   '/_auth/sinistres_/$claimId': typeof AuthSinistresClaimIdRoute
   '/_auth/sinistres_/types': typeof AuthSinistresTypesRoute
   '/_auth/support_/$conversationId': typeof AuthSupportConversationIdRoute
   '/_auth/commissions/schemes_/new': typeof AuthCommissionsSchemesNewRoute
   '/_auth/partners_/$partnerId_/relations': typeof AuthPartnersPartnerIdRelationsRoute
-  '/_auth/products_/grille-tarifaire_/$rateTableId': typeof AuthProductsGrilleTarifaireRateTableIdRoute
+  '/_auth/produits-ia/ia-standard/accessoires': typeof AuthProduitsIaIaStandardAccessoiresRoute
+  '/_auth/produits-ia/ia-standard/baremes': typeof AuthProduitsIaIaStandardBaremesRoute
+  '/_auth/produits-ia/ia-standard/classes': typeof AuthProduitsIaIaStandardClassesRoute
+  '/_auth/produits-ia/ia-standard/majorations': typeof AuthProduitsIaIaStandardMajorationsRoute
+  '/_auth/produits-ia/ia-standard/prorata': typeof AuthProduitsIaIaStandardProrataRoute
+  '/_auth/produits-ia/ia-standard/reglages': typeof AuthProduitsIaIaStandardReglagesRoute
+  '/_auth/produits-ia/ia-standard/': typeof AuthProduitsIaIaStandardIndexRoute
   '/_auth/commissions/schemes_/$schemeId/edit': typeof AuthCommissionsSchemesSchemeIdEditRoute
 }
 export interface FileRouteTypes {
@@ -331,7 +355,6 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/partners'
     | '/permissions'
-    | '/products'
     | '/profil'
     | '/roles'
     | '/sinistres'
@@ -341,18 +364,21 @@ export interface FileRouteTypes {
     | '/commissions/distributions'
     | '/commissions/schemes'
     | '/commissions/wallets'
-    | '/cotations/simulation'
     | '/partners/$partnerId'
-    | '/products/$productId'
-    | '/products/accessoires'
-    | '/products/categories'
-    | '/products/grille-tarifaire'
+    | '/produits-ia/ia-pour-tous'
+    | '/produits-ia/ia-standard'
     | '/sinistres/$claimId'
     | '/sinistres/types'
     | '/support/$conversationId'
     | '/commissions/schemes/new'
     | '/partners/$partnerId/relations'
-    | '/products/grille-tarifaire/$rateTableId'
+    | '/produits-ia/ia-standard/accessoires'
+    | '/produits-ia/ia-standard/baremes'
+    | '/produits-ia/ia-standard/classes'
+    | '/produits-ia/ia-standard/majorations'
+    | '/produits-ia/ia-standard/prorata'
+    | '/produits-ia/ia-standard/reglages'
+    | '/produits-ia/ia-standard/'
     | '/commissions/schemes/$schemeId/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -365,7 +391,6 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/partners'
     | '/permissions'
-    | '/products'
     | '/profil'
     | '/roles'
     | '/sinistres'
@@ -375,18 +400,20 @@ export interface FileRouteTypes {
     | '/commissions/distributions'
     | '/commissions/schemes'
     | '/commissions/wallets'
-    | '/cotations/simulation'
     | '/partners/$partnerId'
-    | '/products/$productId'
-    | '/products/accessoires'
-    | '/products/categories'
-    | '/products/grille-tarifaire'
+    | '/produits-ia/ia-pour-tous'
     | '/sinistres/$claimId'
     | '/sinistres/types'
     | '/support/$conversationId'
     | '/commissions/schemes/new'
     | '/partners/$partnerId/relations'
-    | '/products/grille-tarifaire/$rateTableId'
+    | '/produits-ia/ia-standard/accessoires'
+    | '/produits-ia/ia-standard/baremes'
+    | '/produits-ia/ia-standard/classes'
+    | '/produits-ia/ia-standard/majorations'
+    | '/produits-ia/ia-standard/prorata'
+    | '/produits-ia/ia-standard/reglages'
+    | '/produits-ia/ia-standard'
     | '/commissions/schemes/$schemeId/edit'
   id:
     | '__root__'
@@ -400,7 +427,6 @@ export interface FileRouteTypes {
     | '/_auth/dashboard'
     | '/_auth/partners'
     | '/_auth/permissions'
-    | '/_auth/products'
     | '/_auth/profil'
     | '/_auth/roles'
     | '/_auth/sinistres'
@@ -410,18 +436,21 @@ export interface FileRouteTypes {
     | '/_auth/commissions/distributions'
     | '/_auth/commissions/schemes'
     | '/_auth/commissions/wallets'
-    | '/_auth/cotations_/simulation'
     | '/_auth/partners_/$partnerId'
-    | '/_auth/products_/$productId'
-    | '/_auth/products_/accessoires'
-    | '/_auth/products_/categories'
-    | '/_auth/products_/grille-tarifaire'
+    | '/_auth/produits-ia/ia-pour-tous'
+    | '/_auth/produits-ia/ia-standard'
     | '/_auth/sinistres_/$claimId'
     | '/_auth/sinistres_/types'
     | '/_auth/support_/$conversationId'
     | '/_auth/commissions/schemes_/new'
     | '/_auth/partners_/$partnerId_/relations'
-    | '/_auth/products_/grille-tarifaire_/$rateTableId'
+    | '/_auth/produits-ia/ia-standard/accessoires'
+    | '/_auth/produits-ia/ia-standard/baremes'
+    | '/_auth/produits-ia/ia-standard/classes'
+    | '/_auth/produits-ia/ia-standard/majorations'
+    | '/_auth/produits-ia/ia-standard/prorata'
+    | '/_auth/produits-ia/ia-standard/reglages'
+    | '/_auth/produits-ia/ia-standard/'
     | '/_auth/commissions/schemes_/$schemeId/edit'
   fileRoutesById: FileRoutesById
 }
@@ -505,13 +534,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthPermissionsRouteImport
       parentRoute: typeof AuthRoute
     }
-    '/_auth/products': {
-      id: '/_auth/products'
-      path: '/products'
-      fullPath: '/products'
-      preLoaderRoute: typeof AuthProductsRouteImport
-      parentRoute: typeof AuthRoute
-    }
     '/_auth/profil': {
       id: '/_auth/profil'
       path: '/profil'
@@ -575,13 +597,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCommissionsWalletsRouteImport
       parentRoute: typeof AuthRoute
     }
-    '/_auth/cotations_/simulation': {
-      id: '/_auth/cotations_/simulation'
-      path: '/cotations/simulation'
-      fullPath: '/cotations/simulation'
-      preLoaderRoute: typeof AuthCotationsSimulationRouteImport
-      parentRoute: typeof AuthRoute
-    }
     '/_auth/partners_/$partnerId': {
       id: '/_auth/partners_/$partnerId'
       path: '/partners/$partnerId'
@@ -589,32 +604,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthPartnersPartnerIdRouteImport
       parentRoute: typeof AuthRoute
     }
-    '/_auth/products_/$productId': {
-      id: '/_auth/products_/$productId'
-      path: '/products/$productId'
-      fullPath: '/products/$productId'
-      preLoaderRoute: typeof AuthProductsProductIdRouteImport
+    '/_auth/produits-ia/ia-pour-tous': {
+      id: '/_auth/produits-ia/ia-pour-tous'
+      path: '/produits-ia/ia-pour-tous'
+      fullPath: '/produits-ia/ia-pour-tous'
+      preLoaderRoute: typeof AuthProduitsIaIaPourTousRouteImport
       parentRoute: typeof AuthRoute
     }
-    '/_auth/products_/accessoires': {
-      id: '/_auth/products_/accessoires'
-      path: '/products/accessoires'
-      fullPath: '/products/accessoires'
-      preLoaderRoute: typeof AuthProductsAccessoiresRouteImport
-      parentRoute: typeof AuthRoute
-    }
-    '/_auth/products_/categories': {
-      id: '/_auth/products_/categories'
-      path: '/products/categories'
-      fullPath: '/products/categories'
-      preLoaderRoute: typeof AuthProductsCategoriesRouteImport
-      parentRoute: typeof AuthRoute
-    }
-    '/_auth/products_/grille-tarifaire': {
-      id: '/_auth/products_/grille-tarifaire'
-      path: '/products/grille-tarifaire'
-      fullPath: '/products/grille-tarifaire'
-      preLoaderRoute: typeof AuthProductsGrilleTarifaireRouteImport
+    '/_auth/produits-ia/ia-standard': {
+      id: '/_auth/produits-ia/ia-standard'
+      path: '/produits-ia/ia-standard'
+      fullPath: '/produits-ia/ia-standard'
+      preLoaderRoute: typeof AuthProduitsIaIaStandardRouteImport
       parentRoute: typeof AuthRoute
     }
     '/_auth/sinistres_/$claimId': {
@@ -652,12 +653,54 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthPartnersPartnerIdRelationsRouteImport
       parentRoute: typeof AuthRoute
     }
-    '/_auth/products_/grille-tarifaire_/$rateTableId': {
-      id: '/_auth/products_/grille-tarifaire_/$rateTableId'
-      path: '/products/grille-tarifaire/$rateTableId'
-      fullPath: '/products/grille-tarifaire/$rateTableId'
-      preLoaderRoute: typeof AuthProductsGrilleTarifaireRateTableIdRouteImport
-      parentRoute: typeof AuthRoute
+    '/_auth/produits-ia/ia-standard/': {
+      id: '/_auth/produits-ia/ia-standard/'
+      path: '/'
+      fullPath: '/produits-ia/ia-standard/'
+      preLoaderRoute: typeof AuthProduitsIaIaStandardIndexRouteImport
+      parentRoute: typeof AuthProduitsIaIaStandardRoute
+    }
+    '/_auth/produits-ia/ia-standard/accessoires': {
+      id: '/_auth/produits-ia/ia-standard/accessoires'
+      path: '/accessoires'
+      fullPath: '/produits-ia/ia-standard/accessoires'
+      preLoaderRoute: typeof AuthProduitsIaIaStandardAccessoiresRouteImport
+      parentRoute: typeof AuthProduitsIaIaStandardRoute
+    }
+    '/_auth/produits-ia/ia-standard/baremes': {
+      id: '/_auth/produits-ia/ia-standard/baremes'
+      path: '/baremes'
+      fullPath: '/produits-ia/ia-standard/baremes'
+      preLoaderRoute: typeof AuthProduitsIaIaStandardBaremesRouteImport
+      parentRoute: typeof AuthProduitsIaIaStandardRoute
+    }
+    '/_auth/produits-ia/ia-standard/classes': {
+      id: '/_auth/produits-ia/ia-standard/classes'
+      path: '/classes'
+      fullPath: '/produits-ia/ia-standard/classes'
+      preLoaderRoute: typeof AuthProduitsIaIaStandardClassesRouteImport
+      parentRoute: typeof AuthProduitsIaIaStandardRoute
+    }
+    '/_auth/produits-ia/ia-standard/majorations': {
+      id: '/_auth/produits-ia/ia-standard/majorations'
+      path: '/majorations'
+      fullPath: '/produits-ia/ia-standard/majorations'
+      preLoaderRoute: typeof AuthProduitsIaIaStandardMajorationsRouteImport
+      parentRoute: typeof AuthProduitsIaIaStandardRoute
+    }
+    '/_auth/produits-ia/ia-standard/prorata': {
+      id: '/_auth/produits-ia/ia-standard/prorata'
+      path: '/prorata'
+      fullPath: '/produits-ia/ia-standard/prorata'
+      preLoaderRoute: typeof AuthProduitsIaIaStandardProrataRouteImport
+      parentRoute: typeof AuthProduitsIaIaStandardRoute
+    }
+    '/_auth/produits-ia/ia-standard/reglages': {
+      id: '/_auth/produits-ia/ia-standard/reglages'
+      path: '/reglages'
+      fullPath: '/produits-ia/ia-standard/reglages'
+      preLoaderRoute: typeof AuthProduitsIaIaStandardReglagesRouteImport
+      parentRoute: typeof AuthProduitsIaIaStandardRoute
     }
     '/_auth/commissions/schemes_/$schemeId/edit': {
       id: '/_auth/commissions/schemes_/$schemeId/edit'
@@ -669,13 +712,41 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthProduitsIaIaStandardRouteChildren {
+  AuthProduitsIaIaStandardAccessoiresRoute: typeof AuthProduitsIaIaStandardAccessoiresRoute
+  AuthProduitsIaIaStandardBaremesRoute: typeof AuthProduitsIaIaStandardBaremesRoute
+  AuthProduitsIaIaStandardClassesRoute: typeof AuthProduitsIaIaStandardClassesRoute
+  AuthProduitsIaIaStandardMajorationsRoute: typeof AuthProduitsIaIaStandardMajorationsRoute
+  AuthProduitsIaIaStandardProrataRoute: typeof AuthProduitsIaIaStandardProrataRoute
+  AuthProduitsIaIaStandardReglagesRoute: typeof AuthProduitsIaIaStandardReglagesRoute
+  AuthProduitsIaIaStandardIndexRoute: typeof AuthProduitsIaIaStandardIndexRoute
+}
+
+const AuthProduitsIaIaStandardRouteChildren: AuthProduitsIaIaStandardRouteChildren =
+  {
+    AuthProduitsIaIaStandardAccessoiresRoute:
+      AuthProduitsIaIaStandardAccessoiresRoute,
+    AuthProduitsIaIaStandardBaremesRoute: AuthProduitsIaIaStandardBaremesRoute,
+    AuthProduitsIaIaStandardClassesRoute: AuthProduitsIaIaStandardClassesRoute,
+    AuthProduitsIaIaStandardMajorationsRoute:
+      AuthProduitsIaIaStandardMajorationsRoute,
+    AuthProduitsIaIaStandardProrataRoute: AuthProduitsIaIaStandardProrataRoute,
+    AuthProduitsIaIaStandardReglagesRoute:
+      AuthProduitsIaIaStandardReglagesRoute,
+    AuthProduitsIaIaStandardIndexRoute: AuthProduitsIaIaStandardIndexRoute,
+  }
+
+const AuthProduitsIaIaStandardRouteWithChildren =
+  AuthProduitsIaIaStandardRoute._addFileChildren(
+    AuthProduitsIaIaStandardRouteChildren,
+  )
+
 interface AuthRouteChildren {
   AuthClientsRoute: typeof AuthClientsRoute
   AuthCotationsRoute: typeof AuthCotationsRoute
   AuthDashboardRoute: typeof AuthDashboardRoute
   AuthPartnersRoute: typeof AuthPartnersRoute
   AuthPermissionsRoute: typeof AuthPermissionsRoute
-  AuthProductsRoute: typeof AuthProductsRoute
   AuthProfilRoute: typeof AuthProfilRoute
   AuthRolesRoute: typeof AuthRolesRoute
   AuthSinistresRoute: typeof AuthSinistresRoute
@@ -685,18 +756,14 @@ interface AuthRouteChildren {
   AuthCommissionsDistributionsRoute: typeof AuthCommissionsDistributionsRoute
   AuthCommissionsSchemesRoute: typeof AuthCommissionsSchemesRoute
   AuthCommissionsWalletsRoute: typeof AuthCommissionsWalletsRoute
-  AuthCotationsSimulationRoute: typeof AuthCotationsSimulationRoute
   AuthPartnersPartnerIdRoute: typeof AuthPartnersPartnerIdRoute
-  AuthProductsProductIdRoute: typeof AuthProductsProductIdRoute
-  AuthProductsAccessoiresRoute: typeof AuthProductsAccessoiresRoute
-  AuthProductsCategoriesRoute: typeof AuthProductsCategoriesRoute
-  AuthProductsGrilleTarifaireRoute: typeof AuthProductsGrilleTarifaireRoute
+  AuthProduitsIaIaPourTousRoute: typeof AuthProduitsIaIaPourTousRoute
+  AuthProduitsIaIaStandardRoute: typeof AuthProduitsIaIaStandardRouteWithChildren
   AuthSinistresClaimIdRoute: typeof AuthSinistresClaimIdRoute
   AuthSinistresTypesRoute: typeof AuthSinistresTypesRoute
   AuthSupportConversationIdRoute: typeof AuthSupportConversationIdRoute
   AuthCommissionsSchemesNewRoute: typeof AuthCommissionsSchemesNewRoute
   AuthPartnersPartnerIdRelationsRoute: typeof AuthPartnersPartnerIdRelationsRoute
-  AuthProductsGrilleTarifaireRateTableIdRoute: typeof AuthProductsGrilleTarifaireRateTableIdRoute
   AuthCommissionsSchemesSchemeIdEditRoute: typeof AuthCommissionsSchemesSchemeIdEditRoute
 }
 
@@ -706,7 +773,6 @@ const AuthRouteChildren: AuthRouteChildren = {
   AuthDashboardRoute: AuthDashboardRoute,
   AuthPartnersRoute: AuthPartnersRoute,
   AuthPermissionsRoute: AuthPermissionsRoute,
-  AuthProductsRoute: AuthProductsRoute,
   AuthProfilRoute: AuthProfilRoute,
   AuthRolesRoute: AuthRolesRoute,
   AuthSinistresRoute: AuthSinistresRoute,
@@ -716,19 +782,14 @@ const AuthRouteChildren: AuthRouteChildren = {
   AuthCommissionsDistributionsRoute: AuthCommissionsDistributionsRoute,
   AuthCommissionsSchemesRoute: AuthCommissionsSchemesRoute,
   AuthCommissionsWalletsRoute: AuthCommissionsWalletsRoute,
-  AuthCotationsSimulationRoute: AuthCotationsSimulationRoute,
   AuthPartnersPartnerIdRoute: AuthPartnersPartnerIdRoute,
-  AuthProductsProductIdRoute: AuthProductsProductIdRoute,
-  AuthProductsAccessoiresRoute: AuthProductsAccessoiresRoute,
-  AuthProductsCategoriesRoute: AuthProductsCategoriesRoute,
-  AuthProductsGrilleTarifaireRoute: AuthProductsGrilleTarifaireRoute,
+  AuthProduitsIaIaPourTousRoute: AuthProduitsIaIaPourTousRoute,
+  AuthProduitsIaIaStandardRoute: AuthProduitsIaIaStandardRouteWithChildren,
   AuthSinistresClaimIdRoute: AuthSinistresClaimIdRoute,
   AuthSinistresTypesRoute: AuthSinistresTypesRoute,
   AuthSupportConversationIdRoute: AuthSupportConversationIdRoute,
   AuthCommissionsSchemesNewRoute: AuthCommissionsSchemesNewRoute,
   AuthPartnersPartnerIdRelationsRoute: AuthPartnersPartnerIdRelationsRoute,
-  AuthProductsGrilleTarifaireRateTableIdRoute:
-    AuthProductsGrilleTarifaireRateTableIdRoute,
   AuthCommissionsSchemesSchemeIdEditRoute:
     AuthCommissionsSchemesSchemeIdEditRoute,
 }
