@@ -7,6 +7,8 @@ import type {
   AmendmentStatus,
 } from '#/lib/amendments'
 import type { PageResponse } from '#/lib/page'
+import { fetchAllPages } from '#/lib/fetch-all-pages'
+import type { AllPages } from '#/lib/fetch-all-pages'
 
 export interface AmendmentFilters {
   status?: AmendmentStatus
@@ -91,4 +93,16 @@ export async function downloadReceiptDocument(
   } catch (error) {
     throw await readBlobErrorBody(error)
   }
+}
+
+/**
+ * Toutes les modifications appliquées (pour retrouver les quittances d'un
+ * contrat : la liste n'a pas de filtre par contrat), plus récentes d'abord.
+ */
+export function getAllAppliedAmendments(): Promise<
+  AllPages<AmendmentListItem>
+> {
+  return fetchAllPages((page, size) =>
+    getAmendments({ status: 'APPLIED', page, size, sort: 'createdAt,desc' }),
+  )
 }

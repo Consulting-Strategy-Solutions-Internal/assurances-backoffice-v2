@@ -30,9 +30,9 @@
 - AC-5 Aucun appel aux routes refusées (`/signature`, `/identity-document`).
 
 ## Steps
-- [ ] **S1.** Types (`SubscriptionDetailResponse` complété, renouvellement) + services + logique pure (`src/lib/contract-documents.ts`) — verify: tests unitaires
-- [ ] **S2.** Panneau `src/components/clients/ContractDrawer.tsx` — AC-2…AC-5 — verify: tests composant
-- [ ] **S3.** Fiche client : lignes cliquables, `?contract` — AC-1 — verify: test de route
+- [x] **S1.** Types (`SubscriptionDetailResponse` complété, renouvellement) + services + logique pure (`src/lib/contract-documents.ts`) — verify: tests unitaires
+- [x] **S2.** Panneau `src/components/clients/ContractDrawer.tsx` — AC-2…AC-5 — verify: tests composant
+- [x] **S3.** Fiche client : lignes cliquables, `?contract` — AC-1 — verify: test de route
 - [ ] **S4.** Contrôles + recette sur la démo
 
 ## Review findings

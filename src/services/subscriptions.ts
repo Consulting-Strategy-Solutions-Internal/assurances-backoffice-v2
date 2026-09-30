@@ -1,3 +1,4 @@
+import { isAxiosError } from 'axios'
 import { api } from '#/lib/api'
 import type { PageResponse } from '#/lib/page'
 
@@ -56,6 +57,7 @@ export interface SubscriptionFilters {
 export const subscriptionsKeys = {
   all: ['subscriptions'] as const,
   detail: (id: number) => ['subscriptions', 'detail', id] as const,
+  renewal: (id: number) => ['subscriptions', 'renewal', id] as const,
 }
 
 export async function getSubscriptions(
@@ -75,13 +77,54 @@ export async function getSubscriptions(
   return response.data
 }
 
+export type IdentityDocumentType =
+  | 'NATIONAL_ID'
+  | 'PASSPORT'
+  | 'DRIVING_LICENSE'
+  | 'CONSULAR_CARD'
+  | 'RCCM'
+
+/** Pièce d'identité envoyée : son type et les faces reçues (pas l'image). */
+export interface IdentityDocumentStatus {
+  type: IdentityDocumentType
+  front: boolean
+  back: boolean
+}
+
 /** Champs lus de `SubscriptionDetailResponse` (`GET /subscriptions/{id}`). */
 export interface SubscriptionDetailResponse {
   id: number
   clientId: number
   status: SubscriptionStatus
   policyNumber?: string | null
-  amendmentNumber?: number | null
+  /** 0 pour la police elle-même, +1 par avenant. */
+  amendmentNumber: number
+  /** Signature du souscripteur reçue (l'image n'est pas lisible ici). */
+  signed: boolean
+  identityDocuments: IdentityDocumentStatus[]
+  /** PDF de la police émis ; nul tant qu'il ne l'est pas. */
+  policyDocumentId?: number | null
+  productSnapshot?: SubscriptionProductSnapshot | null
+  totalPremium?: number
+  coverageStart?: string | null
+  coverageEnd?: string | null
+}
+
+/** `RenewalResponse.receipt` (`GET /subscriptions/{id}/renewal`). */
+export interface RenewalReceipt {
+  receiptNumber: string
+  status: 'PAID' | 'PAID_NOT_APPLIED'
+  total: number
+  /** PDF de la quittance émis ; nul jusque-là. */
+  documentId?: number | null
+}
+
+/** Champs lus de `RenewalResponse`. */
+export interface SubscriptionRenewal {
+  id: number
+  subscriptionId: number
+  status: string
+  receipt?: RenewalReceipt | null
 }
 
 /** Fiche d'un contrat (`subscription:read-all`). */
@@ -92,4 +135,22 @@ export async function getSubscription(
     `/subscriptions/${id}`,
   )
   return response.data
+}
+
+/**
+ * Dernier renouvellement d'un contrat ; `null` quand il n'y en a pas encore
+ * (404 « No renewal for subscription »).
+ */
+export async function getSubscriptionRenewal(
+  id: number,
+): Promise<SubscriptionRenewal | null> {
+  try {
+    const response = await api.get<SubscriptionRenewal>(
+      `/subscriptions/${id}/renewal`,
+    )
+    return response.data
+  } catch (err) {
+    if (isAxiosError(err) && err.response?.status === 404) return null
+    throw err
+  }
 }

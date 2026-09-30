@@ -2,6 +2,8 @@ import { pageHead } from '#/lib/page-title'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { z } from 'zod'
+import { ContractDrawer } from '#/components/clients/ContractDrawer'
 import {
   CalendarClock,
   ChevronRight,
@@ -63,8 +65,14 @@ import {
 } from '#/services/subscriptions-by-client'
 import type { SubscriptionStatus } from '#/services/subscriptions'
 
+const searchSchema = z.object({
+  /** Contrat ouvert dans le panneau latéral. */
+  contract: z.coerce.number().int().positive().optional().catch(undefined),
+})
+
 export const Route = createFileRoute('/_auth/clients_/$clientId')({
   head: pageHead('Fiche client'),
+  validateSearch: searchSchema,
   component: ClientDetailRoute,
 })
 
@@ -178,6 +186,16 @@ function VerifiedNote({ at }: { at?: string | null }) {
 
 function ClientDetail({ client }: { client: ClientResponse }) {
   const navigate = useNavigate()
+  const { contract: openContract } = Route.useSearch()
+  const setOpenContract = (contract: number | undefined) =>
+    void navigate({
+      to: '.',
+      search: (previous: Record<string, unknown>) => ({
+        ...previous,
+        contract,
+      }),
+      replace: true,
+    })
   const clientId = client.id
   const name = clientFullName(client)
   const email = clientEmail(client)
@@ -220,6 +238,16 @@ function ClientDetail({ client }: { client: ClientResponse }) {
 
   return (
     <div className="flex flex-col gap-[18px]">
+      <ContractDrawer
+        subscriptionId={
+          openContract !== undefined &&
+          (subscriptionsQuery.isPending ||
+            contracts.some((c) => c.id === openContract))
+            ? openContract
+            : null
+        }
+        onClose={() => setOpenContract(undefined)}
+      />
       {declaring && (
         <CreateClaimDialog
           defaultClientId={clientId}
@@ -360,7 +388,7 @@ function ClientDetail({ client }: { client: ClientResponse }) {
       <SectionCard
         flush
         title="Contrats"
-        description="Contrats souscrits par ce client (lecture seule)."
+        description="Contrats souscrits par ce client : cliquez sur un contrat pour sa signature, ses pièces et ses documents."
       >
         {subscriptionsQuery.isLoading ? (
           <div className="flex flex-col gap-3 p-6">
@@ -416,7 +444,12 @@ function ClientDetail({ client }: { client: ClientResponse }) {
               </TableHeader>
               <TableBody>
                 {contracts.map((contract) => (
-                  <TableRow key={contract.id} className="hover:bg-[#f6f8fc]">
+                  <ClickableRow
+                    key={contract.id}
+                    selected={openContract === contract.id}
+                    onActivate={() => setOpenContract(contract.id)}
+                    aria-label={`Ouvrir le contrat ${contract.policyNumber?.trim() || `#${contract.id}`}`}
+                  >
                     <TableCell className="pl-6 font-semibold whitespace-nowrap">
                       {contract.policyNumber?.trim() ||
                         `Contrat #${contract.id}`}
@@ -442,7 +475,7 @@ function ClientDetail({ client }: { client: ClientResponse }) {
                     <TableCell className="pr-6 text-right whitespace-nowrap tabular-nums">
                       {formatFcfa(contract.totalPremium)}
                     </TableCell>
-                  </TableRow>
+                  </ClickableRow>
                 ))}
               </TableBody>
             </Table>
