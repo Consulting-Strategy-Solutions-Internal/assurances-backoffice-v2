@@ -1,6 +1,6 @@
 # Modifications de contrat (avenants IA) — spec
 
-**Status:** done · **Branche :** `feat/contract-amendments` · **Worktree :** `.claude/worktrees/feat-contract-amendments` · **PR:** https://github.com/Consulting-Strategy-Solutions-Internal/assurances-backoffice-v2/pull/7
+**Status:** shipped · **Branche :** `feat/contract-amendments` · **Worktree :** `.claude/worktrees/feat-contract-amendments` · **PR:** https://github.com/Consulting-Strategy-Solutions-Internal/assurances-backoffice-v2/pull/7
 
 ## Besoin
 
