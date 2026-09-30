@@ -186,6 +186,32 @@ export const PAGES: PageEntry[] = [
     keywords: 'ia pour tous formules garanties forfaitaires',
   },
   {
+    title: 'Situations & taux de base',
+    section: 'MRH Standard',
+    to: '/produits-mrh/mrh-standard/situations',
+    keywords:
+      'multirisque habitation mrh situations qualites juridiques locataire proprietaire taux base permille loyer multiplicateur',
+  },
+  {
+    title: 'Garanties',
+    section: 'MRH Standard',
+    to: '/produits-mrh/mrh-standard/garanties',
+    keywords: 'multirisque habitation mrh garanties taxe incendie',
+  },
+  {
+    title: 'Garanties par situation',
+    section: 'MRH Standard',
+    to: '/produits-mrh/mrh-standard/tarifs',
+    keywords:
+      'multirisque habitation mrh grille tarif garanties obligatoire forfait pourcentage capital inondation',
+  },
+  {
+    title: 'Accessoires',
+    section: 'MRH Standard',
+    to: '/produits-mrh/mrh-standard/accessoires',
+    keywords: 'multirisque habitation mrh frais accessoire tranches csv import',
+  },
+  {
     title: 'Schémas de commission',
     section: 'Commissions',
     to: '/commissions/schemes',

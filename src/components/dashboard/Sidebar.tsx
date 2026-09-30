@@ -74,6 +74,17 @@ const PRODUITS_CHILDREN: NavChild[] = [
       { to: '/produits-ia/ia-pour-tous', label: 'IA Pour Tous' },
     ],
   },
+  {
+    to: '/produits-mrh',
+    label: 'Multirisque Habitation',
+    children: [
+      {
+        to: '/produits-mrh/mrh-standard',
+        label: 'MRH Standard',
+        matchChildren: true,
+      },
+    ],
+  },
 ]
 
 const CONTRATS_CHILDREN: NavChild[] = [
@@ -360,7 +371,7 @@ export function Sidebar({
           <CollapsibleNavGroup
             icon={Package}
             label="Produits"
-            basePath="/produits-ia"
+            basePath={['/produits-ia', '/produits-mrh']}
             items={PRODUITS_CHILDREN}
             pathname={pathname}
           />

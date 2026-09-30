@@ -32,6 +32,7 @@ import { Route as AuthContratsModificationsRouteImport } from './routes/_auth/co
 import { Route as AuthPartnersPartnerIdRouteImport } from './routes/_auth/partners_.$partnerId'
 import { Route as AuthProduitsIaIaPourTousRouteImport } from './routes/_auth/produits-ia.ia-pour-tous'
 import { Route as AuthProduitsIaIaStandardRouteImport } from './routes/_auth/produits-ia.ia-standard'
+import { Route as AuthProduitsMrhMrhStandardRouteImport } from './routes/_auth/produits-mrh.mrh-standard'
 import { Route as AuthSinistresClaimIdRouteImport } from './routes/_auth/sinistres_.$claimId'
 import { Route as AuthSinistresTypesRouteImport } from './routes/_auth/sinistres_.types'
 import { Route as AuthSupportConversationIdRouteImport } from './routes/_auth/support_.$conversationId'
@@ -45,6 +46,11 @@ import { Route as AuthProduitsIaIaStandardClassesRouteImport } from './routes/_a
 import { Route as AuthProduitsIaIaStandardMajorationsRouteImport } from './routes/_auth/produits-ia.ia-standard.majorations'
 import { Route as AuthProduitsIaIaStandardProrataRouteImport } from './routes/_auth/produits-ia.ia-standard.prorata'
 import { Route as AuthProduitsIaIaStandardReglagesRouteImport } from './routes/_auth/produits-ia.ia-standard.reglages'
+import { Route as AuthProduitsMrhMrhStandardIndexRouteImport } from './routes/_auth/produits-mrh.mrh-standard.index'
+import { Route as AuthProduitsMrhMrhStandardAccessoiresRouteImport } from './routes/_auth/produits-mrh.mrh-standard.accessoires'
+import { Route as AuthProduitsMrhMrhStandardGarantiesRouteImport } from './routes/_auth/produits-mrh.mrh-standard.garanties'
+import { Route as AuthProduitsMrhMrhStandardSituationsRouteImport } from './routes/_auth/produits-mrh.mrh-standard.situations'
+import { Route as AuthProduitsMrhMrhStandardTarifsRouteImport } from './routes/_auth/produits-mrh.mrh-standard.tarifs'
 import { Route as AuthCommissionsSchemesSchemeIdEditRouteImport } from './routes/_auth/commissions.schemes_.$schemeId.edit'
 
 const IndexRoute = IndexRouteImport.update({
@@ -165,6 +171,12 @@ const AuthProduitsIaIaStandardRoute =
     path: '/produits-ia/ia-standard',
     getParentRoute: () => AuthRoute,
   } as any)
+const AuthProduitsMrhMrhStandardRoute =
+  AuthProduitsMrhMrhStandardRouteImport.update({
+    id: '/produits-mrh/mrh-standard',
+    path: '/produits-mrh/mrh-standard',
+    getParentRoute: () => AuthRoute,
+  } as any)
 const AuthSinistresClaimIdRoute = AuthSinistresClaimIdRouteImport.update({
   id: '/sinistres_/$claimId',
   path: '/sinistres/$claimId',
@@ -241,6 +253,36 @@ const AuthProduitsIaIaStandardReglagesRoute =
     path: '/reglages',
     getParentRoute: () => AuthProduitsIaIaStandardRoute,
   } as any)
+const AuthProduitsMrhMrhStandardIndexRoute =
+  AuthProduitsMrhMrhStandardIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthProduitsMrhMrhStandardRoute,
+  } as any)
+const AuthProduitsMrhMrhStandardAccessoiresRoute =
+  AuthProduitsMrhMrhStandardAccessoiresRouteImport.update({
+    id: '/accessoires',
+    path: '/accessoires',
+    getParentRoute: () => AuthProduitsMrhMrhStandardRoute,
+  } as any)
+const AuthProduitsMrhMrhStandardGarantiesRoute =
+  AuthProduitsMrhMrhStandardGarantiesRouteImport.update({
+    id: '/garanties',
+    path: '/garanties',
+    getParentRoute: () => AuthProduitsMrhMrhStandardRoute,
+  } as any)
+const AuthProduitsMrhMrhStandardSituationsRoute =
+  AuthProduitsMrhMrhStandardSituationsRouteImport.update({
+    id: '/situations',
+    path: '/situations',
+    getParentRoute: () => AuthProduitsMrhMrhStandardRoute,
+  } as any)
+const AuthProduitsMrhMrhStandardTarifsRoute =
+  AuthProduitsMrhMrhStandardTarifsRouteImport.update({
+    id: '/tarifs',
+    path: '/tarifs',
+    getParentRoute: () => AuthProduitsMrhMrhStandardRoute,
+  } as any)
 const AuthCommissionsSchemesSchemeIdEditRoute =
   AuthCommissionsSchemesSchemeIdEditRouteImport.update({
     id: '/commissions/schemes_/$schemeId/edit',
@@ -271,6 +313,7 @@ export interface FileRoutesByFullPath {
   '/partners/$partnerId': typeof AuthPartnersPartnerIdRoute
   '/produits-ia/ia-pour-tous': typeof AuthProduitsIaIaPourTousRoute
   '/produits-ia/ia-standard': typeof AuthProduitsIaIaStandardRouteWithChildren
+  '/produits-mrh/mrh-standard': typeof AuthProduitsMrhMrhStandardRouteWithChildren
   '/sinistres/$claimId': typeof AuthSinistresClaimIdRoute
   '/sinistres/types': typeof AuthSinistresTypesRoute
   '/support/$conversationId': typeof AuthSupportConversationIdRoute
@@ -283,7 +326,12 @@ export interface FileRoutesByFullPath {
   '/produits-ia/ia-standard/majorations': typeof AuthProduitsIaIaStandardMajorationsRoute
   '/produits-ia/ia-standard/prorata': typeof AuthProduitsIaIaStandardProrataRoute
   '/produits-ia/ia-standard/reglages': typeof AuthProduitsIaIaStandardReglagesRoute
+  '/produits-mrh/mrh-standard/accessoires': typeof AuthProduitsMrhMrhStandardAccessoiresRoute
+  '/produits-mrh/mrh-standard/garanties': typeof AuthProduitsMrhMrhStandardGarantiesRoute
+  '/produits-mrh/mrh-standard/situations': typeof AuthProduitsMrhMrhStandardSituationsRoute
+  '/produits-mrh/mrh-standard/tarifs': typeof AuthProduitsMrhMrhStandardTarifsRoute
   '/produits-ia/ia-standard/': typeof AuthProduitsIaIaStandardIndexRoute
+  '/produits-mrh/mrh-standard/': typeof AuthProduitsMrhMrhStandardIndexRoute
   '/commissions/schemes/$schemeId/edit': typeof AuthCommissionsSchemesSchemeIdEditRoute
 }
 export interface FileRoutesByTo {
@@ -320,7 +368,12 @@ export interface FileRoutesByTo {
   '/produits-ia/ia-standard/majorations': typeof AuthProduitsIaIaStandardMajorationsRoute
   '/produits-ia/ia-standard/prorata': typeof AuthProduitsIaIaStandardProrataRoute
   '/produits-ia/ia-standard/reglages': typeof AuthProduitsIaIaStandardReglagesRoute
+  '/produits-mrh/mrh-standard/accessoires': typeof AuthProduitsMrhMrhStandardAccessoiresRoute
+  '/produits-mrh/mrh-standard/garanties': typeof AuthProduitsMrhMrhStandardGarantiesRoute
+  '/produits-mrh/mrh-standard/situations': typeof AuthProduitsMrhMrhStandardSituationsRoute
+  '/produits-mrh/mrh-standard/tarifs': typeof AuthProduitsMrhMrhStandardTarifsRoute
   '/produits-ia/ia-standard': typeof AuthProduitsIaIaStandardIndexRoute
+  '/produits-mrh/mrh-standard': typeof AuthProduitsMrhMrhStandardIndexRoute
   '/commissions/schemes/$schemeId/edit': typeof AuthCommissionsSchemesSchemeIdEditRoute
 }
 export interface FileRoutesById {
@@ -348,6 +401,7 @@ export interface FileRoutesById {
   '/_auth/partners_/$partnerId': typeof AuthPartnersPartnerIdRoute
   '/_auth/produits-ia/ia-pour-tous': typeof AuthProduitsIaIaPourTousRoute
   '/_auth/produits-ia/ia-standard': typeof AuthProduitsIaIaStandardRouteWithChildren
+  '/_auth/produits-mrh/mrh-standard': typeof AuthProduitsMrhMrhStandardRouteWithChildren
   '/_auth/sinistres_/$claimId': typeof AuthSinistresClaimIdRoute
   '/_auth/sinistres_/types': typeof AuthSinistresTypesRoute
   '/_auth/support_/$conversationId': typeof AuthSupportConversationIdRoute
@@ -360,7 +414,12 @@ export interface FileRoutesById {
   '/_auth/produits-ia/ia-standard/majorations': typeof AuthProduitsIaIaStandardMajorationsRoute
   '/_auth/produits-ia/ia-standard/prorata': typeof AuthProduitsIaIaStandardProrataRoute
   '/_auth/produits-ia/ia-standard/reglages': typeof AuthProduitsIaIaStandardReglagesRoute
+  '/_auth/produits-mrh/mrh-standard/accessoires': typeof AuthProduitsMrhMrhStandardAccessoiresRoute
+  '/_auth/produits-mrh/mrh-standard/garanties': typeof AuthProduitsMrhMrhStandardGarantiesRoute
+  '/_auth/produits-mrh/mrh-standard/situations': typeof AuthProduitsMrhMrhStandardSituationsRoute
+  '/_auth/produits-mrh/mrh-standard/tarifs': typeof AuthProduitsMrhMrhStandardTarifsRoute
   '/_auth/produits-ia/ia-standard/': typeof AuthProduitsIaIaStandardIndexRoute
+  '/_auth/produits-mrh/mrh-standard/': typeof AuthProduitsMrhMrhStandardIndexRoute
   '/_auth/commissions/schemes_/$schemeId/edit': typeof AuthCommissionsSchemesSchemeIdEditRoute
 }
 export interface FileRouteTypes {
@@ -388,6 +447,7 @@ export interface FileRouteTypes {
     | '/partners/$partnerId'
     | '/produits-ia/ia-pour-tous'
     | '/produits-ia/ia-standard'
+    | '/produits-mrh/mrh-standard'
     | '/sinistres/$claimId'
     | '/sinistres/types'
     | '/support/$conversationId'
@@ -400,7 +460,12 @@ export interface FileRouteTypes {
     | '/produits-ia/ia-standard/majorations'
     | '/produits-ia/ia-standard/prorata'
     | '/produits-ia/ia-standard/reglages'
+    | '/produits-mrh/mrh-standard/accessoires'
+    | '/produits-mrh/mrh-standard/garanties'
+    | '/produits-mrh/mrh-standard/situations'
+    | '/produits-mrh/mrh-standard/tarifs'
     | '/produits-ia/ia-standard/'
+    | '/produits-mrh/mrh-standard/'
     | '/commissions/schemes/$schemeId/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -437,7 +502,12 @@ export interface FileRouteTypes {
     | '/produits-ia/ia-standard/majorations'
     | '/produits-ia/ia-standard/prorata'
     | '/produits-ia/ia-standard/reglages'
+    | '/produits-mrh/mrh-standard/accessoires'
+    | '/produits-mrh/mrh-standard/garanties'
+    | '/produits-mrh/mrh-standard/situations'
+    | '/produits-mrh/mrh-standard/tarifs'
     | '/produits-ia/ia-standard'
+    | '/produits-mrh/mrh-standard'
     | '/commissions/schemes/$schemeId/edit'
   id:
     | '__root__'
@@ -464,6 +534,7 @@ export interface FileRouteTypes {
     | '/_auth/partners_/$partnerId'
     | '/_auth/produits-ia/ia-pour-tous'
     | '/_auth/produits-ia/ia-standard'
+    | '/_auth/produits-mrh/mrh-standard'
     | '/_auth/sinistres_/$claimId'
     | '/_auth/sinistres_/types'
     | '/_auth/support_/$conversationId'
@@ -476,7 +547,12 @@ export interface FileRouteTypes {
     | '/_auth/produits-ia/ia-standard/majorations'
     | '/_auth/produits-ia/ia-standard/prorata'
     | '/_auth/produits-ia/ia-standard/reglages'
+    | '/_auth/produits-mrh/mrh-standard/accessoires'
+    | '/_auth/produits-mrh/mrh-standard/garanties'
+    | '/_auth/produits-mrh/mrh-standard/situations'
+    | '/_auth/produits-mrh/mrh-standard/tarifs'
     | '/_auth/produits-ia/ia-standard/'
+    | '/_auth/produits-mrh/mrh-standard/'
     | '/_auth/commissions/schemes_/$schemeId/edit'
   fileRoutesById: FileRoutesById
 }
@@ -651,6 +727,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthProduitsIaIaStandardRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_auth/produits-mrh/mrh-standard': {
+      id: '/_auth/produits-mrh/mrh-standard'
+      path: '/produits-mrh/mrh-standard'
+      fullPath: '/produits-mrh/mrh-standard'
+      preLoaderRoute: typeof AuthProduitsMrhMrhStandardRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/_auth/sinistres_/$claimId': {
       id: '/_auth/sinistres_/$claimId'
       path: '/sinistres/$claimId'
@@ -742,6 +825,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthProduitsIaIaStandardReglagesRouteImport
       parentRoute: typeof AuthProduitsIaIaStandardRoute
     }
+    '/_auth/produits-mrh/mrh-standard/': {
+      id: '/_auth/produits-mrh/mrh-standard/'
+      path: '/'
+      fullPath: '/produits-mrh/mrh-standard/'
+      preLoaderRoute: typeof AuthProduitsMrhMrhStandardIndexRouteImport
+      parentRoute: typeof AuthProduitsMrhMrhStandardRoute
+    }
+    '/_auth/produits-mrh/mrh-standard/accessoires': {
+      id: '/_auth/produits-mrh/mrh-standard/accessoires'
+      path: '/accessoires'
+      fullPath: '/produits-mrh/mrh-standard/accessoires'
+      preLoaderRoute: typeof AuthProduitsMrhMrhStandardAccessoiresRouteImport
+      parentRoute: typeof AuthProduitsMrhMrhStandardRoute
+    }
+    '/_auth/produits-mrh/mrh-standard/garanties': {
+      id: '/_auth/produits-mrh/mrh-standard/garanties'
+      path: '/garanties'
+      fullPath: '/produits-mrh/mrh-standard/garanties'
+      preLoaderRoute: typeof AuthProduitsMrhMrhStandardGarantiesRouteImport
+      parentRoute: typeof AuthProduitsMrhMrhStandardRoute
+    }
+    '/_auth/produits-mrh/mrh-standard/situations': {
+      id: '/_auth/produits-mrh/mrh-standard/situations'
+      path: '/situations'
+      fullPath: '/produits-mrh/mrh-standard/situations'
+      preLoaderRoute: typeof AuthProduitsMrhMrhStandardSituationsRouteImport
+      parentRoute: typeof AuthProduitsMrhMrhStandardRoute
+    }
+    '/_auth/produits-mrh/mrh-standard/tarifs': {
+      id: '/_auth/produits-mrh/mrh-standard/tarifs'
+      path: '/tarifs'
+      fullPath: '/produits-mrh/mrh-standard/tarifs'
+      preLoaderRoute: typeof AuthProduitsMrhMrhStandardTarifsRouteImport
+      parentRoute: typeof AuthProduitsMrhMrhStandardRoute
+    }
     '/_auth/commissions/schemes_/$schemeId/edit': {
       id: '/_auth/commissions/schemes_/$schemeId/edit'
       path: '/commissions/schemes/$schemeId/edit'
@@ -781,6 +899,32 @@ const AuthProduitsIaIaStandardRouteWithChildren =
     AuthProduitsIaIaStandardRouteChildren,
   )
 
+interface AuthProduitsMrhMrhStandardRouteChildren {
+  AuthProduitsMrhMrhStandardAccessoiresRoute: typeof AuthProduitsMrhMrhStandardAccessoiresRoute
+  AuthProduitsMrhMrhStandardGarantiesRoute: typeof AuthProduitsMrhMrhStandardGarantiesRoute
+  AuthProduitsMrhMrhStandardSituationsRoute: typeof AuthProduitsMrhMrhStandardSituationsRoute
+  AuthProduitsMrhMrhStandardTarifsRoute: typeof AuthProduitsMrhMrhStandardTarifsRoute
+  AuthProduitsMrhMrhStandardIndexRoute: typeof AuthProduitsMrhMrhStandardIndexRoute
+}
+
+const AuthProduitsMrhMrhStandardRouteChildren: AuthProduitsMrhMrhStandardRouteChildren =
+  {
+    AuthProduitsMrhMrhStandardAccessoiresRoute:
+      AuthProduitsMrhMrhStandardAccessoiresRoute,
+    AuthProduitsMrhMrhStandardGarantiesRoute:
+      AuthProduitsMrhMrhStandardGarantiesRoute,
+    AuthProduitsMrhMrhStandardSituationsRoute:
+      AuthProduitsMrhMrhStandardSituationsRoute,
+    AuthProduitsMrhMrhStandardTarifsRoute:
+      AuthProduitsMrhMrhStandardTarifsRoute,
+    AuthProduitsMrhMrhStandardIndexRoute: AuthProduitsMrhMrhStandardIndexRoute,
+  }
+
+const AuthProduitsMrhMrhStandardRouteWithChildren =
+  AuthProduitsMrhMrhStandardRoute._addFileChildren(
+    AuthProduitsMrhMrhStandardRouteChildren,
+  )
+
 interface AuthRouteChildren {
   AuthClientsRoute: typeof AuthClientsRoute
   AuthCotationsRoute: typeof AuthCotationsRoute
@@ -800,6 +944,7 @@ interface AuthRouteChildren {
   AuthPartnersPartnerIdRoute: typeof AuthPartnersPartnerIdRoute
   AuthProduitsIaIaPourTousRoute: typeof AuthProduitsIaIaPourTousRoute
   AuthProduitsIaIaStandardRoute: typeof AuthProduitsIaIaStandardRouteWithChildren
+  AuthProduitsMrhMrhStandardRoute: typeof AuthProduitsMrhMrhStandardRouteWithChildren
   AuthSinistresClaimIdRoute: typeof AuthSinistresClaimIdRoute
   AuthSinistresTypesRoute: typeof AuthSinistresTypesRoute
   AuthSupportConversationIdRoute: typeof AuthSupportConversationIdRoute
@@ -828,6 +973,7 @@ const AuthRouteChildren: AuthRouteChildren = {
   AuthPartnersPartnerIdRoute: AuthPartnersPartnerIdRoute,
   AuthProduitsIaIaPourTousRoute: AuthProduitsIaIaPourTousRoute,
   AuthProduitsIaIaStandardRoute: AuthProduitsIaIaStandardRouteWithChildren,
+  AuthProduitsMrhMrhStandardRoute: AuthProduitsMrhMrhStandardRouteWithChildren,
   AuthSinistresClaimIdRoute: AuthSinistresClaimIdRoute,
   AuthSinistresTypesRoute: AuthSinistresTypesRoute,
   AuthSupportConversationIdRoute: AuthSupportConversationIdRoute,
