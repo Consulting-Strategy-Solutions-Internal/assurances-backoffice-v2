@@ -2,7 +2,7 @@
 
 - **Status:** shipped — fusionné dans main via la PR #10 (2026-09-30), à la demande de l’utilisateur avant la fin de la revue
 - **Created:** 2026-09-30 · **Updated:** 2026-09-30
-- **PR:** https://github.com/Consulting-Strategy-Solutions-Internal/assurances-backoffice-v2/pull/10
+- **PR:** https://github.com/Consulting-Strategy-Solutions-Internal/assurances-backoffice-v2/pull/10 · suite : https://github.com/Consulting-Strategy-Solutions-Internal/assurances-backoffice-v2/pull/11
 - **Branch:** `fix/client-search-lag` · **Worktree:** `.claude/worktrees/fix-client-search-lag` · **Ports:** app 3002
 - **Area:** routes protégées (`src/routes/_auth.tsx`), toutes les pages à filtres dans l'URL · **Lessons:** L-012
 
