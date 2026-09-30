@@ -13,6 +13,7 @@ import {
 import type { ReactNode } from 'react'
 import type { AmendmentListItem } from '#/lib/amendments'
 import {
+  mrhDraftIncrease,
   appliedUnchanged,
   appliedPaid,
   asListItem,
@@ -208,6 +209,30 @@ describe('AmendmentsListContent', () => {
       target: { value: 'updatedAt,desc' },
     })
     expect(lastSearch(mocks.search)).toMatchObject({ sort: 'updatedAt,desc' })
+  })
+
+  it('MRH : le filtre propose MRH Standard et une modification MRH l’affiche', async () => {
+    mocks.getAmendments.mockResolvedValue(
+      page([
+        {
+          ...asListItem(mrhDraftIncrease),
+          policyNumber: 'MRH-2026-000001',
+          clientName: 'KONE Awa',
+        },
+      ]),
+    )
+    renderList()
+    expect(await inTable().findByText('MRH-2026-000001')).toBeTruthy()
+    expect(inTable().getByText('MRH Standard')).toBeTruthy()
+    expect(inTable().getByText('Hausse')).toBeTruthy()
+    const options = within(screen.getByLabelText('Produit')).getAllByRole(
+      'option',
+    )
+    expect(options.map((o) => o.textContent)).toContain('MRH Standard')
+    fireEvent.change(screen.getByLabelText('Produit'), {
+      target: { value: 'MRH_STANDARD' },
+    })
+    expect(lastSearch(mocks.search)).toMatchObject({ product: 'MRH_STANDARD' })
   })
 
   it('offers to reset the product filter', async () => {

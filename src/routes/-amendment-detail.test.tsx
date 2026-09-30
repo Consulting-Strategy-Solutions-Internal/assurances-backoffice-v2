@@ -21,6 +21,9 @@ import {
   draftIncrease,
   draftRefund,
   draftUnchanged,
+  mrhDraftIncrease,
+  mrhDraftRefundTaxUp,
+  mrhDraftRefundTotalPositive,
   toRefundReceipt,
 } from '#/lib/amendments.fixtures'
 import { formatFcfa } from '#/lib/utils'
@@ -686,5 +689,184 @@ describe('AmendmentDetailContent — load errors', () => {
       </QueryClientProvider>,
     )
     expect(await screen.findByText('Modification introuvable')).toBeTruthy()
+  })
+})
+
+describe('AmendmentDetailContent — MRH', () => {
+  const mrhSubscription = {
+    id: 701,
+    clientId: 12,
+    status: 'ACTIVE',
+    amendmentNumber: 0,
+    signed: true,
+    identityDocuments: [],
+    housing: {
+      type: 'APARTMENT',
+      number: 'B12',
+      rooms: 4,
+      location: 'Cocody Riviera 3',
+    },
+    insuredCompany: null,
+  }
+
+  it('AC-2 : avant/après MRH surligné, sans téléphone ni bénéficiaires ; logement et souscripteur', async () => {
+    mocks.getSubscription.mockResolvedValue(mrhSubscription)
+    renderDetail(mrhDraftIncrease)
+    expect(await screen.findByText('Avant / après')).toBeTruthy()
+    const changed = Array.from(
+      document.querySelectorAll('li[data-changed="true"]'),
+    ).map((li) => li.querySelector('p')?.textContent.replace('modifié', ''))
+    expect(changed).toEqual([
+      'Valeur du contenu',
+      'Nombre de pièces',
+      'Garanties',
+      'Prime annuelle',
+    ])
+    expect(screen.getByText('Incendie, Vol par effraction')).toBeTruthy()
+    expect(screen.queryByText('Bénéficiaires')).toBeNull()
+    expect(screen.queryByText('Téléphone de l’assuré')).toBeNull()
+    expect(screen.getAllByText('MRH Standard').length).toBeGreaterThan(0)
+    expect(await screen.findByText('Logement')).toBeTruthy()
+    expect(screen.getByText('Appartement')).toBeTruthy()
+    expect(screen.getByText('Cocody Riviera 3')).toBeTruthy()
+    expect(screen.getByText('Souscripteur')).toBeTruthy()
+  })
+
+  it('souscripteur société : raison sociale et contact', async () => {
+    mocks.getSubscription.mockResolvedValue({
+      ...mrhSubscription,
+      insuredCompany: {
+        name: 'Kone Distribution SARL',
+        phoneNumber: '+2250700000077',
+        email: 'contact@kone.ci',
+        address: 'Plateau',
+      },
+    })
+    renderDetail(mrhDraftIncrease)
+    expect(await screen.findByText('Kone Distribution SARL')).toBeTruthy()
+    expect(screen.getByText('Société assurée')).toBeTruthy()
+  })
+
+  it('AC-3 : ristourne à taxe positive, note D13', async () => {
+    mocks.getSubscription.mockResolvedValue(mrhSubscription)
+    renderDetail(mrhDraftRefundTaxUp)
+    expect(await screen.findByText(/garanties de taux différents/)).toBeTruthy()
+    expect(screen.getAllByText(/^[-−]49\sFCFA$/).length).toBeGreaterThan(0)
+  })
+
+  it('R1 : total de signe opposé → alerte dans l’écart et dans la confirmation', async () => {
+    mocks.getSubscription.mockResolvedValue(mrhSubscription)
+    renderDetail(mrhDraftRefundTotalPositive)
+    expect(await screen.findByText(/Attention : le total/)).toBeTruthy()
+    fireEvent.click(await screen.findByRole('button', { name: 'Valider' }))
+    const dialog = await screen.findByRole('alertdialog')
+    expect(dialog.textContent).not.toMatch(/ristourne de/)
+  })
+
+  it('R1 : contrat illisible → cartes Logement / Souscripteur en erreur avec Réessayer', async () => {
+    mocks.getSubscription.mockRejectedValue({
+      isAxiosError: true,
+      response: { status: 500, data: {} },
+    })
+    renderDetail(mrhDraftIncrease)
+    expect(
+      await screen.findByText(/Logement et souscripteur indisponibles/),
+    ).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Réessayer' })).toBeTruthy()
+  })
+
+  it('R1 : surface au format français', async () => {
+    mocks.getSubscription.mockResolvedValue({
+      ...mrhSubscription,
+      housing: { ...mrhSubscription.housing, surfaceArea: 250.5 },
+    })
+    renderDetail(mrhDraftIncrease)
+    expect(await screen.findByText(/250,5\sm²/)).toBeTruthy()
+  })
+
+  it('AC-4 : valider une hausse MRH → attente de paiement', async () => {
+    mocks.getSubscription.mockResolvedValue(mrhSubscription)
+    renderDetail(mrhDraftIncrease)
+    const validated: AmendmentDetail = {
+      ...mrhDraftIncrease,
+      status: 'AWAITING_PAYMENT',
+      validatedAt: '2026-10-01T09:00:00',
+      receipt: {
+        receiptNumber: 'Q-2026-000031',
+        kind: 'SUPPLEMENTARY_CALL',
+        status: 'TO_PAY',
+        netAmount: 1069,
+        fees: 5000,
+        tax: 1448,
+        total: 7517,
+      },
+    }
+    mocks.validateAmendment.mockResolvedValue(asAmendment(validated))
+    mocks.getAmendment.mockResolvedValue(validated)
+    await confirmAction('Valider')
+    await waitFor(() =>
+      expect(mocks.validateAmendment).toHaveBeenCalledWith(51),
+    )
+    await waitFor(() =>
+      expect(mocks.toastSuccess).toHaveBeenCalledWith(
+        `Quittance de ${formatFcfa(7517)} envoyée au client : le contrat changera après son paiement.`,
+      ),
+    )
+    expect(await screen.findByText('À payer')).toBeTruthy()
+  })
+
+  it('AC-4 : supprimer un brouillon MRH', async () => {
+    mocks.getSubscription.mockResolvedValue(mrhSubscription)
+    mocks.deleteAmendment.mockResolvedValue(undefined)
+    renderDetail(mrhDraftIncrease)
+    mocks.getAmendment.mockResolvedValue({
+      ...mrhDraftIncrease,
+      status: 'DELETED',
+      deletedAt: '2026-10-01T09:00:00',
+    })
+    await confirmAction('Supprimer')
+    await waitFor(() => expect(mocks.deleteAmendment).toHaveBeenCalledWith(51))
+  })
+
+  it('AC-4 : 422 AMENDMENT_IN_PROGRESS → message traduit', async () => {
+    mocks.getSubscription.mockResolvedValue(mrhSubscription)
+    mocks.validateAmendment.mockRejectedValue({
+      isAxiosError: true,
+      response: {
+        status: 422,
+        data: {
+          status: 422,
+          message: 'Another amendment is in progress',
+          errors: { subscription: 'AMENDMENT_IN_PROGRESS' },
+        },
+      },
+    })
+    renderDetail(mrhDraftIncrease)
+    await confirmAction('Valider')
+    await waitFor(() =>
+      expect(mocks.toastError).toHaveBeenCalledWith(
+        expect.stringMatching(/autre modification de ce contrat/),
+      ),
+    )
+  })
+
+  it('AC-5 : avenant MRH appliqué → PDF de l’avenant téléchargeable', async () => {
+    mocks.getSubscription.mockResolvedValue(mrhSubscription)
+    vi.stubGlobal('URL', {
+      ...URL,
+      createObjectURL: vi.fn(() => 'blob:x'),
+      revokeObjectURL: vi.fn(),
+    })
+    mocks.downloadPolicyDocument.mockResolvedValue(new Blob(['%PDF']))
+    renderDetail({
+      ...mrhDraftIncrease,
+      status: 'APPLIED',
+      amendmentNumber: 1,
+      appliedAt: '2026-10-01T09:00:00',
+    })
+    fireEvent.click(await screen.findByRole('button', { name: 'Avenant n° 1' }))
+    await waitFor(() =>
+      expect(mocks.downloadPolicyDocument).toHaveBeenCalledWith(701, 1),
+    )
   })
 })
