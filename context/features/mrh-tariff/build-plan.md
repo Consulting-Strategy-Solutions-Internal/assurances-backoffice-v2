@@ -21,7 +21,7 @@
 - [x] **S4.** Onglet Situations & taux (UC-1, UC-2) — AC-2, AC-3, D-7 — verify: tests modifier/relire/erreur champ
 - [x] **S5.** Onglet Garanties (UC-3) — AC-2 — verify: tests
 - [x] **S6.** Onglet Garanties par situation (UC-4) — AC-2, AC-4 — verify: tests par mode
-- [ ] **S7.** Tiroir des cotations : `rentalRisks`, loyer × multiplicateur, occupation, CAPITAL ; suppression de `createMrhQuotation` — AC-6 — verify: test du tiroir
+- [x] **S7.** Tiroir des cotations : `rentalRisks`, loyer × multiplicateur, occupation, CAPITAL ; suppression de `createMrhQuotation` — AC-6 — verify: test du tiroir
 - [ ] **S8.** Contrôles finaux : `npx tsc --noEmit && pnpm lint && pnpm test`, grep AC-1 / AC-6
 
 ## Review findings

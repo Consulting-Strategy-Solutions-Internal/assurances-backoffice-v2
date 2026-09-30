@@ -1,5 +1,6 @@
 import { api } from '#/lib/api'
 import type { PageResponse } from '#/services/users'
+import type { MrhLegalQualityCode, PremiumType } from '#/services/mrh-tariff'
 
 export const QUOTATION_STATUSES = [
   'DRAFT',
@@ -25,7 +26,17 @@ export interface ProductSnapshot {
   minimumContentsValue?: number
   contentsValue?: number
   buildingValue?: number
-  rentalValue?: number
+  /**
+   * MRH, situation LOCATIVE : risques locatifs assurés = loyer mensuel ×
+   * multiplicateur (remplace l'ancien `rentalValue`, que le backend relit
+   * sous ce nom pour les anciens devis).
+   */
+  rentalRisks?: number | null
+  legalQualityCode?: MrhLegalQualityCode | null
+  monthlyRent?: number | null
+  rentMultiplier?: number | null
+  /** Occupation du logement (sans effet sur le prix). */
+  occupancy?: 'TOTAL' | 'PARTIAL' | null
 }
 
 /** Formule IA retenue au moment du devis. */
@@ -84,7 +95,7 @@ export interface RiskClassSnapshot {
 export interface WarrantyLine {
   warrantyId?: number
   warrantyName?: string
-  premiumType?: string
+  premiumType?: PremiumType
   base?: number
   premium?: number
   mandatory?: boolean
@@ -171,16 +182,6 @@ export async function getQuotation(id: number): Promise<QuotationResponse> {
 // appeler ces endpoints.
 // ---------------------------------------------------------------------------
 
-export interface CreateMrhQuotationPayload {
-  productId: number
-  legalQualityId: number
-  contentsValue: number
-  buildingValue?: number
-  rentalValue?: number
-  selectedWarrantyIds?: number[]
-  clientId?: number
-}
-
 export interface CreateIaQuotationPayload {
   productId: number
   riskClassId: number
@@ -192,13 +193,6 @@ export interface CreateIaQuotationPayload {
   reductionRate?: number
   durationMonths: number
   clientId?: number
-}
-
-export async function createMrhQuotation(
-  data: CreateMrhQuotationPayload,
-): Promise<QuotationResponse> {
-  const response = await api.post('/quotations/mrh', data)
-  return response.data
 }
 
 export async function createIaQuotation(

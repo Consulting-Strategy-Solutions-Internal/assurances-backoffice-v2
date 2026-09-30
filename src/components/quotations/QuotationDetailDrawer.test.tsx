@@ -53,7 +53,7 @@ const iaStandard: QuotationResponse = {
     minimumContentsValue: null,
     contentsValue: null,
     buildingValue: null,
-    rentalValue: null,
+    rentalRisks: null,
   },
   warrantiesSnapshot: null,
   riskClassSnapshot: {
@@ -115,7 +115,7 @@ const mrh = {
       {
         warrantyId: 1,
         warrantyName: 'Incendie',
-        premiumType: 'RATE',
+        premiumType: 'POURCENTAGE',
         base: 5000000,
         premium: 12500,
         mandatory: true,
@@ -199,6 +199,46 @@ describe('QuotationDetailDrawer', () => {
     await waitFor(() =>
       expect(screen.queryByTestId('risk-class-detail')).toBeNull(),
     )
+  })
+
+  it('devis MRH locataire : risques locatifs = loyer × multiplicateur, occupation, mode CAPITAL', async () => {
+    renderDrawer({
+      ...mrh,
+      productSnapshot: {
+        ...mrh.productSnapshot,
+        insuranceType: 'MRH',
+        legalQualityName: 'Locataire',
+        legalQualityCode: 'TENANT',
+        propertyBasis: 'LOCATIVE',
+        rentalRisks: 27000000,
+        monthlyRent: 150000,
+        rentMultiplier: 180,
+        occupancy: 'PARTIAL',
+      },
+      warrantiesSnapshot: {
+        lines: [
+          {
+            warrantyId: 4,
+            warrantyName: 'Inondation',
+            premiumType: 'CAPITAL',
+            base: 6750000,
+            premium: 6750,
+            mandatory: false,
+            taxRate: 14.5,
+            tax: 979,
+          },
+        ],
+        accessory: 5000,
+        accessoryTax: 725,
+      },
+    })
+    expect(await screen.findByText('Risques locatifs')).toBeTruthy()
+    expect(screen.getByText(/^27\s000\s000\sFCFA$/)).toBeTruthy()
+    expect(screen.getByText(/Loyer mensuel 150\s000\sFCFA × 180/)).toBeTruthy()
+    expect(screen.getByText('Partielle')).toBeTruthy()
+    expect(screen.queryByText('Valeur locative')).toBeNull()
+    const block = screen.getByTestId('warranties-detail')
+    expect(block.textContent).toContain('Capital')
   })
 
   it('n’affiche aucun bloc de risque ni de garanties quand les instantanés sont null', async () => {
