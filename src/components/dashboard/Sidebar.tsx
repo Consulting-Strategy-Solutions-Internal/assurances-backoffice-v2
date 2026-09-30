@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import {
   ChevronDown,
   ChevronsUpDown,
+  FilePenLine,
   FileText,
   HandCoins,
   Headset,
@@ -18,6 +19,7 @@ import {
   Users,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { usePermissions } from './use-permissions'
 import { getSupportUnreadCount, supportKeys } from '#/services/support'
 import { Avatar, AvatarFallback } from '#/components/ui/avatar'
 import { Badge } from '#/components/ui/badge'
@@ -71,6 +73,14 @@ const PRODUITS_CHILDREN: NavChild[] = [
       },
       { to: '/produits-ia/ia-pour-tous', label: 'IA Pour Tous' },
     ],
+  },
+]
+
+const CONTRATS_CHILDREN: NavChild[] = [
+  {
+    to: '/contrats/modifications',
+    label: 'Modifications',
+    matchChildren: true,
   },
 ]
 
@@ -249,6 +259,8 @@ export function Sidebar({
     setNavOpen(false)
   }, [pathname, setNavOpen])
   const isAdmin = user?.role.toUpperCase() === 'ADMIN'
+  // Droit inconnu = refus : le menu n'apparaît que si le droit est accordé (L-005).
+  const { canKnown } = usePermissions()
 
   // Badge de messages support non lus — la file est commune à tous les
   // agents ; en cas de rôle sans `support:write` la requête échoue en
@@ -334,6 +346,16 @@ export function Sidebar({
           {renderItem(supportItem)}
 
           {renderItem({ to: '/cotations', label: 'Cotations', icon: FileText })}
+
+          {canKnown('amendment:read-all') && (
+            <CollapsibleNavGroup
+              icon={FilePenLine}
+              label="Contrats"
+              basePath="/contrats"
+              items={CONTRATS_CHILDREN}
+              pathname={pathname}
+            />
+          )}
 
           <CollapsibleNavGroup
             icon={Package}

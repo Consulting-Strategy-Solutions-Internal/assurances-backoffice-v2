@@ -55,6 +55,7 @@ export interface SubscriptionFilters {
 
 export const subscriptionsKeys = {
   all: ['subscriptions'] as const,
+  detail: (id: number) => ['subscriptions', 'detail', id] as const,
 }
 
 export async function getSubscriptions(
@@ -70,6 +71,25 @@ export async function getSubscriptions(
         sort: filters.sort ?? 'createdAt,desc',
       },
     },
+  )
+  return response.data
+}
+
+/** Champs lus de `SubscriptionDetailResponse` (`GET /subscriptions/{id}`). */
+export interface SubscriptionDetailResponse {
+  id: number
+  clientId: number
+  status: SubscriptionStatus
+  policyNumber?: string | null
+  amendmentNumber?: number | null
+}
+
+/** Fiche d'un contrat (`subscription:read-all`). */
+export async function getSubscription(
+  id: number,
+): Promise<SubscriptionDetailResponse> {
+  const response = await api.get<SubscriptionDetailResponse>(
+    `/subscriptions/${id}`,
   )
   return response.data
 }
