@@ -78,7 +78,9 @@ describe('Toolbar', () => {
   it('is a 2-column grid on phones and an inline row above', () => {
     expect(TOOLBAR_CLASS).toContain('grid grid-cols-2')
     expect(TOOLBAR_CLASS).toContain('@xl/main:flex')
-    expect(TOOLBAR_CLASS).toContain('@max-xl/main:[&>*]:w-full!')
+    expect(TOOLBAR_CLASS).toContain(
+      '@max-xl/main:[&>*:not(select[aria-hidden])]:w-full!',
+    )
   })
 
   it('lets the search span both columns and shrink on phones', () => {
