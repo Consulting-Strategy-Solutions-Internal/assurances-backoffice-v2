@@ -1,11 +1,13 @@
 import { api } from '#/lib/api'
 import type { PageResponse } from '#/services/users'
+import type { ProductCode } from '#/services/products'
 
 export type CommissionLevel = 1 | 2 | 3
 
 export interface CommissionSchemePayload {
   partnerId: number
-  productId: number
+  /** Product code (`IA_STANDARD`…), not an id: the API rejects `productId`. */
+  product: ProductCode
   commissionRate: number
   maxLevel: CommissionLevel
   level2PartnerShare: number | null
@@ -27,7 +29,7 @@ export interface CommissionSchemeResponse extends Omit<
 
 export interface CommissionSchemeFilters {
   partnerId?: number
-  productId?: number
+  product?: ProductCode
   page?: number
   size?: number
 }

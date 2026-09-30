@@ -8,6 +8,8 @@ import {
   CommissionSchemeRate,
   CommissionSchemeShares,
   WalletStatementAction,
+  middleEllipsis,
+  PaymentReference,
 } from '#/components/commissions/CommissionDisplays'
 import type { CommissionLineResponse } from '#/services/commission-distributions'
 import type { CommissionSchemeResponse } from '#/services/commission-schemes'
@@ -20,7 +22,7 @@ describe('commission null displays', () => {
     const scheme: CommissionSchemeResponse = {
       id: 1,
       partnerId: 1,
-      productId: 4,
+      product: 'IA_STANDARD',
       commissionRate: 12.5,
       maxLevel: 2,
       level2PartnerShare: null,
@@ -72,5 +74,20 @@ describe('commission null displays', () => {
     render(<WalletStatementAction wallet={wallet} onOpen={vi.fn()} />)
     expect(screen.getByText('Jamais crédité')).toBeTruthy()
     expect(screen.queryByRole('button')).toBeNull()
+  })
+})
+
+describe('payment reference', () => {
+  afterEach(cleanup)
+
+  it('raccourcit au milieu et garde la valeur complète en infobulle', () => {
+    const ref = 'PAY-e28f4add5df7474888817815289eb357'
+    expect(middleEllipsis(ref)).toBe('PAY-e28f…9eb357')
+    expect(middleEllipsis('PAY-1')).toBe('PAY-1')
+    render(<PaymentReference reference={ref} />)
+    expect(screen.getByTitle(ref).textContent).toBe('PAY-e28f…9eb357')
+    expect(
+      screen.getByRole('button', { name: `Copier la référence ${ref}` }),
+    ).toBeTruthy()
   })
 })

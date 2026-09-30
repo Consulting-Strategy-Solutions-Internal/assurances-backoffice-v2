@@ -2,10 +2,11 @@ import type {
   CommissionLevel,
   CommissionSchemePayload,
 } from '#/services/commission-schemes'
+import type { ProductCode } from '#/services/products'
 
 export interface CommissionSchemeDraft {
   partnerId: number | null
-  productId: number | null
+  product: ProductCode | null
   commissionRate: string
   maxLevel: CommissionLevel
   level2PartnerShare: string
@@ -17,7 +18,7 @@ export interface CommissionSchemeDraft {
 
 export type CommissionShareField = Exclude<
   keyof CommissionSchemeDraft,
-  'partnerId' | 'productId' | 'commissionRate' | 'maxLevel'
+  'partnerId' | 'product' | 'commissionRate' | 'maxLevel'
 >
 
 export interface CommissionSchemeValidation {
@@ -66,11 +67,11 @@ function validateFields(
 
 export function validateCommissionScheme(
   draft: CommissionSchemeDraft,
-  lockedPair?: { partnerId: number; productId: number },
+  lockedPair?: { partnerId: number; product: ProductCode },
 ): CommissionSchemeValidation {
   const errors: CommissionSchemeValidation['errors'] = {}
   if (draft.partnerId === null) errors.partnerId = 'Sélectionnez un partenaire.'
-  if (draft.productId === null) errors.productId = 'Sélectionnez un produit.'
+  if (draft.product === null) errors.product = 'Sélectionnez un produit.'
   const commissionRate = percentToCents(draft.commissionRate)
   if (commissionRate === null) {
     errors.commissionRate =
@@ -79,10 +80,10 @@ export function validateCommissionScheme(
   if (
     lockedPair &&
     (draft.partnerId !== lockedPair.partnerId ||
-      draft.productId !== lockedPair.productId)
+      draft.product !== lockedPair.product)
   ) {
     errors.partnerId = 'Le couple partenaire / produit est immuable en édition.'
-    errors.productId = 'Le couple partenaire / produit est immuable en édition.'
+    errors.product = 'Le couple partenaire / produit est immuable en édition.'
   }
 
   let level2Total: number | null = null
@@ -110,11 +111,11 @@ export function validateCommissionScheme(
   const payload =
     valid &&
     draft.partnerId !== null &&
-    draft.productId !== null &&
+    draft.product !== null &&
     commissionRate !== null
       ? {
           partnerId: draft.partnerId,
-          productId: draft.productId,
+          product: draft.product,
           commissionRate: commissionRate / 100,
           maxLevel: draft.maxLevel,
           level2PartnerShare:
