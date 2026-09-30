@@ -1,0 +1,39 @@
+# Build plan — Cloisonnement des clients par partenaire (admin)
+
+- **Status:** in-progress
+- **Created:** 2026-09-30 · **Updated:** 2026-09-30
+- **PR:** —
+- **Branch:** `feat/client-isolation` · **Worktree:** `.claude/worktrees/client-isolation` · **Ports:** app 3005
+- **Spec:** ci-dessous · **ADRs:** backend ADR-0024 · **Lessons applied:** L-002 (contrat lu dans `ClientController` de la branche backend `feat/client-isolation`, PR #121), L-003, L-005, L-006, L-012
+
+## Spec
+
+**Demande (utilisateur, 2026-09-30) :** intégrer le cloisonnement des clients (backend PR #121, en cours de déploiement — pas encore sur la démo).
+
+**Contrat backend (lu dans `ClientController.java`, `origin/feat/client-isolation`) :**
+
+- `GET /clients?partnerId=<id>|none` : filtre back-office (absent = tous ; autre valeur → 400 « Invalid partnerId »). `ClientResponse` ne porte pas le partenaire.
+- `PUT /clients/{id}/owner-partner` corps `{ "partnerId": 7 | null }` (champ obligatoire, `{}` → 400 `errors.partnerId = REQUIRED`) ; 204 ; 404 client ou partenaire inconnu/supprimé ; 403 sans `backoffice:admin`. Journalisé côté serveur, pas de route de lecture du journal. Devis et contrats existants inchangés ; seuls la fiche et les prochains devis suivent.
+
+**Décisions (défauts, sans question) :**
+
+- D-1 Liste `/clients` : sélecteur « Partenaire » (`SearchableSelect` : « Tous les partenaires », « Sans partenaire », partenaires de `GET /partners`), `?partner=<id>|none` dans l'URL, envoyé en `partnerId` au serveur ; recherche, compteurs et KPI portent sur les clients du filtre.
+- D-2 Le partenaire du filtre est affiché dans l'en-tête de la liste (compteur : « 12 clients · partenaire Sunu Distribution » / « · sans partenaire »).
+- D-3 Fiche client : bouton « Changer de partenaire » (visible sauf si `backoffice:admin` est connu et absent — action que le serveur garde, L-005) → dialogue : sélecteur (partenaires ou « Aucun partenaire »), encadré qui explique (les vendeurs de l'ancien partenaire n'y auront plus accès ; devis et contrats déjà faits inchangés, prochains devis au nouveau partenaire), bouton « Confirmer le changement ».
+- D-4 Le partenaire actuel n'est pas connu (non exposé) : le dialogue le dit et ne présélectionne rien.
+- D-5 Erreurs : 400 → « Choisissez un partenaire ou « Aucun partenaire ». » ; 404 → partenaire supprimé entre-temps (liste rechargée) ou client introuvable, selon le `message` ; 403 → « Seule l'administration NSIA peut changer le partenaire d'un client. » ; autre → message générique. Affichées dans le dialogue.
+- D-6 204 → toast « Partenaire du client modifié », invalidation des listes `['clients', …]`.
+- D-7 Hors périmètre (critère « aucun changement pour les autres écrans admin ») : repérer dans la liste des vendeurs ceux sans partenaire ni agence — à proposer à part.
+
+**Critères d'acceptation :**
+
+- AC-1 Filtre `partnerId` : un id, `none`, ou rien (tous) ; l'URL le garde ; valeur invalide dans l'URL ignorée (jamais de 400).
+- AC-2 En-tête de la liste : partenaire du filtre nommé.
+- AC-3 Fiche client : rattacher (`{partnerId: 7}`) et détacher (`{partnerId: null}`) ; 204 → toast + listes rafraîchies.
+- AC-4 400, 404 et 403 affichés en français dans le dialogue.
+
+## Steps
+
+- [ ] **S1.** Services (`getClients`/`getAllClients` + `partnerId`, clés, `reassignClientPartner`) + logique pure `src/lib/client-partner.ts` (filtre, corps, erreurs) — verify: tests unitaires
+- [ ] **S2.** Liste `/clients` : sélecteur Partenaire, `?partner`, en-tête — AC-1, AC-2 — verify: test de route
+- [ ] **S3.** Fiche client : `ChangePartnerDialog` — AC-3, AC-4 — verify: tests composant
