@@ -1,6 +1,6 @@
 # Build plan — Tarif MRH NSIA
 
-- **Status:** done
+- **Status:** shipped — fusionnée dans main via la PR #9 (2026-09-30)
 - **Created:** 2026-09-30 · **Updated:** 2026-09-30
 - **PR:** https://github.com/Consulting-Strategy-Solutions-Internal/assurances-backoffice-v2/pull/9
 - **Branch:** `feat/mrh-tariff` · **Worktree:** `.claude/worktrees/mrh-tariff` · **Ports:** app 3001 · db —
@@ -68,6 +68,24 @@
 - Erreurs console — pass — aucune.
 - Non vérifié en réel : les refus 400 par champ et le 422 `LAST_ACCESSORY_HAS_ACTIVE_CONTRACT` (il faudrait écrire de vraies valeurs sur la démo partagée) — couverts par les tests simulés.
 
+## Timeline
+
+- **Lead time:** 52m (shipped) · idle between stages: 21m
+  | Stage | Active | Waiting on the user | Runs |
+  |---|---|---|---|
+  | scope | 0m | 0m | 1 |
+  | architect | 9m | 0m | 1 |
+  | build | 16m | 0m | 2 |
+  | review | 5m | 0m | 1 |
+  | ship | 0m | 0m | 1 |
+  | land | 0m | 0m | 1 |
+- **Quality:** review rounds 2 · 🔴 found 0 · verify fails 0 · bugs after ship 0
+
+## Follow-up
+
+- Tranches d'accessoires : à la fusion, la démo n'a **aucune** tranche MRH Standard ni IA Standard, donc tous leurs devis sont refusés. À vérifier après la saisie NSIA (barème « BAREME DES ACCESSOIRES ») : le bandeau disparaît de Produits › MRH Standard › Accessoires et d'IA Standard › Accessoires, et un devis MRH passe. Responsable : NSIA / équipe produit.
+- Non vérifiés en réel (écritures sur la démo partagée) : refus 400 par champ et 422 `LAST_ACCESSORY_HAS_ACTIVE_CONTRACT` — à observer au premier usage réel.
+
 ## Open questions
 
-- La démo a-t-elle la #110 déployée ? — vérifié au `verify`.
+- ~~La démo a-t-elle la #110 déployée ?~~ oui (recette du 2026-09-30).
