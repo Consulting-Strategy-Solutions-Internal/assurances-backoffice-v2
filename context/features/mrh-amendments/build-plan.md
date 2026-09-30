@@ -2,7 +2,7 @@
 
 - **Status:** shipped — fusionnée dans main (2026-09-30)
 - **Created:** 2026-09-30 · **Updated:** 2026-09-30
-- **PR:** —
+- **PR:** https://github.com/Consulting-Strategy-Solutions-Internal/assurances-backoffice-v2/pull/13
 - **Branch:** `feat/mrh-amendments` · **Worktree:** `.claude/worktrees/mrh-amendments` · **Ports:** app 3004
 - **Spec:** ci-dessous · **Étend:** `context/features/contract-amendments/` · **Lessons applied:** L-001, L-002, L-005/L-009, L-011
 
