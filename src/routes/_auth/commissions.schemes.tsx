@@ -18,8 +18,8 @@ import { SearchableSelect } from '#/components/layout/SearchableSelect'
 import { KpiCard } from '#/components/dashboard/KpiCard'
 import {
   DataTableCard,
+  DataTableCell,
   DataTableHead,
-  FIRST_CELL_CLASS,
   TableEmptyState,
   TableErrorState,
   TableSkeletonRows,
@@ -271,20 +271,29 @@ function CommissionSchemesPage() {
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <DataTableHead first>Partenaire</DataTableHead>
+              <DataTableHead first sticky="left" stickyFrom="sm">
+                Partenaire
+              </DataTableHead>
               <DataTableHead>Produit</DataTableHead>
               <DataTableHead>Taux négocié</DataTableHead>
-              <DataTableHead>Niveau max.</DataTableHead>
-              <DataTableHead>Répartition</DataTableHead>
-              <DataTableHead>Mise à jour</DataTableHead>
-              <DataTableHead className="pr-[22px] text-right">
+              <DataTableHead hideBelow="xl">Niveau max.</DataTableHead>
+              <DataTableHead hideBelow="lg">Répartition</DataTableHead>
+              <DataTableHead hideBelow="xl">Mise à jour</DataTableHead>
+              <DataTableHead
+                sticky="right"
+                stickyFrom="sm"
+                className="pr-[22px] text-right"
+              >
                 Actions
               </DataTableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableSkeletonRows columns={[36, 30, 16, 12, 60, 24, 32]} />
+              <TableSkeletonRows
+                columns={[36, 30, 16, 12, 60, 24, 32]}
+                hideBelow={[undefined, undefined, undefined, 'xl', 'lg', 'xl']}
+              />
             ) : failure ? (
               <TableErrorState
                 colSpan={7}
@@ -336,26 +345,41 @@ function CommissionSchemesPage() {
             ) : (
               content.map((scheme) => (
                 <TableRow key={scheme.id} className="hover:bg-[#f6f8fc]">
-                  <TableCell className={`${FIRST_CELL_CLASS} font-semibold`}>
+                  <DataTableCell
+                    first
+                    sticky="left"
+                    stickyFrom="sm"
+                    className="font-semibold"
+                  >
                     {partnerNames.get(scheme.partnerId) ??
                       `Partenaire #${scheme.partnerId}`}
-                  </TableCell>
+                  </DataTableCell>
                   <TableCell>
                     {productNames.get(scheme.product) ?? scheme.product}
                   </TableCell>
                   <TableCell className="font-bold whitespace-nowrap tabular-nums text-primary">
                     <CommissionSchemeRate rate={scheme.commissionRate} />
                   </TableCell>
-                  <TableCell className="tabular-nums">
+                  <DataTableCell hideBelow="xl" className="tabular-nums">
                     N{scheme.maxLevel}
-                  </TableCell>
-                  <TableCell className="max-w-[460px] whitespace-normal text-[12.5px] text-muted-foreground">
+                  </DataTableCell>
+                  <DataTableCell
+                    hideBelow="lg"
+                    className="max-w-[460px] whitespace-normal text-[12.5px] text-muted-foreground"
+                  >
                     <CommissionSchemeShares scheme={scheme} />
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap text-muted-foreground">
+                  </DataTableCell>
+                  <DataTableCell
+                    hideBelow="xl"
+                    className="whitespace-nowrap text-muted-foreground"
+                  >
                     {formatDate(scheme.updatedAt)}
-                  </TableCell>
-                  <TableCell className="pr-[22px]">
+                  </DataTableCell>
+                  <DataTableCell
+                    sticky="right"
+                    stickyFrom="sm"
+                    className="pr-[22px]"
+                  >
                     {canWrite && (
                       <div className="flex justify-end gap-2">
                         <Button
@@ -382,7 +406,7 @@ function CommissionSchemesPage() {
                         </Button>
                       </div>
                     )}
-                  </TableCell>
+                  </DataTableCell>
                 </TableRow>
               ))
             )}

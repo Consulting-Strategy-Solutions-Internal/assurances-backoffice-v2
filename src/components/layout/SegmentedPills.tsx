@@ -20,7 +20,7 @@ export function SegmentedPills<T extends string>({
     <div
       role="group"
       aria-label={label}
-      className="inline-flex rounded-[10px] bg-[#f0f2f6] p-0.5"
+      className="col-span-2 inline-flex rounded-[10px] bg-[#f0f2f6] p-0.5 @xl/main:col-span-1 @max-xl/main:[&>button]:flex-1"
     >
       {options.map((option) => {
         const active = option.value === value

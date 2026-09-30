@@ -47,7 +47,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           className="flex h-dvh min-h-0 min-w-0 flex-1 flex-col overflow-y-auto outline-none"
         >
           <Topbar />
-          <div className="w-full max-w-[1360px] flex-1 px-4 pt-7 pb-[52px] md:px-[34px]">
+          {/* `@container/main`: layout primitives (KpiRow, Toolbar, DataTable
+              hideBelow…) react to the width of THIS column, not the viewport, so
+              1024 px with the menu open behaves like a 700 px layout. */}
+          <div className="@container/main w-full max-w-[1360px] flex-1 px-4 pt-7 pb-[52px] md:px-[34px]">
             {children}
           </div>
         </main>

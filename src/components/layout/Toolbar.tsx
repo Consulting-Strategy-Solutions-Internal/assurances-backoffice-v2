@@ -4,10 +4,20 @@ import { Card } from '#/components/ui/card'
 import { Input } from '#/components/ui/input'
 import { cn } from '#/lib/utils'
 
+/** Toolbar layout: 2-column grid below 576 px of content, inline wrapping row above. */
+export const TOOLBAR_CLASS = cn(
+  'grid grid-cols-2 gap-2',
+  '@xl/main:flex @xl/main:flex-wrap @xl/main:items-center @xl/main:gap-3',
+  // Below 576 px every direct control (Select, SearchableSelect…) fills its grid cell.
+  '@max-xl/main:[&>*]:w-full! @max-xl/main:[&>*]:min-w-0',
+)
+
 /**
  * Filter bar above a table: a card holding the search field, filter controls
  * (`SegmentedPills`, `Select`) and, right-aligned, the page's secondary actions.
- * Place `ResultCount` right under it.
+ * Place `ResultCount` right under it. Below 576 px of content the controls sit
+ * in a 2-column grid (search, pills, date range and actions span both columns,
+ * selects take one cell each and fill it).
  */
 export function Toolbar({
   search,
@@ -25,11 +35,11 @@ export function Toolbar({
 }) {
   return (
     <Card className={cn('mb-4 gap-0 p-3.5', className)}>
-      <div className="flex flex-wrap items-center gap-3">
+      <div className={TOOLBAR_CLASS}>
         {search}
         {filters}
         {actions && (
-          <div className="ml-auto flex flex-wrap items-center gap-2.5">
+          <div className="col-span-2 flex flex-wrap items-center gap-2.5 @xl/main:col-span-1 @xl/main:ml-auto @max-xl/main:[&>*]:flex-1">
             {actions}
           </div>
         )}
@@ -52,7 +62,7 @@ export function ToolbarSearch({
   label: string
 }) {
   return (
-    <div className="relative min-w-[240px] flex-1">
+    <div className="relative col-span-2 min-w-0 flex-1 @xl/main:col-span-1 @xl/main:min-w-[240px]">
       <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
       <Input
         aria-label={label}
@@ -75,9 +85,13 @@ export function ResultCount({
   note?: ReactNode
 }) {
   return (
-    <div className="mb-2 flex items-center justify-between px-1 text-[13px] text-muted-foreground">
-      <span>{children}</span>
-      {note && <span className="text-[#8a6600]">{note}</span>}
+    <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5 px-1 text-[13px] text-muted-foreground">
+      <span className="whitespace-nowrap">{children}</span>
+      {note && (
+        <span className="basis-full text-[#8a6600] sm:basis-auto sm:text-right">
+          {note}
+        </span>
+      )}
     </div>
   )
 }

@@ -62,12 +62,13 @@ export function FormDialog({
       }}
     >
       <DialogContent
+        size={size === 'wide' ? 'wide' : 'default'}
         className={cn(
-          'gap-0 overflow-hidden p-0',
-          size === 'wide' ? 'sm:max-w-[760px]' : 'sm:max-w-[460px]',
+          'flex flex-col gap-0 overflow-hidden p-0',
+          size !== 'wide' && 'sm:max-w-[460px]',
         )}
       >
-        <DialogHeader className="gap-0 border-b p-6 text-left">
+        <DialogHeader className="shrink-0 gap-0 border-b p-4 text-left sm:p-6">
           <div className="mb-[7px] text-[11.5px] font-bold tracking-[0.06em] text-muted-foreground uppercase">
             {eyebrow}
           </div>
@@ -82,17 +83,13 @@ export function FormDialog({
         </DialogHeader>
 
         <form
+          className="flex min-h-0 flex-1 flex-col"
           onSubmit={(e) => {
             e.preventDefault()
             onSubmit()
           }}
         >
-          <div
-            className={cn(
-              'flex flex-col gap-4 overflow-y-auto p-6',
-              size === 'wide' ? 'max-h-[68vh]' : 'max-h-[60vh]',
-            )}
-          >
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4 sm:p-6">
             {children}
             {error && (
               <p className="rounded-lg bg-destructive/10 px-3 py-2.5 text-[13px] font-medium text-destructive">
@@ -100,7 +97,7 @@ export function FormDialog({
               </p>
             )}
           </div>
-          <DialogFooter className="gap-2.5 border-t p-6 sm:justify-end">
+          <DialogFooter className="grid shrink-0 grid-cols-2 gap-2.5 border-t p-4 sm:flex sm:justify-end sm:p-6">
             <DialogClose asChild>
               <Button
                 type="button"

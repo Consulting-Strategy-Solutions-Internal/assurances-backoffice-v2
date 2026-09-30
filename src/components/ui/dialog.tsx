@@ -45,13 +45,27 @@ function DialogOverlay({
   )
 }
 
+/**
+ * Dialog widths from `sm` up (literal strings: Tailwind must see them). Every
+ * size keeps a 1 rem margin on each side of the viewport, unlike a bare
+ * `sm:max-w-4xl`, which glues the dialog to the edges between 640 and ~900 px.
+ */
+const DIALOG_SIZE_CLASS = {
+  default: 'sm:max-w-lg',
+  wide: 'sm:max-w-[min(760px,calc(100%-2rem))]',
+  xl: 'sm:max-w-[min(56rem,calc(100%-2rem))]',
+} as const
+
 function DialogContent({
   className,
   children,
   showCloseButton = true,
+  size = 'default',
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
+  /** `default` 32 rem, `wide` 760 px, `xl` 56 rem — all keep the side margin. */
+  size?: keyof typeof DIALOG_SIZE_CLASS
 }) {
   return (
     <DialogPortal data-slot="dialog-portal">
@@ -59,7 +73,8 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          'fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border bg-background p-6 shadow-lg duration-200 outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 sm:max-w-lg',
+          '@container/main fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100dvh-2rem)] w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border bg-background p-6 shadow-lg duration-200 outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95',
+          DIALOG_SIZE_CLASS[size],
           className,
         )}
         {...props}

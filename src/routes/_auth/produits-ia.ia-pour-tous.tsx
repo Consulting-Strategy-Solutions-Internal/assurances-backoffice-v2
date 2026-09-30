@@ -1,6 +1,7 @@
 import { pageHead } from '#/lib/page-title'
 import { createFileRoute } from '@tanstack/react-router'
 import { PageHeader } from '#/components/dashboard/PageHeader'
+import { HeaderActionSlot } from '#/components/ia-products/shared/header-action'
 import { FormulasScreen } from '#/components/ia-products/formulas/FormulasScreen'
 
 export const Route = createFileRoute('/_auth/produits-ia/ia-pour-tous')({
@@ -14,7 +15,9 @@ function IaPourTousPage() {
       <PageHeader
         title="IA Pour Tous"
         subtitle="Individuel Accidents · formules et garanties forfaitaires proposées au client et au vendeur"
-      />
+      >
+        <HeaderActionSlot />
+      </PageHeader>
       <FormulasScreen />
     </>
   )

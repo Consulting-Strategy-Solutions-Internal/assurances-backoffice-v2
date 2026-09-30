@@ -7,8 +7,8 @@ import { usePermissions } from '#/components/dashboard/use-permissions'
 import {
   ClickableRow,
   DataTableCard,
+  DataTableCell,
   DataTableHead,
-  FIRST_CELL_CLASS,
   RowChevron,
   TableEmptyState,
   TableErrorState,
@@ -27,7 +27,6 @@ import {
   TableRow,
 } from '#/components/ui/table'
 import { formatClaimDate } from '#/lib/claims'
-import { cn } from '#/lib/utils'
 import { isForbidden, RetryAction } from '../shared/screen-kit'
 import { CreateRiskClassDialog } from './CreateRiskClassDialog'
 import { OccupationSearch } from './OccupationSearch'
@@ -155,11 +154,15 @@ export function RiskClassesScreen({
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <DataTableHead first>N°</DataTableHead>
+              <DataTableHead first sticky="left">
+                N°
+              </DataTableHead>
               <DataTableHead>Description</DataTableHead>
-              <DataTableHead className="text-right">Métiers</DataTableHead>
+              <DataTableHead hideBelow="sm" className="text-right">
+                Métiers
+              </DataTableHead>
               <DataTableHead>Statut</DataTableHead>
-              <DataTableHead>Mise à jour</DataTableHead>
+              <DataTableHead hideBelow="lg">Mise à jour</DataTableHead>
               <DataTableHead className="w-10" />
             </TableRow>
           </TableHeader>
@@ -168,6 +171,7 @@ export function RiskClassesScreen({
               <TableSkeletonRows
                 rows={6}
                 columns={[8, 80, 10, 16, 24]}
+                hideBelow={[undefined, undefined, 'sm', undefined, 'lg']}
                 trailing
               />
             ) : isError ? (
@@ -200,28 +204,33 @@ export function RiskClassesScreen({
                   key={c.id}
                   aria-label={`Ouvrir la classe ${c.classNumber}`}
                   onActivate={() => setSelectedId(c.id)}
-                  className={cn(selectedId === c.id && 'bg-primary/5')}
+                  selected={selectedId === c.id}
                 >
-                  <TableCell
-                    className={cn(
-                      FIRST_CELL_CLASS,
-                      'py-3.5 text-[13.5px] font-bold tabular-nums',
-                    )}
+                  <DataTableCell
+                    first
+                    sticky="left"
+                    className="py-3.5 text-[13.5px] font-bold tabular-nums"
                   >
                     {c.classNumber}
-                  </TableCell>
-                  <TableCell className="max-w-[420px] py-3.5 text-[13.5px]">
+                  </DataTableCell>
+                  <TableCell className="max-w-[160px] py-3.5 text-[13.5px] @xl/main:max-w-[420px]">
                     <TruncatedText lines={2}>{c.description}</TruncatedText>
                   </TableCell>
-                  <TableCell className="py-3.5 text-right text-[13.5px] tabular-nums">
+                  <DataTableCell
+                    hideBelow="sm"
+                    className="py-3.5 text-right text-[13.5px] tabular-nums"
+                  >
                     {c.occupationCount}
-                  </TableCell>
+                  </DataTableCell>
                   <TableCell className="py-3.5">
                     <StatusBadge active={c.active} />
                   </TableCell>
-                  <TableCell className="py-3.5 text-[13px] whitespace-nowrap text-muted-foreground">
+                  <DataTableCell
+                    hideBelow="lg"
+                    className="py-3.5 text-[13px] whitespace-nowrap text-muted-foreground"
+                  >
                     {formatClaimDate(c.updatedAt)}
-                  </TableCell>
+                  </DataTableCell>
                   <RowChevron />
                 </ClickableRow>
               ))

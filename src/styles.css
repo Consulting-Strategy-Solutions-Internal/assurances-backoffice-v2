@@ -130,3 +130,23 @@
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/*
+ * Sticky table cells (DataTableHead/DataTableCell `sticky`) have their own
+ * opaque background so scrolled cells do not show through; keep the row hover
+ * colour on them. Unlayered on purpose: it must beat the `bg-card` utility.
+ */
+[data-slot='table-container'] tbody tr[data-selected] > [data-sticky] {
+  /* opaque equivalent of the row's `bg-primary/5` tint */
+  background-color: color-mix(in srgb, var(--primary) 5%, var(--card));
+}
+[data-slot='table-container']
+  tbody
+  tr:not([data-selected]):hover
+  > [data-sticky],
+[data-slot='table-container']
+  tbody
+  tr:not([data-selected]):focus-visible
+  > [data-sticky] {
+  background-color: #f6f8fc;
+}

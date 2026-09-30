@@ -18,8 +18,8 @@ import { PageHeader } from '#/components/dashboard/PageHeader'
 import {
   ClickableRow,
   DataTableCard,
+  DataTableCell,
   DataTableHead,
-  FIRST_CELL_CLASS,
   RowChevron,
   TableEmptyState,
   TableErrorState,
@@ -40,17 +40,15 @@ import {
 } from '#/components/ui/select'
 import { TruncatedText } from '#/components/layout/TruncatedText'
 import { Skeleton } from '#/components/ui/skeleton'
-import { FrDateInput } from '#/components/quotations/FrDateInput'
+import { DateRangeFilter } from '#/components/layout/DateRangeFilter'
+import {
+  MobileCardContent,
+  MobileCardList,
+} from '#/components/layout/MobileCardList'
 import { QuotationDetailDrawer } from '#/components/quotations/QuotationDetailDrawer'
 import { Button } from '#/components/ui/button'
 import { Pagination } from '#/components/ui/Pagination'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHeader,
-  TableRow,
-} from '#/components/ui/table'
+import { Table, TableBody, TableHeader, TableRow } from '#/components/ui/table'
 import {
   QUOTATION_STATUS_META,
   QuotationStatusBadge,
@@ -65,7 +63,7 @@ import {
   filterQuotations,
   QUOTATIONS_PAGE_SIZE,
 } from '#/lib/quotations'
-import { formatDate, formatFcfa } from '#/lib/utils'
+import { formatDate, formatFcfa, formatInteger } from '#/lib/utils'
 import { clientsKeys, getAllClients } from '#/services/clients'
 import { getQuotations, QUOTATION_STATUSES } from '#/services/quotations'
 
@@ -138,7 +136,7 @@ function IssuerCell({ attribution }: { attribution: Attribution }) {
   )
 }
 
-function QuotationsPage() {
+export function QuotationsPage() {
   const search = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
   const dir = useDistributionDirectory()
@@ -337,7 +335,8 @@ function QuotationsPage() {
         <KpiCard
           icon={<Banknote className="size-5 text-[#8a6600]" />}
           iconClass="bg-[#ffc61e]/20"
-          value={kpi(formatFcfa(stats.premium))}
+          value={kpi(formatInteger(stats.premium))}
+          unit={isLoading || quotationsError ? undefined : 'FCFA'}
           label="Prime TTC cumulée"
         />
       </KpiRow>
@@ -366,7 +365,7 @@ function QuotationsPage() {
             >
               <SelectTrigger
                 aria-label="Statut"
-                className="h-10 w-[160px] rounded-[10px] bg-card"
+                className="h-10 rounded-[10px] bg-card @xl/main:w-[160px]"
               >
                 <SelectValue />
               </SelectTrigger>
@@ -379,22 +378,13 @@ function QuotationsPage() {
                 ))}
               </SelectContent>
             </Select>
-            <div className="flex items-center gap-2 text-[13px] text-muted-foreground">
-              <label htmlFor="cot-from">Du</label>
-              <FrDateInput
-                id="cot-from"
-                value={search.from}
-                onChange={(from) => setFilters({ from })}
-                className="h-10 w-[130px] rounded-[10px] bg-card"
-              />
-              <label htmlFor="cot-to">au</label>
-              <FrDateInput
-                id="cot-to"
-                value={search.to}
-                onChange={(to) => setFilters({ to })}
-                className="h-10 w-[130px] rounded-[10px] bg-card"
-              />
-            </div>
+            <DateRangeFilter
+              idPrefix="cot"
+              from={search.from}
+              to={search.to}
+              onFromChange={(from) => setFilters({ from })}
+              onToChange={(to) => setFilters({ to })}
+            />
           </>
         }
         actions={
@@ -415,30 +405,28 @@ function QuotationsPage() {
       <Toolbar
         filters={
           <>
-            <div className="flex flex-col gap-1">
-              <SearchableSelect
-                label="Partenaire"
-                value={partnerId}
-                disabled={dir.isError}
-                disabledHint={directoryHint}
-                loading={dir.isLoading}
-                allLabel="Tous les partenaires"
-                placeholder="Nom ou code distributeur…"
-                emptyLabel="Aucun partenaire trouvé."
-                options={dir.partners.map((p) => ({
-                  value: String(p.id),
-                  label: p.name,
-                  hint: `Code ${p.distributorCode}${p.location ? ` · ${p.location}` : ''}`,
-                }))}
-                onChange={(v) =>
-                  setFilters({
-                    partnerId: v === '' ? undefined : Number(v),
-                    agencyId: undefined,
-                    sellerId: undefined,
-                  })
-                }
-              />
-            </div>
+            <SearchableSelect
+              label="Partenaire"
+              value={partnerId}
+              disabled={dir.isError}
+              disabledHint={directoryHint}
+              loading={dir.isLoading}
+              allLabel="Tous les partenaires"
+              placeholder="Nom ou code distributeur…"
+              emptyLabel="Aucun partenaire trouvé."
+              options={dir.partners.map((p) => ({
+                value: String(p.id),
+                label: p.name,
+                hint: `Code ${p.distributorCode}${p.location ? ` · ${p.location}` : ''}`,
+              }))}
+              onChange={(v) =>
+                setFilters({
+                  partnerId: v === '' ? undefined : Number(v),
+                  agencyId: undefined,
+                  sellerId: undefined,
+                })
+              }
+            />
             <SearchableSelect
               label="Agence"
               value={agencyId}
@@ -494,15 +482,82 @@ function QuotationsPage() {
         {countLabel}
       </ResultCount>
 
-      <DataTableCard>
+      <DataTableCard
+        mobileCards={
+          <MobileCardList
+            items={pageRows}
+            getKey={(q) => q.id}
+            onActivate={(q) => openQuotation(q.id)}
+            isLoading={isLoading}
+            error={quotationsError !== null}
+            forbidden={forbidden}
+            errorTitle="Impossible de charger les cotations."
+            errorAction={
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-[11px]"
+                onClick={() => void refetch()}
+              >
+                Réessayer
+              </Button>
+            }
+            empty={{
+              icon: FileText,
+              title: filtering
+                ? 'Aucune cotation ne correspond à votre recherche.'
+                : 'Aucune cotation pour le moment.',
+              action: filtering ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="rounded-[11px]"
+                  onClick={resetFilters}
+                >
+                  Réinitialiser les filtres
+                </Button>
+              ) : undefined,
+            }}
+            renderCard={(q) => (
+              <MobileCardContent
+                title={`#${q.id} · ${
+                  q.clientId == null
+                    ? 'Sans client'
+                    : (clientNameOf(q.clientId) ?? `Client #${q.clientId}`)
+                }`}
+                subtitle={
+                  q.productSnapshot?.productLabel ??
+                  (q.productId ? `Produit #${q.productId}` : 'Produit')
+                }
+                status={<QuotationStatusBadge status={q.status} />}
+                value={
+                  q.grossPremium == null
+                    ? undefined
+                    : formatFcfa(q.grossPremium)
+                }
+                meta={
+                  <>
+                    {formatDate(q.quoteAt ?? q.createdAt)}
+                    {dir.isLoading
+                      ? ''
+                      : ` · ${dir.resolveCode(q.distributorCode).label}`}
+                  </>
+                }
+              />
+            )}
+          />
+        }
+      >
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <DataTableHead first>Réf.</DataTableHead>
-              <DataTableHead>Date</DataTableHead>
+              <DataTableHead first sticky="left">
+                Réf.
+              </DataTableHead>
+              <DataTableHead hideBelow="lg">Date</DataTableHead>
               <DataTableHead>Client</DataTableHead>
-              <DataTableHead>Produit</DataTableHead>
-              <DataTableHead>Émis par</DataTableHead>
+              <DataTableHead hideBelow="md">Produit</DataTableHead>
+              <DataTableHead hideBelow="lg">Émis par</DataTableHead>
               <DataTableHead>Statut</DataTableHead>
               <DataTableHead className="text-right">Prime TTC</DataTableHead>
               <DataTableHead className="w-10" />
@@ -512,6 +567,7 @@ function QuotationsPage() {
             {isLoading ? (
               <TableSkeletonRows
                 columns={[14, 22, 30, 30, 44, 20, 24]}
+                hideBelow={[undefined, 'lg', undefined, 'md', 'lg']}
                 trailing
               />
             ) : quotationsError ? (
@@ -562,15 +618,20 @@ function QuotationsPage() {
                     onActivate={() => openQuotation(q.id)}
                     aria-label={`Ouvrir la cotation ${q.id}`}
                   >
-                    <TableCell
-                      className={`${FIRST_CELL_CLASS} py-3.5 text-[13px] font-bold text-primary tabular-nums`}
+                    <DataTableCell
+                      first
+                      sticky="left"
+                      className="py-3.5 text-[13px] font-bold text-primary tabular-nums"
                     >
                       #{q.id}
-                    </TableCell>
-                    <TableCell className="py-3.5 text-[13px] whitespace-nowrap text-muted-foreground tabular-nums">
+                    </DataTableCell>
+                    <DataTableCell
+                      hideBelow="lg"
+                      className="py-3.5 text-[13px] whitespace-nowrap text-muted-foreground tabular-nums"
+                    >
                       {formatDate(q.quoteAt ?? q.createdAt)}
-                    </TableCell>
-                    <TableCell className="max-w-[180px] py-3.5">
+                    </DataTableCell>
+                    <DataTableCell className="max-w-[180px] py-3.5">
                       {q.clientId == null ? (
                         <span className="text-muted-foreground">—</span>
                       ) : (
@@ -587,8 +648,8 @@ function QuotationsPage() {
                             )}
                         </>
                       )}
-                    </TableCell>
-                    <TableCell className="py-3.5">
+                    </DataTableCell>
+                    <DataTableCell hideBelow="md" className="py-3.5">
                       <div className="text-[13.5px] font-semibold">
                         {q.productSnapshot?.productLabel ??
                           (q.productId ? `Produit #${q.productId}` : 'Produit')}
@@ -600,18 +661,21 @@ function QuotationsPage() {
                             q.productSnapshot?.insuranceTypeLabel}
                         </div>
                       )}
-                    </TableCell>
-                    <TableCell className="max-w-[280px] py-3.5">
+                    </DataTableCell>
+                    <DataTableCell
+                      hideBelow="lg"
+                      className="max-w-[280px] py-3.5"
+                    >
                       {dir.isLoading ? (
                         <Skeleton className="h-8 w-36 rounded-md" />
                       ) : (
                         <IssuerCell attribution={attribution} />
                       )}
-                    </TableCell>
-                    <TableCell className="py-3.5">
+                    </DataTableCell>
+                    <DataTableCell className="py-3.5">
                       <QuotationStatusBadge status={q.status} />
-                    </TableCell>
-                    <TableCell className="py-3.5 text-right text-[13.5px] font-bold whitespace-nowrap tabular-nums">
+                    </DataTableCell>
+                    <DataTableCell className="py-3.5 text-right text-[13.5px] font-bold whitespace-nowrap tabular-nums">
                       {q.grossPremium == null ? (
                         <span className="font-normal text-muted-foreground">
                           —
@@ -619,7 +683,7 @@ function QuotationsPage() {
                       ) : (
                         formatFcfa(q.grossPremium)
                       )}
-                    </TableCell>
+                    </DataTableCell>
                     <RowChevron />
                   </ClickableRow>
                 )

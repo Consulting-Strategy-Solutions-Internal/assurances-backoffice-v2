@@ -124,7 +124,7 @@ Client-side filtering: normalise with `normalizeText` from `#/lib/clients`. Rese
 - `DataTableCard` — Card `gap-0 overflow-x-auto py-0` wrapping the shadcn `<Table>`.
 - `DataTableHead` (`first?`) — standard header cell (grey bg, uppercase). First column: `first`; chevron column: `className="w-10"`.
 - `FIRST_CELL_CLASS` — `pl-[22px]` for the first body cell.
-- `ClickableRow` (`onActivate`) — row that navigates/opens on click, Enter, Space (role=button, tabIndex 0, hover + focus ring). End with `<RowChevron />`. Use only if the row goes somewhere; otherwise plain `TableRow className="hover:bg-[#f6f8fc]"`.
+- `ClickableRow` (`onActivate`, `selected?`) — row that navigates/opens on click, Enter, Space (role=button, tabIndex 0, hover + focus ring). End with `<RowChevron />` (sticky right). **Selected row** (detail drawer open): pass `selected`, never a `bg-primary/5` class — the row gets `data-selected` and `styles.css` gives its sticky cells (first column, chevron) the opaque equivalent `color-mix(in srgb, var(--primary) 5%, var(--card))`; hover/focus use `#f6f8fc` on them the same way. Use only if the row goes somewhere; otherwise plain `TableRow className="hover:bg-[#f6f8fc]"`.
 - `TableSkeletonRows` (`columns: number[]` widths in quarter-px units, `rows=8`, `leading='avatar'|'text'`, `trailing`) — loading rows.
 - `TableEmptyState` (`colSpan`, `icon?`, `title`, `description?`, `action?`) and `TableErrorState` (`colSpan`, `title?`, `description?`, `forbidden?`, `action?`).
 
@@ -176,6 +176,69 @@ Two columns of cards: `<div className="grid gap-[18px] lg:grid-cols-2">`.
 ### StatusPill (`#/components/dashboard/StatusPill`)
 
 `<StatusPill status="Actif" />` (colour by known label) or `<StatusPill tone="success">Téléphone vérifié</StatusPill>`. Domain badges (ClaimStatusBadge, QuotationStatusBadge…) stay as they are.
+
+### Responsive primitives (wave 1 of `feat/responsive`)
+
+Breakpoints of the layout primitives follow the **content column** (`@container/main`, declared by `AppShell`, `AuthShell`, `DialogContent` and `SheetContent`), not the viewport. Thresholds in content px: `sm` 576 · `md` 672 · `lg` 896 · `xl` 1024 (`@xl/main` · `@2xl/main` · `@4xl/main` · `@5xl/main`). Outside any of these containers a `@…/main:` class simply does not match (the narrow layout applies).
+
+**`SheetContent size`** (`ui/sheet.tsx`): `'sm'|'md'|'lg'` = 430 / 480 / 520 px, always full width below `sm`. No `size` = historic `w-3/4 sm:max-w-sm`. Never write `w-[NNNpx]` on a drawer. Header/footer stay pinned when the body is `flex-1 overflow-y-auto` (`gap-0 p-0` on the content).
+
+```tsx
+<SheetContent side="right" size="md" showCloseButton={false} className="gap-0 p-0">
+```
+
+**`DialogContent size`** (`ui/dialog.tsx`): `'default'` 32 rem · `'wide'` 760 px · `'xl'` 56 rem — all keep a 1 rem side margin (`min(…, 100% - 2rem)`); the dialog is capped at `100dvh - 2rem` and scrolls. `FormDialog size="wide"` uses it; its body scrolls between a pinned header and footer (footer = 2 columns below `sm`). Same cap on `AlertDialogContent`.
+
+**DataTable** (`layout/DataTable.tsx`)
+
+- `DataTableHead` / `DataTableCell` (new) props: `hideBelow?: 'sm'|'md'|'lg'|'xl'`, `sticky?: 'left'|'right'`, `first?`. Give head and cells of a column the same `hideBelow`. `hideBelowClass(b)` / `stickyCellClass(side)` for raw `TableCell`s; `TableSkeletonRows hideBelow={[undefined,'md',…]}` aligns the skeleton.
+- `sticky="left"` on the identifier column, `sticky="right"` on the action column (edge shadow only while the table scrolls, row hover colour kept via `data-sticky`).
+- `TableEmptyState` / `TableErrorState` centre themselves on the visible width (no more clipped text).
+- `DataTableCard mobileCards={…}`: below 672 px of content the table card is hidden and the node is shown instead — use `MobileCardList` (`layout/MobileCardList.tsx`) with `MobileCardContent`.
+
+```tsx
+<DataTableCard
+  mobileCards={
+    <MobileCardList
+      items={rows} getKey={(r) => r.id} onActivate={(r) => open(r.id)}
+      isLoading={isLoading} error={!!error} forbidden={isForbidden(error)}
+      errorTitle="Impossible de charger les clients."
+      empty={{ icon: Users, title: 'Aucun client pour le moment.' }}
+      renderCard={(r) => <MobileCardContent leading={<EntityAvatar name={r.name} />} title={r.name} subtitle={r.email} status={<StatusPill status={r.status} />} value={formatFcfa(r.total)} />}
+    />
+  }
+>
+  <Table>… <DataTableHead first sticky="left">Nom</DataTableHead><DataTableHead hideBelow="md">Créé le</DataTableHead><DataTableHead sticky="right" /> …
+    <DataTableCell first sticky="left">…</DataTableCell><DataTableCell hideBelow="md">…</DataTableCell></Table>
+</DataTableCard>
+```
+
+**KpiCard / KpiRow**: `KpiCard` has a compact row layout (icon left, value + label right) below 576 px of content and the stacked card above; new `unit?: string` (small, next to the value: `value="75 805" unit="FCFA"`); value `text-[24px] → 30px`; `min-w-0`. `KpiRow cols={4}`: 2 columns then 4 from 896 px; `cols={3}`: 2 columns on phones (3rd card spans both), 3 from 576 px. `KPI_ROW_CLASS` is exported for skeletons.
+
+**Toolbar**: below 576 px a 2-column grid (search, `SegmentedPills`, `DateRangeFilter` and the actions span both; selects fill one cell — direct children get `w-full!` automatically). `ToolbarSearch` is `min-w-0` then `min-w-[240px]`. `fluid` on `SearchableSelect` / `claims/FilterSelect` (full width below 576 px) for use outside a Toolbar direct-child position. `ResultCount` wraps (note on its own line on phones).
+
+**DateRangeFilter** (`layout/DateRangeFilter.tsx`), built on `quotations/FrDateInput`:
+
+```tsx
+<DateRangeFilter idPrefix="cot" from={search.from} to={search.to}
+  onFromChange={(from) => setFilters({ from })} onToChange={(to) => setFilters({ to })} />
+```
+
+**SectionCard**: header wraps (title `basis-48`, action drops to the next line when short of room), `px-4 sm:px-6`. **InfoList** `columns={2}`: two columns only when the list is ≥ 384 px wide (container query on the list itself, so a drawer or a half-width card stays on one column). **DetailHeaderCard**: `p-4 sm:p-6`, avatar/icon 56 px stacked above the title below `sm`, H1 22 → 26 px, actions full width.
+
+**Touch targets 36 px**: `TabsTrigger` `min-h-9`; `ACTION_LINK_CLASS` (`#/lib/dashboard-theme`) for text links/buttons like « Tout voir → » (`-mx-2 min-h-9 px-2`); `AUTH_LINK_CLASS` is `min-h-9`; `ia-products/shared/Switch` has a 52×36 hit area.
+
+**ScrollShadow** scrolls the active item (`[data-state=active]`, `[aria-current]`) into view on mount and when it changes (`scrollActiveIntoView`, `scrollDeltaToReveal`). **DetailSkeleton** (`layout/DetailSkeleton.tsx`, `kpis={3|4|0}`): loading state of every detail page, its KPI grid is the real `KpiRow`. **Stepper**: below `sm`, « Étape n sur N · label » + progress bar (the bars become 36 px buttons when `onStepClick` is given); full step list from `sm`; the current step carries `aria-current="step"` in both modes.
+
+**Header action slot** (`ia-products/shared/header-action.tsx`, may be promoted to `layout/` later): `<HeaderActionSlot />` goes in `children` of `PageHeader`; the screen (which owns its dialog state) renders its primary buttons with `<HeaderActionPortal>…</HeaderActionPortal>`, which portals them into the slot (without a slot — tests, isolated use — it renders them inline, right-aligned). Replaces a one-button toolbar.
+
+**CardActionsMenu** (`ia-products/shared/CardActionsMenu.tsx`, may be promoted to `layout/` later): « ⋯ » dropdown (36 px) for mobile cards, where the table's icon actions have no room. Props: `label` (accessible name, e.g. « Actions de la classe 3 »), `actions: {label, icon?, onSelect, destructive?}[]`, `disabled?`, `title?` (missing-permission tooltip).
+
+**Sticky and container rules**
+
+- Two sticky columns (`left` + `right`) must fit together in the narrowest visible width (≈ 326 px at 360, keep ≥ 150 px free) — else the middle columns can never scroll into view (L-007). If they don't, pass `stickyFrom="sm"` on one side (`<DataTableHead sticky="left" stickyFrom="sm">` + same on its cells: sticks only from 576 px of content), or use cards. A single sticky column wider than ~180 px at 360 gets `stickyFrom="sm"` too.
+- `hideBelow` names (`sm|md|lg|xl`) are **content** thresholds 576 / 672 / 896 / 1024 px, not viewport breakpoints; pick one from the table's measured natural width (Playwright sweep), never by guess (L-008).
+- No inline `position: fixed` inside a `@container` element (dialog, sheet, `main`, auth shell): a container with `container-type` becomes the containing block of `fixed` descendants. Portal it out or use `sticky`.
 
 ### Existing, unchanged
 
@@ -240,6 +303,14 @@ Loading: `Skeleton h-36 rounded-xl` + 3× `h-[122px] rounded-2xl` + `h-64 rounde
 - Skip-link « Aller au contenu » → `#main`; every route sets its tab title with `head: pageHead('Clients')` (`#/lib/page-title`) → « Clients · NSIA Back-office ».
 - 404 / uncaught errors: `NotFoundPage` / `RouteErrorPage` (`layout/RouteFallbacks.tsx`, `EmptyState variant="card"`) — inside the shell when signed in. For an in-page « not found » use `EmptyState variant="card"` as before.
 - Auth pages: `AuthShell` + `AuthCard` + `AuthHeading` + `AUTH_LINK_CLASS` (`components/auth/AuthShell.tsx`).
+
+### Responsive (feat/responsive)
+
+- **Reference widths**: 360 (small phone) · 390 · 768 (tablet) · 1024 (laptop **with the menu open = 700 px of content**) · 1280. Nothing scrolls horizontally at the page level; wide tables scroll inside their card. Check 360 / 768 / 1024 before delivering a page (`resp-sweep.mjs`).
+- **Container queries, not viewport**: layout primitives use `@xl/main:` · `@2xl/main:` · `@4xl/main:` · `@5xl/main:` (576 / 672 / 896 / 1024 px of content) and `@max-xl/main:` for « below ». Write the class literally (`@2xl/main:table-cell`), never interpolated. In a page, use them (or the primitives) instead of `md:`/`lg:` whenever the rule depends on the space the content has, since the menu takes 256 px from `lg` up. Viewport variants stay right for things that depend on the device (drawer width, `sm:` paddings).
+- **Drawers**: `SheetContent size="sm|md|lg"` (430/480/520), full screen on phones. **Dialogs**: `DialogContent size`, `FormDialog size="wide"`; height capped at `100dvh - 2rem`, body scrolls, header/footer pinned.
+- **Tables**: columns have a priority (`hideBelow`); the identifier column is `sticky="left"` and the action column `sticky="right"` when the table can still scroll; lists that open a detail (Sinistres, Clients, Cotations, Support, Partenaires, Administrateurs) also give `mobileCards` (cards below 672 px). Administration tables (IA, commissions, IAM) rely on priorities + sticky columns. Empty/error states use `TableEmptyState`/`TableErrorState` (visible-width centred) — never a hand-made row.
+- **Page blocks**: KPI = `KpiRow`/`KpiCard` (compact on phones), filters = `Toolbar` (2-column grid), dates = `DateRangeFilter`, loading of a detail page = `DetailSkeleton`. Touch targets ≥ 36 px.
 
 ## 7. Testing notes
 
@@ -306,3 +377,8 @@ Topbar combobox, **the only global search**. Ctrl/⌘+K focuses it; ↑/↓, Ent
 - Minimum touch target **36 px**: `Button` `size="sm"` is `h-9`, `icon-sm` is `size-9`, `SegmentedPills` buttons `min-h-9`. Do not add `size-7`/`size-8` icon buttons.
 - Horizontal overflow hints: `DataTableCard` shows edge shadows when the table scrolls; wrap tab strips in `<ScrollShadow>` (`layout/ScrollShadow.tsx`).
 - Radix Dialog/Sheet close labels are French (« Fermer »).
+
+### Responsive rule (2026-09-30)
+
+- **No top-level `w-[NNNpx]` / `min-w-[NNNpx]` without a breakpoint** on a drawer, dialog, popover/menu, toolbar control or table cell: use `SheetContent size`, `DialogContent size`, `w-[min(380px,calc(100vw-1rem))]`, `w-full sm:w-[…]` (or `fluid`), `md:w-[…]`. A fixed width is only fine on an element that cannot outgrow its parent (icon tile, avatar, skeleton).
+- Do not hide information by ellipsis on phones without another way to read it: move it to a sub-line (`TruncatedText`, `hideBelow` + sub-line) or to the card view.

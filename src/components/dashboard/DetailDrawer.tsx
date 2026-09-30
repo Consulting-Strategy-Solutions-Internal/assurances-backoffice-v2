@@ -49,7 +49,8 @@ export function DetailDrawer({ content, onClose, onAction }: DetailDrawerProps) 
       <SheetContent
         side="right"
         showCloseButton={false}
-        className="w-[430px] gap-0 p-0 sm:max-w-[430px]"
+        size="sm"
+        className="gap-0 p-0"
       >
         {data && (
           <>

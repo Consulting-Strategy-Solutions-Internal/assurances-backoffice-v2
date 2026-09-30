@@ -42,31 +42,60 @@ function SheetOverlay({
   )
 }
 
+/**
+ * Drawer widths (literal strings: Tailwind must see them). Full width below
+ * `sm` (phones), then 430 / 480 / 520 px, never wider than the viewport.
+ */
+export const SHEET_SIZE_CLASS = {
+  sm: 'w-full max-w-full sm:w-[430px] sm:max-w-[430px]',
+  md: 'w-full max-w-full sm:w-[480px] sm:max-w-[480px]',
+  lg: 'w-full max-w-full sm:w-[520px] sm:max-w-[520px]',
+} as const
+
+export type SheetSize = keyof typeof SHEET_SIZE_CLASS
+
+/** Base width of a left/right sheet when no `size` is given (historic default). */
+const SHEET_DEFAULT_WIDTH = 'w-3/4 sm:max-w-sm'
+
 function SheetContent({
   className,
   children,
   side = 'right',
   showCloseButton = true,
+  size,
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   side?: 'top' | 'right' | 'bottom' | 'left'
   showCloseButton?: boolean
+  /**
+   * Width of a left/right drawer: `sm` 430 px, `md` 480 px, `lg` 520 px;
+   * always full width below `sm`. Without it: 3/4 of the screen up to 24 rem.
+   * Header and footer stay pinned when the body is `flex-1 overflow-y-auto`.
+   */
+  size?: SheetSize
 }) {
+  const width =
+    side === 'left' || side === 'right'
+      ? size
+        ? SHEET_SIZE_CLASS[size]
+        : SHEET_DEFAULT_WIDTH
+      : undefined
   return (
     <SheetPortal>
       <SheetOverlay />
       <SheetPrimitive.Content
         data-slot="sheet-content"
         className={cn(
-          'fixed z-50 flex flex-col gap-4 bg-background shadow-lg transition ease-in-out data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:animate-in data-[state=open]:duration-500',
+          '@container/main fixed z-50 flex flex-col gap-4 bg-background shadow-lg transition ease-in-out data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:animate-in data-[state=open]:duration-500',
           side === 'right' &&
-            'inset-y-0 right-0 h-full w-3/4 border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm',
+            'inset-y-0 right-0 h-full border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right',
           side === 'left' &&
-            'inset-y-0 left-0 h-full w-3/4 border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm',
+            'inset-y-0 left-0 h-full border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left',
           side === 'top' &&
             'inset-x-0 top-0 h-auto border-b data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top',
           side === 'bottom' &&
             'inset-x-0 bottom-0 h-auto border-t data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom',
+          width,
           className,
         )}
         {...props}

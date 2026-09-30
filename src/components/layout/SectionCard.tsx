@@ -32,12 +32,12 @@ export function SectionCard({
       {hasHeader && (
         <div
           className={cn(
-            'flex items-center justify-between gap-4 px-6 pt-5',
+            'flex flex-wrap items-center justify-between gap-x-4 gap-y-3 px-4 pt-5 sm:px-6',
             flush || !children ? 'pb-4' : 'pb-0',
             flush && children && 'border-b',
           )}
         >
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1 basis-48">
             {title && (
               <h2 className="text-[16px] font-bold tracking-[-0.01em]">
                 {title}
@@ -53,7 +53,7 @@ export function SectionCard({
       {children != null && (
         <div
           className={cn(
-            flush ? '' : cn('px-6 pb-6', hasHeader ? 'pt-4' : 'pt-6'),
+            flush ? '' : cn('px-4 pb-6 sm:px-6', hasHeader ? 'pt-4' : 'pt-6'),
             bodyClassName,
           )}
         >

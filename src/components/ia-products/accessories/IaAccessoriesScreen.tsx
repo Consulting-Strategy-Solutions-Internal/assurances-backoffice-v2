@@ -6,13 +6,13 @@ import { ConfirmDialog } from '#/components/dashboard/ConfirmDialog'
 import { usePermissions } from '#/components/dashboard/use-permissions'
 import {
   DataTableCard,
+  DataTableCell,
   DataTableHead,
-  FIRST_CELL_CLASS,
   TableEmptyState,
   TableErrorState,
   TableSkeletonRows,
 } from '#/components/layout/DataTable'
-import { ResultCount, Toolbar } from '#/components/layout/Toolbar'
+import { ResultCount } from '#/components/layout/Toolbar'
 import { Button } from '#/components/ui/button'
 import {
   Table,
@@ -22,10 +22,11 @@ import {
   TableRow,
 } from '#/components/ui/table'
 import { WarningBanner } from '#/components/ia-products/shared/WarningBanner'
+import { HeaderActionPortal } from '../shared/header-action'
 import { isForbidden, RetryAction } from '../shared/screen-kit'
 import { formatClaimDate } from '#/lib/claims'
 import { parseIaErrorList } from '#/lib/ia-errors'
-import { cn, formatFcfa } from '#/lib/utils'
+import { formatFcfa } from '#/lib/utils'
 import { deleteAccessory, getAccessories } from '#/services/accessories'
 import type { AccessoryResponse } from '#/services/accessories'
 import { fetchAllPages } from '#/lib/fetch-all-pages'
@@ -124,35 +125,31 @@ export function IaAccessoriesScreen() {
         </WarningBanner>
       )}
 
-      <Toolbar
-        actions={
-          <>
-            <span title={writeTitle}>
-              <Button
-                type="button"
-                variant="outline"
-                className="rounded-[11px]"
-                disabled={!canWrite}
-                onClick={() => setImporting(true)}
-              >
-                <Upload className="size-4" />
-                Importer un CSV
-              </Button>
-            </span>
-            <span title={writeTitle}>
-              <Button
-                type="button"
-                className="rounded-[11px]"
-                disabled={!canWrite}
-                onClick={() => setEditing('new')}
-              >
-                <Plus className="size-4" />
-                Ajouter une tranche
-              </Button>
-            </span>
-          </>
-        }
-      />
+      <HeaderActionPortal>
+        <span title={writeTitle}>
+          <Button
+            type="button"
+            variant="outline"
+            className="rounded-[11px]"
+            disabled={!canWrite}
+            onClick={() => setImporting(true)}
+          >
+            <Upload className="size-4" />
+            Importer un CSV
+          </Button>
+        </span>
+        <span title={writeTitle}>
+          <Button
+            type="button"
+            className="rounded-[11px]"
+            disabled={!canWrite}
+            onClick={() => setEditing('new')}
+          >
+            <Plus className="size-4" />
+            Ajouter une tranche
+          </Button>
+        </span>
+      </HeaderActionPortal>
       <ResultCount
         note={
           data?.capped
@@ -169,10 +166,12 @@ export function IaAccessoriesScreen() {
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <DataTableHead first>Tranche de prime nette</DataTableHead>
+              <DataTableHead first sticky="left" stickyFrom="sm">
+                Tranche de prime nette
+              </DataTableHead>
               <DataTableHead>Frais accessoires</DataTableHead>
-              <DataTableHead>Mise à jour</DataTableHead>
-              <DataTableHead className="pr-[22px] text-right">
+              <DataTableHead hideBelow="md">Mise à jour</DataTableHead>
+              <DataTableHead sticky="right" className="pr-[22px] text-right">
                 Actions
               </DataTableHead>
             </TableRow>
@@ -181,7 +180,11 @@ export function IaAccessoriesScreen() {
             {!canRead ? (
               <TableErrorState colSpan={4} forbidden />
             ) : loading ? (
-              <TableSkeletonRows rows={4} columns={[48, 24, 24, 16]} />
+              <TableSkeletonRows
+                rows={4}
+                columns={[48, 24, 24, 16]}
+                hideBelow={[undefined, undefined, 'md', undefined]}
+              />
             ) : failed ? (
               <TableErrorState
                 colSpan={4}
@@ -199,21 +202,27 @@ export function IaAccessoriesScreen() {
             ) : (
               accessories.map((a) => (
                 <TableRow key={a.id} className="hover:bg-[#f6f8fc]">
-                  <TableCell
-                    className={cn(
-                      FIRST_CELL_CLASS,
-                      'text-[13.5px] font-semibold tabular-nums',
-                    )}
+                  <DataTableCell
+                    first
+                    sticky="left"
+                    stickyFrom="sm"
+                    className="text-[13.5px] font-semibold tabular-nums"
                   >
                     {describeRange(a)}
-                  </TableCell>
+                  </DataTableCell>
                   <TableCell className="text-[13.5px] whitespace-nowrap tabular-nums">
                     {formatFcfa(a.amount)}
                   </TableCell>
-                  <TableCell className="text-[13px] whitespace-nowrap text-muted-foreground">
+                  <DataTableCell
+                    hideBelow="md"
+                    className="text-[13px] whitespace-nowrap text-muted-foreground"
+                  >
                     {formatClaimDate(a.updatedAt)}
-                  </TableCell>
-                  <TableCell className="pr-[22px] text-right">
+                  </DataTableCell>
+                  <DataTableCell
+                    sticky="right"
+                    className="pr-[22px] text-right"
+                  >
                     <span title={writeTitle} className="inline-flex gap-1">
                       <Button
                         type="button"
@@ -237,7 +246,7 @@ export function IaAccessoriesScreen() {
                         <Trash2 className="size-4" />
                       </Button>
                     </span>
-                  </TableCell>
+                  </DataTableCell>
                 </TableRow>
               ))
             )}

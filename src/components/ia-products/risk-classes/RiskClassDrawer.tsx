@@ -73,7 +73,8 @@ export function RiskClassDrawer({ classId, onClose }: RiskClassDrawerProps) {
       <SheetContent
         side="right"
         showCloseButton={false}
-        className="w-[520px] gap-0 p-0 sm:max-w-[520px]"
+        size="lg"
+        className="gap-0 p-0"
       >
         <SheetHeader className="flex-row items-start justify-between gap-3.5 border-b p-[26px] py-[22px]">
           <div className="flex flex-col gap-0">

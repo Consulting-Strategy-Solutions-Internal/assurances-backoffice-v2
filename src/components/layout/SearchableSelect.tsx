@@ -30,6 +30,7 @@ export function SearchableSelect({
   onSearch,
   selectedLabel,
   className,
+  fluid,
   id,
 }: {
   /** Accessible name of the control. */
@@ -56,6 +57,8 @@ export function SearchableSelect({
   /** Label of the selected value when it is not in `options` (server search). */
   selectedLabel?: string
   className?: string
+  /** Full width below 576 px of content (220 px above); `Toolbar` already does it for its direct children. */
+  fluid?: boolean
   id?: string
 }) {
   const [open, setOpen] = useState(false)
@@ -119,7 +122,13 @@ export function SearchableSelect({
         }
       }}
     >
-      <div className={cn('relative w-[220px]', className)}>
+      <div
+        className={cn(
+          'relative',
+          fluid ? 'w-full @xl/main:w-[220px]' : 'w-[220px]',
+          className,
+        )}
+      >
         <PopoverPrimitive.Trigger asChild disabled={disabled}>
           <button
             type="button"

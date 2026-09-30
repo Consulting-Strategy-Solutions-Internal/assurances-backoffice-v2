@@ -5,8 +5,8 @@ import { EntityAvatar } from '#/components/layout/EntityAvatar'
 import {
   ClickableRow,
   DataTableCard,
+  DataTableCell,
   DataTableHead,
-  FIRST_CELL_CLASS,
   RowChevron,
   TableEmptyState,
   TableErrorState,
@@ -15,14 +15,7 @@ import {
 import { Badge } from '#/components/ui/badge'
 import { Button } from '#/components/ui/button'
 import { permissionLabel } from '#/lib/permission-labels'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHeader,
-  TableRow,
-} from '#/components/ui/table'
-import { cn } from '#/lib/utils'
+import { Table, TableBody, TableHeader, TableRow } from '#/components/ui/table'
 import { formatRoleName } from '#/lib/admin-roles'
 import { TruncatedText } from '#/components/layout/TruncatedText'
 
@@ -58,9 +51,11 @@ export function RolesTable({
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
-            <DataTableHead first>Rôle</DataTableHead>
-            <DataTableHead className="w-[110px]">Permissions</DataTableHead>
-            <DataTableHead>Accès accordés</DataTableHead>
+            <DataTableHead first sticky="left">
+              Rôle
+            </DataTableHead>
+            <DataTableHead hideBelow="md">Permissions</DataTableHead>
+            <DataTableHead hideBelow="md">Accès accordés</DataTableHead>
             <DataTableHead className="w-10" />
           </TableRow>
         </TableHeader>
@@ -68,6 +63,7 @@ export function RolesTable({
           {isLoading ? (
             <TableSkeletonRows
               columns={[44, 12, 80]}
+              hideBelow={[undefined, 'md', 'md']}
               leading="avatar"
               rows={6}
               trailing
@@ -112,9 +108,13 @@ export function RolesTable({
                 key={role.id}
                 aria-label={`Voir le rôle ${formatRoleName(role.name)}`}
                 onActivate={() => onSelect(role)}
-                className={cn(selectedId === role.id && 'bg-primary/5')}
+                selected={selectedId === role.id}
               >
-                <TableCell className={cn(FIRST_CELL_CLASS, 'max-w-[320px]')}>
+                <DataTableCell
+                  first
+                  sticky="left"
+                  className="max-w-[260px] @2xl/main:max-w-[320px]"
+                >
                   <div className="flex items-center gap-3">
                     <EntityAvatar name={formatRoleName(role.name)} />
                     <div className="min-w-0">
@@ -125,13 +125,21 @@ export function RolesTable({
                         {translateRoleDescription(role.description) ||
                           'Aucune description'}
                       </TruncatedText>
+                      <div className="text-[12px] font-semibold text-muted-foreground @2xl/main:hidden">
+                        {role.permissions.length === 0
+                          ? 'Aucun accès'
+                          : `${role.permissions.length} accès`}
+                      </div>
                     </div>
                   </div>
-                </TableCell>
-                <TableCell className="font-semibold tabular-nums">
+                </DataTableCell>
+                <DataTableCell
+                  hideBelow="md"
+                  className="font-semibold tabular-nums"
+                >
                   {role.permissions.length}
-                </TableCell>
-                <TableCell>
+                </DataTableCell>
+                <DataTableCell hideBelow="md">
                   {role.permissions.length === 0 ? (
                     <span className="text-muted-foreground">
                       Aucune permission
@@ -164,7 +172,7 @@ export function RolesTable({
                       )}
                     </div>
                   )}
-                </TableCell>
+                </DataTableCell>
                 <RowChevron />
               </ClickableRow>
             ))

@@ -22,6 +22,7 @@ import { StatusPill } from '#/components/dashboard/StatusPill'
 import { BackLink } from '#/components/layout/BackLink'
 import {
   ClickableRow,
+  DataTableCell,
   DataTableHead,
   RowChevron,
 } from '#/components/layout/DataTable'
@@ -32,6 +33,7 @@ import { InfoList, InfoRow } from '#/components/layout/InfoList'
 import { KpiRow } from '#/components/layout/KpiRow'
 import { SectionCard } from '#/components/layout/SectionCard'
 import { Button } from '#/components/ui/button'
+import { DetailSkeleton } from '#/components/layout/DetailSkeleton'
 import { Skeleton } from '#/components/ui/skeleton'
 import {
   Table,
@@ -134,18 +136,7 @@ export function ClientDetailContent({ clientId }: { clientId: number }) {
     retry: false,
   })
 
-  if (isLoading)
-    return (
-      <div className="flex flex-col gap-[18px]">
-        <Skeleton className="h-36 rounded-xl" />
-        <div className="grid grid-cols-3 gap-4">
-          <Skeleton className="h-[122px] rounded-2xl" />
-          <Skeleton className="h-[122px] rounded-2xl" />
-          <Skeleton className="h-[122px] rounded-2xl" />
-        </div>
-        <Skeleton className="h-64 rounded-xl" />
-      </div>
-    )
+  if (isLoading) return <DetailSkeleton kpis={3} />
   if (error || !client) {
     const notFound = error && mapClaimError(error).kind === 'not-found'
     return notFound ? (
@@ -320,7 +311,7 @@ function ClientDetail({ client }: { client: ClientResponse }) {
         />
       </KpiRow>
 
-      <div className="grid gap-[18px] lg:grid-cols-2">
+      <div className="grid gap-[18px] @4xl/main:grid-cols-2">
         <SectionCard title="Coordonnées">
           <InfoList>
             <InfoRow icon={<Phone />} label="Téléphone">
@@ -417,7 +408,7 @@ function ClientDetail({ client }: { client: ClientResponse }) {
                   <DataTableHead className="pl-6">Police</DataTableHead>
                   <DataTableHead>Produit</DataTableHead>
                   <DataTableHead>Statut</DataTableHead>
-                  <DataTableHead>Couverture</DataTableHead>
+                  <DataTableHead hideBelow="md">Couverture</DataTableHead>
                   <DataTableHead className="pr-6 text-right">
                     Prime
                   </DataTableHead>
@@ -440,11 +431,14 @@ function ClientDetail({ client }: { client: ClientResponse }) {
                         {SUBSCRIPTION_STATUS_LABELS[contract.status]}
                       </StatusPill>
                     </TableCell>
-                    <TableCell className="whitespace-nowrap tabular-nums">
+                    <DataTableCell
+                      hideBelow="md"
+                      className="whitespace-nowrap tabular-nums"
+                    >
                       {contract.coverageStart || contract.coverageEnd
                         ? `${shortDate(contract.coverageStart) || '…'} → ${shortDate(contract.coverageEnd) || '…'}`
                         : '—'}
-                    </TableCell>
+                    </DataTableCell>
                     <TableCell className="pr-6 text-right whitespace-nowrap tabular-nums">
                       {formatFcfa(contract.totalPremium)}
                     </TableCell>
@@ -528,8 +522,8 @@ function ClientDetail({ client }: { client: ClientResponse }) {
                 <TableRow className="hover:bg-transparent">
                   <DataTableHead className="pl-6">Sinistre</DataTableHead>
                   <DataTableHead>Type</DataTableHead>
-                  <DataTableHead>Produit</DataTableHead>
-                  <DataTableHead>Survenu le</DataTableHead>
+                  <DataTableHead hideBelow="lg">Produit</DataTableHead>
+                  <DataTableHead hideBelow="md">Survenu le</DataTableHead>
                   <DataTableHead>Statut</DataTableHead>
                   <DataTableHead className="w-10" />
                 </TableRow>
@@ -553,14 +547,17 @@ function ClientDetail({ client }: { client: ClientResponse }) {
                         {claim.claimTypeName}
                       </TruncatedText>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <DataTableCell
+                      hideBelow="lg"
+                      className="text-muted-foreground"
+                    >
                       <TruncatedText className="max-w-[160px]">
                         {claim.productLabel}
                       </TruncatedText>
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
+                    </DataTableCell>
+                    <DataTableCell hideBelow="md" className="whitespace-nowrap">
                       {formatClaimDate(claim.occurredOn)}
-                    </TableCell>
+                    </DataTableCell>
                     <TableCell>
                       <ClaimStatusBadge status={claim.status} />
                     </TableCell>

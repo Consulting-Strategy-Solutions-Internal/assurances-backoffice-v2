@@ -22,12 +22,14 @@ export function DetailHeaderCard({
   actions?: ReactNode
 }) {
   return (
-    <Card className="gap-0 p-6">
+    <Card className="gap-0 p-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-5">
-        <div className="flex min-w-0 items-center gap-5">
-          {leading}
+        <div className="flex min-w-0 flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-5">
+          {leading && (
+            <div className="shrink-0 max-sm:[&>*]:size-14!">{leading}</div>
+          )}
           <div className="min-w-0">
-            <h1 className="text-[26px] leading-tight font-extrabold tracking-[-0.03em]">
+            <h1 className="text-[22px] leading-tight sm:text-[26px] font-extrabold tracking-[-0.03em] [overflow-wrap:anywhere]">
               {title}
             </h1>
             {meta && (
@@ -38,7 +40,11 @@ export function DetailHeaderCard({
             )}
           </div>
         </div>
-        {actions && <div className="flex flex-wrap gap-2.5">{actions}</div>}
+        {actions && (
+          <div className="flex flex-wrap gap-2.5 max-sm:w-full max-sm:[&>*]:flex-1">
+            {actions}
+          </div>
+        )}
       </div>
     </Card>
   )

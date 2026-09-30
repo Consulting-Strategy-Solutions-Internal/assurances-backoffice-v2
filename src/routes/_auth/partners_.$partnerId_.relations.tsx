@@ -106,7 +106,7 @@ function PartnerRelationsPage() {
 
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-[26px] font-extrabold tracking-[-0.03em]">
+          <h1 className="text-[22px] font-extrabold sm:text-[26px] tracking-[-0.03em]">
             Ajouter une relation · {partner.name}
           </h1>
           <p className="mt-[7px] text-sm text-muted-foreground">
@@ -116,7 +116,7 @@ function PartnerRelationsPage() {
         <StatusPill tone="info">Code {partner.distributorCode}</StatusPill>
       </div>
 
-      <Card className="gap-0 p-6">
+      <Card className="gap-0 p-4 sm:p-6">
         <Stepper steps={STEPS} current={step} onStepClick={goToStep} />
         <Separator className="my-5" />
         {step === 0 && <ManagerStep partnerId={id} />}
@@ -124,7 +124,7 @@ function PartnerRelationsPage() {
         {step === 2 && <SellersStep partnerId={id} />}
       </Card>
 
-      <div className="mt-5 flex items-center justify-between">
+      <div className="mt-5 grid grid-cols-2 items-center gap-3 sm:flex sm:justify-between">
         <Button
           variant="outline"
           className="rounded-[11px]"
@@ -144,9 +144,12 @@ function PartnerRelationsPage() {
             Terminer
           </Button>
         ) : (
-          <div className="flex items-center gap-3">
+          <>
             {step === 0 && !hasManager && (
-              <span className="text-[13px] text-[#8a6600]">
+              <span
+                role="status"
+                className="order-first col-span-2 min-w-0 text-left text-[13px] text-[#8a6600] sm:order-none sm:col-span-1 sm:ml-auto sm:text-right"
+              >
                 Rattachez d’abord un manager pour continuer.
               </span>
             )}
@@ -158,7 +161,7 @@ function PartnerRelationsPage() {
               Suivant
               <ChevronRight />
             </Button>
-          </div>
+          </>
         )}
       </div>
     </>

@@ -5,6 +5,7 @@ import { SectionCard } from '#/components/layout/SectionCard'
 import { isForbidden } from '#/lib/api-error'
 import { Skeleton } from '#/components/ui/skeleton'
 import { translateBackendMessage } from '#/lib/backend-messages'
+import { ACTION_LINK_CLASS } from '#/lib/dashboard-theme'
 import { cn } from '#/lib/utils'
 import {
   useDashboardHeldCommissions,
@@ -69,8 +70,7 @@ function Row({
   )
 }
 
-const goLink =
-  'mt-1 flex shrink-0 items-center text-[13px] font-semibold text-primary hover:underline'
+const goLink = cn(ACTION_LINK_CLASS, 'shrink-0')
 
 export function AttentionCard() {
   const support = useDashboardSupport()

@@ -14,6 +14,7 @@ import type { Period } from '#/components/dashboard/shell'
 import { useShell } from '#/components/dashboard/shell'
 import { SegmentedPills } from '#/components/layout/SegmentedPills'
 import { KpiRow } from '#/components/layout/KpiRow'
+import { ScrollShadow } from '#/components/layout/ScrollShadow'
 import {
   activationsInRange,
   compactFcfa,
@@ -34,6 +35,13 @@ import {
   useDashboardSubscriptions,
 } from './queries'
 
+/**
+ * Activity block: on phones a horizontal strip (swipe, ~1.5 cards visible) so
+ * the 8 KPIs do not push the first table down; a grid from 576 px of content.
+ */
+const ACTIVITY_STRIP_CLASS =
+  '@max-xl/main:mb-2 @max-xl/main:flex @max-xl/main:w-max @max-xl/main:gap-3 @max-xl/main:px-0.5 @max-xl/main:pt-1 @max-xl/main:pb-2 @max-xl/main:[&>*]:w-[228px] @max-xl/main:[&>*]:shrink-0 @xl/main:px-1 @xl/main:pt-1.5 @xl/main:pb-3'
+
 const PERIODS: { value: Period; label: string }[] = [
   { value: 'Jour', label: 'Jour' },
   { value: 'Mois', label: 'Mois' },
@@ -43,14 +51,14 @@ const PERIODS: { value: Period; label: string }[] = [
 
 const numberFormat = new Intl.NumberFormat('fr-FR')
 
-function Fcfa({ amount }: { amount: number }) {
-  const { value, unit } = compactFcfa(amount)
-  return (
-    <>
-      {value}{' '}
-      <span className="text-base font-bold text-muted-foreground">{unit}</span>
-    </>
-  )
+/** `value` + `unit` props of a `KpiCard` for an amount (« 75,8 » + « M FCFA »); `…` / `—` without unit. */
+function money(
+  q: { isLoading: boolean; isError: boolean },
+  amount: number,
+): { value: string; unit?: string } {
+  if (q.isLoading) return { value: '…' }
+  if (q.isError) return { value: '—' }
+  return compactFcfa(amount)
 }
 
 const TREND_CLASS = {
@@ -187,9 +195,7 @@ export function KpiSection() {
           hoverHighlight
           icon={<Banknote className="size-5 text-primary" />}
           iconClass="bg-primary/[0.08]"
-          value={pick(subs, () => (
-            <Fcfa amount={stats?.activePremium ?? 0} />
-          ))}
+          {...money(subs, stats?.activePremium ?? 0)}
           label="Primes des contrats actifs"
         />
         <KpiCard
@@ -234,70 +240,70 @@ export function KpiSection() {
           />
         }
       />
-      <KpiRow>
-        <KpiCard
-          hoverHighlight
-          icon={<CalendarCheck className="size-5 text-[#167347]" />}
-          iconClass="bg-[#1c8a57]/10"
-          value={pick(subs, () => numberFormat.format(act?.cur.count ?? 0))}
-          label={`Contrats activés · ${phrase}`}
-          trend={act ? trendOf(act.cur.count, act.prev.count) : undefined}
-        />
-        <KpiCard
-          hoverHighlight
-          icon={<Banknote className="size-5 text-primary" />}
-          iconClass="bg-primary/[0.08]"
-          value={pick(subs, () => (
-            <Fcfa amount={act?.cur.premium ?? 0} />
-          ))}
-          label={`Primes activées · ${phrase}`}
-          trend={
-            act
-              ? trendOf(act.cur.premium, act.prev.premium, {
-                  baseCount: act.prev.count,
-                  fmt: fcfaShort,
-                })
-              : undefined
-          }
-        />
-        <KpiLink to="clients" label="Nouveaux clients">
+      {/* Room (and the matching negative margins) for the hover lift/shadow that the scroller's overflow-hidden would clip. */}
+      <ScrollShadow className="@xl/main:-mx-1 @xl/main:-mt-1.5 @xl/main:-mb-3">
+        <KpiRow className={ACTIVITY_STRIP_CLASS}>
           <KpiCard
             hoverHighlight
-            icon={<UserPlus className="size-5 text-[#1f53b0]" />}
-            iconClass="bg-[#1f53b0]/10"
-            value={pick(clients, () =>
-              numberFormat.format(newClients?.cur ?? 0),
-            )}
-            label={`Nouveaux clients · ${phrase}`}
+            icon={<CalendarCheck className="size-5 text-[#167347]" />}
+            iconClass="bg-[#1c8a57]/10"
+            value={pick(subs, () => numberFormat.format(act?.cur.count ?? 0))}
+            label={`Contrats activés · ${phrase}`}
+            trend={act ? trendOf(act.cur.count, act.prev.count) : undefined}
+          />
+          <KpiCard
+            hoverHighlight
+            icon={<Banknote className="size-5 text-primary" />}
+            iconClass="bg-primary/[0.08]"
+            {...money(subs, act?.cur.premium ?? 0)}
+            label={`Primes activées · ${phrase}`}
             trend={
-              newClients ? trendOf(newClients.cur, newClients.prev) : undefined
+              act
+                ? trendOf(act.cur.premium, act.prev.premium, {
+                    baseCount: act.prev.count,
+                    fmt: fcfaShort,
+                  })
+                : undefined
             }
           />
-        </KpiLink>
-        <KpiLink to="cotations" label="Cotations converties en contrat">
-          <KpiCard
-            hoverHighlight
-            icon={<Percent className="size-5 text-[#8a6600]" />}
-            iconClass="bg-[#ffc61e]/20"
-            value={pick(quotes, () =>
-              rate === null ? (
-                '—'
-              ) : (
-                <>
-                  {new Intl.NumberFormat('fr-FR', {
-                    maximumFractionDigits: 1,
-                  }).format(rate)}
-                  <span className="text-base font-bold text-muted-foreground">
-                    {' '}
-                    %
-                  </span>
-                </>
-              ),
-            )}
-            label={`Cotations converties · ${phrase}`}
-          />
-        </KpiLink>
-      </KpiRow>
+          <KpiLink to="clients" label="Nouveaux clients">
+            <KpiCard
+              hoverHighlight
+              icon={<UserPlus className="size-5 text-[#1f53b0]" />}
+              iconClass="bg-[#1f53b0]/10"
+              value={pick(clients, () =>
+                numberFormat.format(newClients?.cur ?? 0),
+              )}
+              label={`Nouveaux clients · ${phrase}`}
+              trend={
+                newClients
+                  ? trendOf(newClients.cur, newClients.prev)
+                  : undefined
+              }
+            />
+          </KpiLink>
+          <KpiLink to="cotations" label="Cotations converties en contrat">
+            <KpiCard
+              hoverHighlight
+              icon={<Percent className="size-5 text-[#8a6600]" />}
+              iconClass="bg-[#ffc61e]/20"
+              value={pick(quotes, () =>
+                rate === null
+                  ? '—'
+                  : new Intl.NumberFormat('fr-FR', {
+                      maximumFractionDigits: 1,
+                    }).format(rate),
+              )}
+              unit={
+                quotes.isLoading || quotes.isError || rate === null
+                  ? undefined
+                  : '%'
+              }
+              label={`Cotations converties · ${phrase}`}
+            />
+          </KpiLink>
+        </KpiRow>
+      </ScrollShadow>
     </>
   )
 }

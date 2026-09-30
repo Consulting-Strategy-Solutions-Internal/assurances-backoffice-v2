@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { PremiumRatesScreen } from '#/components/ia-products/premium-rates/PremiumRatesScreen'
 import { RiskClassesScreen } from '#/components/ia-products/risk-classes/RiskClassesScreen'
@@ -83,8 +83,36 @@ describe('PremiumRatesScreen', () => {
       ]) as never,
     )
     renderWithClient(<PremiumRatesScreen />)
-    expect(await screen.findByText(/0,25\s‰/)).toBeTruthy()
-    expect(screen.getByText(/1,5\s‰/)).toBeTruthy()
+    // Tableau (≥ 672 px) et cartes (mobile) portent les mêmes taux.
+    const table = await screen.findByRole('table')
+    expect(await within(table).findByText(/0,25\s‰/)).toBeTruthy()
+    expect(within(table).getByText(/1,5\s‰/)).toBeTruthy()
+  })
+
+  it('vue cartes mobile : taux ‰ et menu d’actions du barème', async () => {
+    vi.mocked(getPremiumRates).mockResolvedValue(
+      page([
+        {
+          id: 9,
+          riskClassId: 1,
+          death: 0.25,
+          permanentDisability: 1.5,
+          medicalExpenses: 4,
+        },
+      ]) as never,
+    )
+    renderWithClient(<PremiumRatesScreen />)
+    const table = await screen.findByRole('table')
+    await within(table).findByText(/0,25\s‰/)
+    const cards = screen.getByRole('list')
+    expect(within(cards).getByText(/0,25\s‰/)).toBeTruthy()
+    expect(within(cards).getByText(/1,5\s‰/)).toBeTruthy()
+    expect(within(cards).getByText(/4\s‰/)).toBeTruthy()
+    expect(
+      within(cards).getByRole('button', {
+        name: /Actions du barème de la classe/,
+      }),
+    ).toBeTruthy()
   })
 
   it('sous filtre actif, l’état vide parle du filtre et propose de le réinitialiser', async () => {
@@ -93,10 +121,13 @@ describe('PremiumRatesScreen', () => {
     renderWithClient(
       <PremiumRatesScreen filter="QUOTABLE" onFilterChange={onFilterChange} />,
     )
+    const table = await screen.findByRole('table')
     expect(
-      await screen.findByText('Aucune classe ne correspond à ce filtre.'),
+      await within(table).findByText(
+        'Aucune classe ne correspond à ce filtre.',
+      ),
     ).toBeTruthy()
-    screen.getByText('Afficher toutes les classes').click()
+    within(table).getByText('Afficher toutes les classes').click()
     expect(onFilterChange).toHaveBeenCalledWith('ALL')
   })
 })

@@ -23,27 +23,25 @@ import { useClientNames } from '#/components/claims/use-client-names'
 import {
   ClickableRow,
   DataTableCard,
+  DataTableCell,
   DataTableHead,
-  FIRST_CELL_CLASS,
   RowChevron,
   TableEmptyState,
   TableErrorState,
   TableSkeletonRows,
 } from '#/components/layout/DataTable'
 import { KpiRow } from '#/components/layout/KpiRow'
+import {
+  MobileCardContent,
+  MobileCardList,
+} from '#/components/layout/MobileCardList'
 import { TruncatedText } from '#/components/layout/TruncatedText'
 import {
   ResultCount,
   Toolbar,
   ToolbarSearch,
 } from '#/components/layout/Toolbar'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHeader,
-  TableRow,
-} from '#/components/ui/table'
+import { Table, TableBody, TableHeader, TableRow } from '#/components/ui/table'
 import {
   CLAIM_STATUS_LABELS,
   formatClaimDate,
@@ -195,7 +193,7 @@ export function ClaimsListContent() {
       </PageHeader>
       {showCreate && <CreateClaimDialog onClose={() => setShowCreate(false)} />}
 
-      <KpiRow className="lg:grid-cols-4">
+      <KpiRow>
         <KpiCard
           icon={<FileWarning className="size-5 text-primary" />}
           iconClass="bg-primary/[0.08]"
@@ -274,7 +272,7 @@ export function ClaimsListContent() {
               label="Client"
               value={search.clientId ? String(search.clientId) : ''}
               allLabel="Tous les clients"
-              className="w-[190px]"
+              className="@xl/main:w-[190px]"
               onChange={(value) =>
                 updateSearch({ clientId: value ? Number(value) : undefined })
               }
@@ -282,7 +280,6 @@ export function ClaimsListContent() {
             <FilterSelect
               label="Tri"
               value={search.sort}
-              className="w-[170px]"
               options={SORT_OPTIONS}
               onChange={(value) =>
                 updateSearch({ sort: value as typeof search.sort })
@@ -318,18 +315,77 @@ export function ClaimsListContent() {
           : `${matching.length} sinistre${matching.length > 1 ? 's' : ''}${filtering ? ` sur ${claims.length}` : ''}`}
       </ResultCount>
 
-      <DataTableCard>
+      <DataTableCard
+        mobileCards={
+          <MobileCardList
+            items={rows}
+            getKey={(claim) => claim.id}
+            onActivate={(claim) =>
+              void navigate({
+                to: '/sinistres/$claimId',
+                params: { claimId: String(claim.id) },
+              })
+            }
+            isLoading={isLoading}
+            error={!!error}
+            forbidden={forbidden}
+            errorTitle="Impossible de charger les sinistres."
+            errorAction={
+              <Button
+                variant="outline"
+                className="rounded-[11px]"
+                onClick={() => void refetch()}
+              >
+                Réessayer
+              </Button>
+            }
+            empty={{
+              icon: SearchCheck,
+              title: filtering
+                ? 'Aucun sinistre ne correspond à votre recherche.'
+                : 'Aucun sinistre pour le moment.',
+              action: filtering ? (
+                <button
+                  type="button"
+                  onClick={reset}
+                  className="text-[13px] font-semibold text-primary hover:underline"
+                >
+                  Réinitialiser les filtres
+                </button>
+              ) : undefined,
+            }}
+            renderCard={(claim) => (
+              <MobileCardContent
+                title={claim.claimNumber}
+                subtitle={
+                  claim.clientName?.trim()
+                    ? nameOf(claim.clientId, claim.clientName)
+                    : `Client supprimé (#${claim.clientId})`
+                }
+                status={<ClaimStatusBadge status={claim.status} />}
+                meta={
+                  <>
+                    {claim.claimTypeName} · {formatClaimDate(claim.createdAt)}
+                  </>
+                }
+              />
+            )}
+          />
+        }
+      >
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <DataTableHead first>Sinistre</DataTableHead>
+              <DataTableHead first sticky="left">
+                Sinistre
+              </DataTableHead>
               <DataTableHead>Statut</DataTableHead>
               <DataTableHead>Client</DataTableHead>
-              <DataTableHead>Type</DataTableHead>
-              <DataTableHead>Produit</DataTableHead>
-              <DataTableHead>Survenance</DataTableHead>
-              <DataTableHead>Déclaré par</DataTableHead>
-              <DataTableHead>Créé le</DataTableHead>
+              <DataTableHead hideBelow="md">Type</DataTableHead>
+              <DataTableHead hideBelow="lg">Produit</DataTableHead>
+              <DataTableHead hideBelow="md">Survenance</DataTableHead>
+              <DataTableHead hideBelow="lg">Déclaré par</DataTableHead>
+              <DataTableHead hideBelow="md">Créé le</DataTableHead>
               <DataTableHead className="w-10" />
             </TableRow>
           </TableHeader>
@@ -337,6 +393,16 @@ export function ClaimsListContent() {
             {isLoading ? (
               <TableSkeletonRows
                 columns={[28, 24, 32, 24, 20, 24, 20, 28]}
+                hideBelow={[
+                  undefined,
+                  undefined,
+                  undefined,
+                  'md',
+                  'lg',
+                  'md',
+                  'lg',
+                  'md',
+                ]}
                 trailing
               />
             ) : error ? (
@@ -386,7 +452,7 @@ export function ClaimsListContent() {
                     })
                   }
                 >
-                  <TableCell className={FIRST_CELL_CLASS}>
+                  <DataTableCell first sticky="left">
                     <div className="font-bold whitespace-nowrap text-primary">
                       {claim.claimNumber}
                     </div>
@@ -395,11 +461,11 @@ export function ClaimsListContent() {
                         ? `Contrat ${claim.policyNumber}`
                         : `Contrat #${claim.subscriptionId}`}
                     </div>
-                  </TableCell>
-                  <TableCell>
+                  </DataTableCell>
+                  <DataTableCell>
                     <ClaimStatusBadge status={claim.status} />
-                  </TableCell>
-                  <TableCell>
+                  </DataTableCell>
+                  <DataTableCell>
                     {claim.clientName?.trim() ? (
                       <TruncatedText className="max-w-[200px] font-semibold">
                         {nameOf(claim.clientId, claim.clientName)}
@@ -409,26 +475,35 @@ export function ClaimsListContent() {
                         Client supprimé (#{claim.clientId})
                       </span>
                     )}
-                  </TableCell>
-                  <TableCell>
+                  </DataTableCell>
+                  <DataTableCell hideBelow="md">
                     <TruncatedText className="max-w-[180px]">
                       {claim.claimTypeName}
                     </TruncatedText>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
+                  </DataTableCell>
+                  <DataTableCell
+                    hideBelow="lg"
+                    className="text-muted-foreground"
+                  >
                     <TruncatedText className="max-w-[160px]">
                       {claim.productLabel}
                     </TruncatedText>
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap">
+                  </DataTableCell>
+                  <DataTableCell hideBelow="md" className="whitespace-nowrap">
                     {formatClaimDate(claim.occurredOn)}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
+                  </DataTableCell>
+                  <DataTableCell
+                    hideBelow="lg"
+                    className="text-muted-foreground"
+                  >
                     {claim.declaredBy === 'CLIENT' ? 'Client' : 'Back-office'}
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap text-muted-foreground">
+                  </DataTableCell>
+                  <DataTableCell
+                    hideBelow="md"
+                    className="whitespace-nowrap text-muted-foreground"
+                  >
                     {formatClaimDate(claim.createdAt, true)}
-                  </TableCell>
+                  </DataTableCell>
                   <RowChevron />
                 </ClickableRow>
               ))

@@ -25,6 +25,9 @@ export function useScrollShadow<T extends HTMLElement>(selector: string) {
     const el = host?.querySelector<HTMLElement>(selector)
     if (!host || !el) return
     const update = () => {
+      // Visible width of the scroller: lets sticky children (table empty/error
+      // states) size themselves to what the user actually sees.
+      host.style.setProperty('--table-viewport', `${el.clientWidth}px`)
       host.dataset.shadowLeft = String(el.scrollLeft > 1)
       host.dataset.shadowRight = String(
         el.scrollLeft + el.clientWidth < el.scrollWidth - 1,
@@ -45,7 +48,40 @@ export function useScrollShadow<T extends HTMLElement>(selector: string) {
   return ref
 }
 
-/** Horizontally scrollable strip (tabs, chips) with edge shadows as scroll hint. */
+/** Selector of the « current » element of a strip (Radix tab, `aria-current` link). */
+export const ACTIVE_ITEM_SELECTOR = '[data-state="active"], [aria-current]'
+
+/**
+ * Horizontal scroll (px, positive = to the right) needed to bring an item
+ * fully into the visible part of its scroller, 0 when it already is.
+ */
+export function scrollDeltaToReveal(
+  scroller: { left: number; right: number },
+  item: { left: number; right: number },
+  padding = 12,
+) {
+  if (item.left < scroller.left) return item.left - scroller.left - padding
+  if (item.right > scroller.right) return item.right - scroller.right + padding
+  return 0
+}
+
+/** Scrolls the scroller horizontally (never the page) so the active item is visible. */
+export function scrollActiveIntoView(scroller: HTMLElement) {
+  const active = scroller.querySelector<HTMLElement>(ACTIVE_ITEM_SELECTOR)
+  if (!active) return
+  const delta = scrollDeltaToReveal(
+    scroller.getBoundingClientRect(),
+    active.getBoundingClientRect(),
+  )
+  if (delta !== 0) scroller.scrollLeft += delta
+}
+
+/**
+ * Horizontally scrollable strip (tabs, chips) with edge shadows as scroll
+ * hint. The active item (`[data-state=active]`, `[aria-current]`) is scrolled
+ * into view on mount and whenever it changes, so the current tab is never
+ * hidden off-screen on a phone.
+ */
 export function ScrollShadow({
   className,
   children,
@@ -54,6 +90,34 @@ export function ScrollShadow({
   children: ReactNode
 }) {
   const ref = useScrollShadow<HTMLDivElement>('[data-scroll]')
+  useEffect(() => {
+    const scroller = ref.current?.querySelector<HTMLElement>('[data-scroll]')
+    if (!scroller) return
+    scrollActiveIntoView(scroller)
+    if (typeof MutationObserver === 'undefined') return
+    // Only react to the active item itself (or an item that just lost/gained
+    // `data-state=active` / `aria-current`), not to any descendant's data-state
+    // (a Radix tooltip/popover inside the strip would re-scroll it).
+    const observer = new MutationObserver((mutations) => {
+      const relevant = mutations.some((mutation) => {
+        const target = mutation.target as Element
+        if (target.matches(ACTIVE_ITEM_SELECTOR)) return true
+        // Item that stopped being active: its previous value was the active one.
+        return (
+          mutation.attributeName === 'data-state' &&
+          mutation.oldValue === 'active'
+        )
+      })
+      if (relevant) scrollActiveIntoView(scroller)
+    })
+    observer.observe(scroller, {
+      subtree: true,
+      attributes: true,
+      attributeOldValue: true,
+      attributeFilter: ['data-state', 'aria-current'],
+    })
+    return () => observer.disconnect()
+  }, [ref])
   return (
     <div ref={ref} className={cn(SCROLL_SHADOW_CLASS, className)}>
       <div data-scroll className="max-w-full overflow-x-auto">
