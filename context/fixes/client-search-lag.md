@@ -24,5 +24,13 @@ Deux mécanismes qui s'additionnent. (1) Chaque frappe dans un filtre lié à l'
 - **Change:** `src/components/layout/Toolbar.tsx:54` — `ToolbarSearch` garde son brouillon pendant la saisie et ne suit la valeur du parent qu'hors édition (remise à zéro par « Réinitialiser »).
 - **Regression test:** `src/routes/-auth-guard.test.ts` (7 frappes = 0 ou 1 appel, changement de page = nouvel appel, refus → /login puis revérification, rien de mémorisé côté serveur) ; `src/components/layout/ToolbarSearch.test.tsx` (parent en retard : « kouassi » intact ; remise à zéro suivie).
 - **Mesure réelle** (dev + proxy vers la démo, Playwright, 7 frappes à 40 ms) : avant 7 appels server fn, champ final « i » ; après 0 appel, champ « kouassi », URL `q=kouassi`.
-- **Other occurrences:** les 10 listes qui utilisent `ToolbarSearch` (clients, cotations, partenaires, sinistres, support…) sont corrigées par le même changement ; les autres champs de recherche (métiers, matrice des permissions, `SearchableSelect`) ont un état local et n'étaient pas touchés.
+- **Other occurrences:** les 9 listes qui utilisent `ToolbarSearch` (clients, cotations, partenaires, sinistres, types de sinistre, support, administrateurs, rôles, permissions) sont corrigées par le même changement ; les autres champs de recherche (métiers, filtre de la matrice de permissions d'un rôle, `SearchableSelect`) ont un état local et n'étaient pas touchés.
 - **Commit:** `d027638`
+
+## Review findings
+
+> Last review: round 1 · 2026-09-30 · base `6342806` · HEAD `a411d72` · verdict : prêt après le 🟡 — PR #10 fusionnée avant la fin de la revue, à la demande de l'utilisateur ; correctifs dans `fix/client-search-lag-followup`
+
+- [~] **R1-1** 🟡 Le préchargement au survol (`defaultPreload: 'intent'`, `beforeLoad` en `stay` vers une autre page) écrasait le chemin mémorisé → un appel serveur par frappe après chaque survol — `src/routes/_auth.tsx:24` (fix: 47ff30d — pages vérifiées < 1 min, vérifications en cours regroupées ; mesuré : survol de 2 liens puis 7 frappes → 2 appels, ceux des préchargements, 0 par frappe)
+- [~] **R1-2** ⚪ `ToolbarSearch` ignorait Précédent/Suivant tant que le champ avait le focus (L-001) — `src/components/layout/Toolbar.tsx:73` (fix: 47ff30d — échos distingués des changements extérieurs)
+- [~] **R1-3** ⚪ Nombre d'appelants faux dans ce dossier (9, pas 10) — `context/fixes/client-search-lag.md:25` (fix: 47ff30d)
