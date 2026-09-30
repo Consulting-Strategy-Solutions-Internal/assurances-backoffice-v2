@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useForm } from '@tanstack/react-form'
+import { useForm, useStore } from '@tanstack/react-form'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
 import { toast } from 'sonner'
@@ -10,6 +10,7 @@ import { createAgency, getPartnerAgencies } from '#/services/agencies'
 import type { CreateAgencyPayload } from '#/services/agencies'
 import { cn } from '#/lib/utils'
 import { Button } from '#/components/ui/button'
+import { Skeleton } from '#/components/ui/skeleton'
 import {
   Table,
   TableBody,
@@ -91,15 +92,17 @@ export function AgenciesStep({ partnerId }: { partnerId: number }) {
     },
   })
 
+  const dirty = useStore(form.store, (s) => !s.isDefaultValue)
+
   return (
     <div>
-      <div className="text-[16px] font-bold tracking-[-0.01em]">Agences</div>
+      <h2 className="text-[16px] font-bold tracking-[-0.01em]">Agences</h2>
       <p className="mt-1 mb-4 text-[13.5px] text-muted-foreground">
         Étape optionnelle. Ajoutez des agences ou passez directement aux agents.
       </p>
 
       {isLoading ? (
-        <p className="text-[13.5px] text-muted-foreground">Chargement…</p>
+        <Skeleton className="h-32 rounded-xl" />
       ) : (
         <div className="overflow-hidden rounded-xl border">
           <Table>
@@ -147,7 +150,7 @@ export function AgenciesStep({ partnerId }: { partnerId: number }) {
       )}
 
       {data?.last === false && (
-        <p className="mt-2 text-[13px] text-[#9a7400]">
+        <p className="mt-2 text-[13px] text-[#8a6600]">
           Liste tronquée (100+ éléments) · toutes les agences ne sont pas
           affichées.
         </p>
@@ -173,6 +176,7 @@ export function AgenciesStep({ partnerId }: { partnerId: number }) {
 
       {showForm && (
         <FormDialog
+          dirty={dirty}
           onClose={() => {
             setShowForm(false)
             setServerError(null)

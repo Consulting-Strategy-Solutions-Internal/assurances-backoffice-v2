@@ -29,8 +29,9 @@ export interface UpdatePartnerPayload {
 export async function getPartners(
   page = 0,
   size = 20,
+  sort?: string,
 ): Promise<PageResponse<PartnerResponse>> {
-  const response = await api.get('/partners', { params: { page, size } })
+  const response = await api.get('/partners', { params: { page, size, sort } })
   return response.data
 }
 

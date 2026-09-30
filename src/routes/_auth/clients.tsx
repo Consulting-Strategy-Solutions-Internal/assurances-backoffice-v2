@@ -1,24 +1,66 @@
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { pageHead } from '#/lib/page-title'
+import { useMemo } from 'react'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
+import { Mail, Phone, UserPlus, UserRound, Users } from 'lucide-react'
 import { z } from 'zod'
-import { Avatar, AvatarFallback } from '#/components/ui/avatar'
-import { Badge } from '#/components/ui/badge'
-import { Card } from '#/components/ui/card'
-import { Pagination } from '#/components/ui/Pagination'
-import { FormSelect } from '#/components/forms/FormSelect'
+import { ClientAvatar } from '#/components/clients/ClientAvatar'
+import { VerificationIcons } from '#/components/clients/VerificationIcons'
+import { KpiCard } from '#/components/dashboard/KpiCard'
+import {
+  ClickableRow,
+  DataTableCard,
+  DataTableHead,
+  FIRST_CELL_CLASS,
+  RowChevron,
+  TableEmptyState,
+  TableErrorState,
+  TableSkeletonRows,
+} from '#/components/layout/DataTable'
+import { KpiRow } from '#/components/layout/KpiRow'
+import { TruncatedText } from '#/components/layout/TruncatedText'
+import { SegmentedPills } from '#/components/layout/SegmentedPills'
+import {
+  ResultCount,
+  Toolbar,
+  ToolbarSearch,
+} from '#/components/layout/Toolbar'
 import { PageHeader } from '#/components/dashboard/PageHeader'
+import { Pagination } from '#/components/ui/Pagination'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '#/components/ui/select'
 import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from '#/components/ui/table'
-import { formatClaimDate } from '#/lib/claims'
-import { clientsKeys, getClients } from '#/services/clients'
+import {
+  clientAddress,
+  clientEmail,
+  clientFullName,
+  computeClientStats,
+  filterClients,
+  formatPhone,
+} from '#/lib/clients'
+import type { GenderFilter, VerificationFilter } from '#/lib/clients'
+import { formatClaimDate, mapClaimError } from '#/lib/claims'
+import { Button } from '#/components/ui/button'
+import { clientsKeys, getAllClients } from '#/services/clients'
 
 const searchSchema = z.object({
+  q: z.string().optional().catch(undefined),
+  verification: z
+    .enum(['all', 'verified', 'unverified'])
+    .optional()
+    .catch(undefined),
+  gender: z.enum(['all', 'HOMME', 'FEMME']).optional().catch(undefined),
   page: z.coerce.number().int().min(0).catch(0),
   size: z.coerce.number().int().min(1).max(100).catch(20),
   sort: z
@@ -27,145 +69,290 @@ const searchSchema = z.object({
 })
 
 export const Route = createFileRoute('/_auth/clients')({
+  head: pageHead('Clients'),
   validateSearch: searchSchema,
   component: ClientsPage,
 })
 
-const headCls =
-  'h-auto bg-[#fafbfc] px-3 py-3 text-[11px] font-bold uppercase tracking-[0.05em] text-muted-foreground'
-
 export function ClientsPage() {
   const search = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
-  const { data, isLoading, error } = useQuery({
-    queryKey: clientsKeys.list(search.page, search.size, search.sort),
-    queryFn: () => getClients(search.page, search.size, search.sort),
+  const query = search.q ?? ''
+  const verification: VerificationFilter = search.verification ?? 'all'
+  const gender: GenderFilter = search.gender ?? 'all'
+
+  // The API has no text search / verification / gender filter: every client
+  // is loaded (sorted server-side) and filtered + paginated here, so the
+  // counters and the search always cover the whole base.
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: clientsKeys.everyone(search.sort),
+    queryFn: () => getAllClients(search.sort),
     retry: false,
   })
-  const setPage = (page: number) =>
-    navigate({ search: (previous) => ({ ...previous, page }) })
+
+  const clients = useMemo(() => data?.items ?? [], [data])
+  const stats = useMemo(() => computeClientStats(clients), [clients])
+  const filtered = useMemo(
+    () => filterClients(clients, { query, verification, gender }),
+    [clients, query, verification, gender],
+  )
+  const totalPages = Math.max(1, Math.ceil(filtered.length / search.size))
+  const page = Math.min(search.page, totalPages - 1)
+  const rows = filtered.slice(page * search.size, (page + 1) * search.size)
+  const pct = stats.total
+    ? Math.round((stats.phoneVerified / stats.total) * 100)
+    : 0
+  const filtering =
+    query.trim() !== '' || verification !== 'all' || gender !== 'all'
+  const forbidden = !!error && mapClaimError(error).kind === 'forbidden'
+
+  const setPage = (next: number) =>
+    navigate({ search: (previous) => ({ ...previous, page: next }) })
+  const patch = (values: Partial<typeof search>, replace = false) =>
+    navigate({
+      search: (previous) => ({ ...previous, ...values, page: 0 }),
+      replace,
+    })
+  const reset = () =>
+    navigate({
+      search: (previous) => ({
+        page: 0,
+        size: previous.size,
+        sort: previous.sort,
+      }),
+    })
 
   return (
     <>
       <PageHeader
         title="Clients"
-        subtitle="Répertoire des clients issu de l’API"
+        subtitle="Assurés inscrits sur l’application : coordonnées, vérifications et historique de sinistres."
       />
-      <Card className="mb-4 p-4">
-        <FormSelect
-          id="clients-sort"
-          label="Tri"
-          value={search.sort}
-          options={[
-            { value: 'lastName,asc', label: 'Nom A–Z' },
-            { value: 'lastName,desc', label: 'Nom Z–A' },
-            { value: 'createdAt,desc', label: 'Plus récents' },
-            { value: 'createdAt,asc', label: 'Plus anciens' },
-          ]}
-          onChange={(sort) =>
-            navigate({
-              search: (previous) => ({
-                ...previous,
-                sort: sort as typeof search.sort,
-                page: 0,
-              }),
-            })
-          }
+
+      <KpiRow className="lg:grid-cols-4">
+        <KpiCard
+          icon={<Users className="size-5 text-primary" />}
+          iconClass="bg-primary/[0.08]"
+          value={isLoading ? '…' : error ? '—' : stats.total}
+          label="Clients"
         />
-        <p className="text-xs text-muted-foreground">
-          L’API ne fournit pas de recherche générale par nom. Aucun filtrage
-          local incomplet n’est appliqué à cette liste paginée.
-        </p>
-      </Card>
-      <Card className="gap-0 overflow-x-auto py-0">
+        <KpiCard
+          icon={<Phone className="size-5 text-[#167347]" />}
+          iconClass="bg-[#1c8a57]/10"
+          value={isLoading ? '…' : error ? '—' : stats.phoneVerified}
+          label={`Téléphone vérifié${isLoading ? '' : ` · ${pct} %`}`}
+        />
+        <KpiCard
+          icon={<Mail className="size-5 text-[#1f53b0]" />}
+          iconClass="bg-[#1f53b0]/10"
+          value={isLoading ? '…' : error ? '—' : stats.withEmail}
+          label="Email renseigné"
+        />
+        <KpiCard
+          icon={<UserPlus className="size-5 text-[#8a6600]" />}
+          iconClass="bg-[#ffc61e]/20"
+          value={isLoading ? '…' : error ? '—' : stats.recent}
+          label="Nouveaux sur 30 jours"
+        />
+      </KpiRow>
+
+      <Toolbar
+        search={
+          <ToolbarSearch
+            label="Rechercher un client"
+            placeholder="Nom, téléphone, email, adresse…"
+            value={query}
+            onChange={(value) => patch({ q: value || undefined }, true)}
+          />
+        }
+        filters={
+          <>
+            <SegmentedPills
+              label="Vérification du téléphone"
+              value={verification}
+              onChange={(value) => patch({ verification: value })}
+              options={[
+                { value: 'all', label: 'Tous' },
+                { value: 'verified', label: 'Tél. vérifié' },
+                { value: 'unverified', label: 'Tél. non vérifié' },
+              ]}
+            />
+            <SegmentedPills
+              label="Genre"
+              value={gender}
+              onChange={(value) => patch({ gender: value })}
+              options={[
+                { value: 'all', label: 'Tous' },
+                { value: 'FEMME', label: 'Femmes' },
+                { value: 'HOMME', label: 'Hommes' },
+              ]}
+            />
+            <Select
+              value={search.sort}
+              onValueChange={(sort) =>
+                navigate({
+                  search: (previous) => ({
+                    ...previous,
+                    sort: sort as typeof search.sort,
+                    page: 0,
+                  }),
+                })
+              }
+            >
+              <SelectTrigger
+                aria-label="Tri"
+                className="h-10 w-[170px] rounded-[10px] bg-card"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="lastName,asc">Nom A–Z</SelectItem>
+                <SelectItem value="lastName,desc">Nom Z–A</SelectItem>
+                <SelectItem value="createdAt,desc">Plus récents</SelectItem>
+                <SelectItem value="createdAt,asc">Plus anciens</SelectItem>
+              </SelectContent>
+            </Select>
+          </>
+        }
+      />
+
+      <ResultCount
+        note={
+          isLoading || error
+            ? undefined
+            : data?.capped
+              ? `Affichage limité aux ${clients.length} premiers clients (sur ${data.total}).`
+              : `La recherche et les indicateurs portent sur les ${clients.length} clients.`
+        }
+      >
+        {isLoading
+          ? 'Chargement…'
+          : `${filtered.length} client${filtered.length > 1 ? 's' : ''}${filtering ? ` sur ${clients.length}` : ''}`}
+      </ResultCount>
+
+      <DataTableCard>
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead className={`${headCls} pl-[22px]`}>Client</TableHead>
-              <TableHead className={headCls}>Téléphone</TableHead>
-              <TableHead className={headCls}>Email</TableHead>
-              <TableHead className={headCls}>Adresse</TableHead>
-              <TableHead className={headCls}>Créé le</TableHead>
-              <TableHead className={headCls}>Vérifications</TableHead>
+              <DataTableHead first>Client</DataTableHead>
+              <DataTableHead>Téléphone</DataTableHead>
+              <DataTableHead>Email</DataTableHead>
+              <DataTableHead>Adresse</DataTableHead>
+              <DataTableHead>Inscrit le</DataTableHead>
+              <DataTableHead>Vérifications</DataTableHead>
+              <DataTableHead className="w-10" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow>
-                <TableCell
-                  colSpan={6}
-                  className="py-10 text-center text-muted-foreground"
-                >
-                  Chargement des clients…
-                </TableCell>
-              </TableRow>
+              <TableSkeletonRows
+                columns={[36, 28, 32, 40, 20, 16]}
+                leading="avatar"
+                trailing
+              />
             ) : error ? (
-              <TableRow>
-                <TableCell
-                  colSpan={6}
-                  className="py-10 text-center text-destructive"
-                >
-                  Impossible de charger les clients.
-                </TableCell>
-              </TableRow>
-            ) : !data?.content.length ? (
-              <TableRow>
-                <TableCell
-                  colSpan={6}
-                  className="py-10 text-center text-muted-foreground"
-                >
-                  Aucun client pour le moment.
-                </TableCell>
-              </TableRow>
+              <TableErrorState
+                colSpan={7}
+                forbidden={forbidden}
+                title="Impossible de charger les clients."
+                action={
+                  <Button
+                    variant="outline"
+                    className="rounded-[11px]"
+                    onClick={() => void refetch()}
+                  >
+                    Réessayer
+                  </Button>
+                }
+              />
+            ) : rows.length === 0 ? (
+              <TableEmptyState
+                colSpan={7}
+                icon={UserRound}
+                title={
+                  filtering
+                    ? 'Aucun client ne correspond à votre recherche.'
+                    : 'Aucun client pour le moment.'
+                }
+                action={
+                  filtering ? (
+                    <button
+                      type="button"
+                      onClick={reset}
+                      className="text-[13px] font-semibold text-primary hover:underline"
+                    >
+                      Réinitialiser les filtres
+                    </button>
+                  ) : undefined
+                }
+              />
             ) : (
-              data.content.map((client) => {
-                const initials =
-                  `${client.firstName.charAt(0)}${client.lastName.charAt(0)}`.toUpperCase()
+              rows.map((client) => {
+                const email = clientEmail(client)
                 return (
-                  <TableRow key={client.id}>
-                    <TableCell className="pl-[22px]">
-                      <Link
-                        to="/clients/$clientId"
-                        params={{ clientId: String(client.id) }}
-                        className="flex items-center gap-3 font-semibold text-primary hover:underline"
-                      >
-                        <Avatar className="size-8">
-                          <AvatarFallback className="bg-primary text-xs font-bold text-primary-foreground">
-                            {initials}
-                          </AvatarFallback>
-                        </Avatar>
-                        {client.firstName} {client.lastName}
-                      </Link>
-                    </TableCell>
-                    <TableCell>{client.phoneNumber}</TableCell>
-                    <TableCell>{client.email || 'Non renseigné'}</TableCell>
-                    <TableCell>{client.addressLine1}</TableCell>
-                    <TableCell>{formatClaimDate(client.createdAt)}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Badge variant="outline">
-                          Tél.{' '}
-                          {client.phoneVerifiedAt ? 'vérifié' : 'non vérifié'}
-                        </Badge>
-                        <Badge variant="outline">
-                          Email{' '}
-                          {client.emailVerifiedAt ? 'vérifié' : 'non vérifié'}
-                        </Badge>
+                  <ClickableRow
+                    key={client.id}
+                    onActivate={() =>
+                      navigate({
+                        to: '/clients/$clientId',
+                        params: { clientId: String(client.id) },
+                      })
+                    }
+                  >
+                    <TableCell className={FIRST_CELL_CLASS}>
+                      <div className="flex items-center gap-3">
+                        <ClientAvatar client={client} />
+                        <div>
+                          <div className="font-semibold">
+                            {clientFullName(client)}
+                          </div>
+                          <div className="text-[12px] text-muted-foreground">
+                            Client #{client.id}
+                          </div>
+                        </div>
                       </div>
                     </TableCell>
-                  </TableRow>
+                    <TableCell className="whitespace-nowrap tabular-nums">
+                      {formatPhone(client.phoneNumber)}
+                    </TableCell>
+                    <TableCell>
+                      {email ? (
+                        <TruncatedText className="max-w-[220px]">
+                          {email}
+                        </TruncatedText>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {clientAddress(client) ? (
+                        <TruncatedText className="max-w-[260px]">
+                          {clientAddress(client)}
+                        </TruncatedText>
+                      ) : (
+                        '—'
+                      )}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {formatClaimDate(client.createdAt)}
+                    </TableCell>
+                    <TableCell>
+                      <VerificationIcons client={client} />
+                    </TableCell>
+                    <RowChevron />
+                  </ClickableRow>
                 )
               })
             )}
           </TableBody>
         </Table>
-      </Card>
+      </DataTableCard>
       <Pagination
-        page={search.page}
-        totalPages={data?.totalPages ?? 0}
-        isLast={data?.last ?? true}
-        onPrev={() => setPage(search.page - 1)}
-        onNext={() => setPage(search.page + 1)}
+        page={page}
+        totalPages={totalPages}
+        isLast={page >= totalPages - 1}
+        onPrev={() => setPage(page - 1)}
+        onNext={() => setPage(page + 1)}
       />
     </>
   )

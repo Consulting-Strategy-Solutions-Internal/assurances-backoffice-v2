@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useForm } from '@tanstack/react-form'
+import { useEffect, useState } from 'react'
+import { useForm, useStore } from '@tanstack/react-form'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
 import { toast } from 'sonner'
@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from '#/components/ui/select'
 import { FormField } from '#/components/forms/FormField'
+import { formatRoleName } from '#/lib/admin-roles'
 
 const schema = z.object({
   name: z.string().min(1, 'Le nom est requis'),
@@ -29,6 +30,10 @@ const schema = z.object({
 
 interface AddRoleFormProps {
   onCancel: () => void
+  /** Appelé après une création réussie (par défaut : `onCancel`). */
+  onCreated?: () => void
+  /** Signale au parent qu'il y a une saisie non enregistrée. */
+  onDirtyChange?: (dirty: boolean) => void
 }
 
 /**
@@ -36,7 +41,11 @@ interface AddRoleFormProps {
  * existant, puis sélection fine dans la matrice. Le backend ne prend pas les
  * permissions à la création (`POST /roles`), on les rattache ensuite une à une.
  */
-export function AddRoleForm({ onCancel }: AddRoleFormProps) {
+export function AddRoleForm({
+  onCancel,
+  onCreated,
+  onDirtyChange,
+}: AddRoleFormProps) {
   const queryClient = useQueryClient()
   const [templateId, setTemplateId] = useState('')
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
@@ -65,8 +74,9 @@ export function AddRoleForm({ onCancel }: AddRoleFormProps) {
     onSuccess: (newRole) => {
       void queryClient.invalidateQueries({ queryKey: ['roles'] })
       void queryClient.invalidateQueries({ queryKey: ['roles-all'] })
-      toast.success(`Rôle ${newRole.name} créé.`)
-      onCancel()
+      toast.success(`Rôle ${formatRoleName(newRole.name)} créé.`)
+      if (onCreated) onCreated()
+      else onCancel()
     },
     onError: (error) => {
       if (isAxiosError(error) && error.response?.status === 409)
@@ -88,6 +98,12 @@ export function AddRoleForm({ onCancel }: AddRoleFormProps) {
       })
     },
   })
+
+  const formDirty = useStore(form.store, (st) => !st.isDefaultValue)
+  const dirty = formDirty || selectedIds.size > 0
+  useEffect(() => {
+    onDirtyChange?.(dirty)
+  }, [dirty, onDirtyChange])
 
   function handleTemplateChange(value: string) {
     setTemplateId(value)
@@ -161,7 +177,8 @@ export function AddRoleForm({ onCancel }: AddRoleFormProps) {
           <SelectContent>
             {(allRoles?.content ?? []).map((r) => (
               <SelectItem key={r.id} value={String(r.id)}>
-                {r.name} ({r.permissions.length} permissions)
+                {formatRoleName(r.name)} ({r.permissions.length} permission
+                {r.permissions.length > 1 ? 's' : ''})
               </SelectItem>
             ))}
           </SelectContent>

@@ -1,92 +1,136 @@
+import { KeyRound } from 'lucide-react'
 import type { PermissionResponse } from '#/services/roles'
+import {
+  ClickableRow,
+  DataTableCard,
+  DataTableHead,
+  FIRST_CELL_CLASS,
+  RowChevron,
+  TableEmptyState,
+  TableErrorState,
+  TableSkeletonRows,
+} from '#/components/layout/DataTable'
+import { Button } from '#/components/ui/button'
 import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from '#/components/ui/table'
 import { permissionDescription, permissionLabel } from '#/lib/permission-labels'
 import { cn } from '#/lib/utils'
 
-const headCls =
-  'h-auto bg-[#fafbfc] px-3 py-3 text-[11px] font-bold uppercase tracking-[0.05em] text-muted-foreground'
-
 interface PermissionsTableProps {
   permissions: PermissionResponse[]
   /** Absent si l'utilisateur n'a pas le droit de modifier une permission. */
   onSelect?: (permission: PermissionResponse) => void
   selectedId?: number
+  isLoading?: boolean
+  error?: unknown
+  forbidden?: boolean
+  filtering?: boolean
+  onReset?: () => void
+  onRetry?: () => void
 }
 
 export function PermissionsTable({
   permissions,
   onSelect,
   selectedId,
+  isLoading = false,
+  error,
+  forbidden,
+  filtering = false,
+  onReset,
+  onRetry,
 }: PermissionsTableProps) {
+  const cols = onSelect ? 3 : 2
   return (
-    <Table>
-      <TableHeader>
-        <TableRow className="hover:bg-transparent">
-          <TableHead className={cn(headCls, 'pl-[22px]')}>Permission</TableHead>
-          <TableHead className={cn(headCls, 'pr-[22px]')}>
-            Ce que ça autorise
-          </TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {permissions.length === 0 ? (
+    <DataTableCard>
+      <Table>
+        <TableHeader>
           <TableRow className="hover:bg-transparent">
-            <TableCell
-              colSpan={2}
-              className="py-9 text-center text-[13.5px] text-muted-foreground"
-            >
-              Aucune permission ne correspond à votre recherche.
-            </TableCell>
+            <DataTableHead first>Permission</DataTableHead>
+            <DataTableHead>Ce que ça autorise</DataTableHead>
+            {onSelect && <DataTableHead className="w-10" />}
           </TableRow>
-        ) : (
-          permissions.map((permission) => (
-            <TableRow
-              key={permission.id}
-              role={onSelect ? 'button' : undefined}
-              tabIndex={onSelect ? 0 : undefined}
-              aria-label={
-                onSelect
-                  ? `Modifier la permission ${permission.name}`
-                  : undefined
+        </TableHeader>
+        <TableBody>
+          {isLoading ? (
+            <TableSkeletonRows columns={[48, 96]} trailing={!!onSelect} />
+          ) : error ? (
+            <TableErrorState
+              colSpan={cols}
+              forbidden={forbidden}
+              title="Impossible de charger les permissions."
+              action={
+                onRetry && (
+                  <Button variant="outline" size="sm" onClick={onRetry}>
+                    Réessayer
+                  </Button>
+                )
               }
-              onClick={onSelect ? () => onSelect(permission) : undefined}
-              onKeyDown={
-                onSelect
-                  ? (e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault()
-                        onSelect(permission)
-                      }
-                    }
-                  : undefined
+            />
+          ) : permissions.length === 0 ? (
+            <TableEmptyState
+              colSpan={cols}
+              icon={KeyRound}
+              title={
+                filtering
+                  ? 'Aucune permission ne correspond à votre recherche.'
+                  : 'Aucune permission pour le moment.'
               }
-              className={cn(
-                onSelect && 'cursor-pointer',
-                selectedId === permission.id && 'bg-primary/5',
-              )}
-            >
-              <TableCell className="w-[280px] py-3.5 pl-[22px] align-top">
-                <div className="text-[13.5px] font-semibold">
-                  {permissionLabel(permission.name)}
-                </div>
-                <div className="mt-0.5 font-mono text-[12px] text-muted-foreground">
-                  {permission.name}
-                </div>
-              </TableCell>
-              <TableCell className="py-3.5 pr-[22px] align-top text-[13px] leading-relaxed text-muted-foreground">
-                {permissionDescription(permission.name)}
-              </TableCell>
-            </TableRow>
-          ))
-        )}
-      </TableBody>
-    </Table>
+              action={
+                filtering && onReset ? (
+                  <button
+                    type="button"
+                    onClick={onReset}
+                    className="text-[13px] font-semibold text-primary hover:underline"
+                  >
+                    Réinitialiser les filtres
+                  </button>
+                ) : undefined
+              }
+            />
+          ) : (
+            permissions.map((permission) => {
+              const cells = (
+                <>
+                  <TableCell
+                    className={cn(FIRST_CELL_CLASS, 'w-[300px] align-top')}
+                  >
+                    <div className="font-semibold">
+                      {permissionLabel(permission.name)}
+                    </div>
+                    <div className="mt-0.5 font-mono text-[12px] text-muted-foreground">
+                      {permission.name}
+                    </div>
+                  </TableCell>
+                  <TableCell className="align-top leading-relaxed whitespace-normal text-muted-foreground">
+                    {permissionDescription(permission.name)}
+                  </TableCell>
+                </>
+              )
+              return onSelect ? (
+                <ClickableRow
+                  key={permission.id}
+                  aria-label={`Modifier la permission ${permission.name}`}
+                  onActivate={() => onSelect(permission)}
+                  className={cn(selectedId === permission.id && 'bg-primary/5')}
+                >
+                  {cells}
+                  <RowChevron />
+                </ClickableRow>
+              ) : (
+                <TableRow key={permission.id} className="hover:bg-[#f6f8fc]">
+                  {cells}
+                </TableRow>
+              )
+            })
+          )}
+        </TableBody>
+      </Table>
+    </DataTableCard>
   )
 }

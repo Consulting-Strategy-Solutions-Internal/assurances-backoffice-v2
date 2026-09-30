@@ -4,10 +4,16 @@ import {
   availableSupportTransitions,
   canReplyToSupport,
   canStreamSupport,
+  filterSupportConversations,
   mapSupportError,
+  needsReadReceipt,
   upsertSupportMessage,
 } from '#/lib/support'
-import type { SupportMessageResponse, SupportStatus } from '#/services/support'
+import type {
+  SupportConversationResponse,
+  SupportMessageResponse,
+  SupportStatus,
+} from '#/services/support'
 
 describe('availableSupportTransitions', () => {
   const cases: Array<[SupportStatus, string[]]> = [
@@ -116,5 +122,73 @@ describe('mapSupportError', () => {
     expect(mapSupportError(new Error('x'))).toBe(
       'Impossible de contacter le serveur.',
     )
+  })
+})
+
+describe('filterSupportConversations', () => {
+  const conv = (
+    id: number,
+    subject: string,
+    handledByName: string | null,
+  ): SupportConversationResponse => ({
+    id,
+    subject,
+    status: handledByName ? 'IN_PROGRESS' : 'OPEN',
+    handledByName,
+    lastMessageAt: '2026-09-01T10:00:00',
+    unreadCount: 0,
+    createdAt: '2026-09-01T10:00:00',
+  })
+  const rows = [
+    conv(52, 'Mauvaise manipulation', null),
+    conv(2, 'Paiement échoué', 'Admin NSIA'),
+    conv(1, 'Test', 'Awa Koné'),
+  ]
+  const all = { query: '', agent: 'all' as const, myName: 'Admin NSIA' }
+
+  it('searches subject, ticket number and agent (accent-insensitive)', () => {
+    expect(
+      filterSupportConversations(rows, { ...all, query: 'paiement' }),
+    ).toHaveLength(1)
+    expect(
+      filterSupportConversations(rows, { ...all, query: '#52' })[0].id,
+    ).toBe(52)
+    expect(
+      filterSupportConversations(rows, { ...all, query: 'kone' })[0].id,
+    ).toBe(1)
+  })
+  it('filters by agent', () => {
+    expect(
+      filterSupportConversations(rows, { ...all, agent: 'me' }).map(
+        (r) => r.id,
+      ),
+    ).toEqual([2])
+    expect(
+      filterSupportConversations(rows, { ...all, agent: 'unassigned' }).map(
+        (r) => r.id,
+      ),
+    ).toEqual([52])
+    expect(
+      filterSupportConversations(rows, {
+        ...all,
+        agent: 'me',
+        myName: undefined,
+      }),
+    ).toEqual([])
+  })
+})
+
+describe('needsReadReceipt', () => {
+  it('ne demande rien sans message client', () => {
+    expect(needsReadReceipt(undefined, undefined)).toBe(false)
+  })
+  it('demande un accusé pour un premier message client', () => {
+    expect(needsReadReceipt(12, undefined)).toBe(true)
+  })
+  it('ne rejoue pas l’accusé quand le dernier message client est déjà acquitté', () => {
+    expect(needsReadReceipt(12, 12)).toBe(false)
+  })
+  it('redemande quand un message client plus récent arrive', () => {
+    expect(needsReadReceipt(13, 12)).toBe(true)
   })
 })

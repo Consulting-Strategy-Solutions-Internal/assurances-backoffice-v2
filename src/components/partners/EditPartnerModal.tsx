@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useForm } from '@tanstack/react-form'
+import { useForm, useStore } from '@tanstack/react-form'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
 import { z } from 'zod'
@@ -70,8 +70,11 @@ export function EditPartnerModal({ partner, onClose }: EditPartnerModalProps) {
     },
   })
 
+  const dirty = useStore(form.store, (s) => !s.isDefaultValue)
+
   return (
     <FormDialog
+      dirty={dirty}
       onClose={onClose}
       eyebrow="Partenaires"
       title="Modifier le partenaire"

@@ -2,12 +2,16 @@
 
 import { describe, expect, it } from 'vitest'
 import {
+  matchesStatusFilter,
   MAX_ATTACHMENT_BYTES,
   availableActions,
   canUploadAttachment,
   formatClaimDate,
   mapClaimError,
+  maskFrDate,
+  parseFrDate,
   validateClaimUpload,
+  validateOccurredOn,
 } from '#/lib/claims'
 import type { ClaimStatus } from '#/services/claims'
 
@@ -106,4 +110,39 @@ describe('mapClaimError', () => {
 
 it('formats LocalDate without UTC conversion', () => {
   expect(formatClaimDate('2026-07-31')).toContain('2026')
+})
+
+describe('French date field', () => {
+  it('masks digits as jj/mm/aaaa', () => {
+    expect(maskFrDate('0309')).toBe('03/09')
+    expect(maskFrDate('03092026x')).toBe('03/09/2026')
+  })
+  it('parses real dates only', () => {
+    expect(parseFrDate('03/09/2026')).toBe('2026-09-03')
+    expect(parseFrDate('31/02/2026')).toBeNull()
+    expect(parseFrDate('3/9/2026')).toBeNull()
+  })
+  it('rejects empty, invalid and future dates', () => {
+    const today = new Date(2026, 8, 30)
+    expect(validateOccurredOn('', today)).toMatch(/requise/)
+    expect(validateOccurredOn('99/99/2026', today)).toMatch(/invalide/)
+    expect(validateOccurredOn('01/10/2026', today)).toMatch(/futur/)
+    expect(validateOccurredOn('30/09/2026', today)).toBeUndefined()
+  })
+})
+
+describe('matchesStatusFilter (R1-27)', () => {
+  it('« en cours » regroupe déclaré, en instruction et pièces demandées', () => {
+    const open: ClaimStatus[] = ['SUBMITTED', 'UNDER_REVIEW', 'INFO_REQUESTED']
+    for (const status of open)
+      expect(matchesStatusFilter(status, 'OPEN')).toBe(true)
+    for (const status of ['APPROVED', 'REJECTED', 'CANCELLED'] as ClaimStatus[])
+      expect(matchesStatusFilter(status, 'OPEN')).toBe(false)
+  })
+
+  it('un statut précis ne garde que ce statut, sans filtre tout passe', () => {
+    expect(matchesStatusFilter('APPROVED', 'APPROVED')).toBe(true)
+    expect(matchesStatusFilter('SUBMITTED', 'APPROVED')).toBe(false)
+    expect(matchesStatusFilter('REJECTED', undefined)).toBe(true)
+  })
 })

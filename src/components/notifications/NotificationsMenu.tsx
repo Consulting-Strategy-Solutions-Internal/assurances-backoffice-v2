@@ -1,8 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Bell } from 'lucide-react'
+import { Bell, BellOff } from 'lucide-react'
+import { StatusPill } from '#/components/dashboard/StatusPill'
+import { EmptyState } from '#/components/layout/EmptyState'
 import { Button } from '#/components/ui/button'
+import { Skeleton } from '#/components/ui/skeleton'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -95,28 +98,46 @@ export function NotificationsMenu() {
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-[360px] p-0">
-        <div className="flex items-center justify-between border-b px-4 py-2.5">
-          <span className="text-[13px] font-bold">Notifications</span>
+      <DropdownMenuContent
+        align="end"
+        className="w-[380px] overflow-hidden rounded-xl p-0"
+      >
+        <div className="flex items-center justify-between border-b px-4 py-3">
+          <div className="flex items-center gap-2">
+            <span className="text-[14px] font-bold tracking-[-0.01em]">
+              Notifications
+            </span>
+            {unread !== undefined && unread > 0 && (
+              <StatusPill tone="warning">{unread}</StatusPill>
+            )}
+          </div>
           <Button
             variant="ghost"
             size="sm"
-            className="h-auto px-2 py-1 text-xs"
+            className="h-auto rounded-[8px] px-2 py-1 text-[12px] font-semibold text-primary"
             disabled={readAllMutation.isPending || !unread}
             onClick={() => readAllMutation.mutate()}
           >
             Tout marquer lu
           </Button>
         </div>
-        <div className="max-h-[380px] overflow-y-auto">
+        <div className="max-h-[400px] overflow-y-auto">
           {page === undefined ? (
-            <p className="px-4 py-6 text-center text-sm text-muted-foreground">
-              Chargement…
-            </p>
+            <div className="space-y-3 px-4 py-4">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="space-y-1.5">
+                  <Skeleton className="h-3.5 w-3/5" />
+                  <Skeleton className="h-3 w-full" />
+                </div>
+              ))}
+            </div>
           ) : page.content.length === 0 ? (
-            <p className="px-4 py-6 text-center text-sm text-muted-foreground">
-              Aucune notification.
-            </p>
+            <EmptyState
+              icon={BellOff}
+              title="Aucune notification."
+              description="Les nouveaux tickets et événements apparaîtront ici."
+              className="py-10"
+            />
           ) : (
             page.content.map((notification) => (
               <button
@@ -124,22 +145,31 @@ export function NotificationsMenu() {
                 type="button"
                 onClick={() => void openNotification(notification)}
                 className={cn(
-                  'block w-full border-b px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-muted/50',
+                  'block w-full border-b px-4 py-3 text-left transition-colors outline-none last:border-b-0 hover:bg-[#f6f8fc] focus-visible:bg-[#f6f8fc]',
                   !notification.read && 'bg-primary/[0.04]',
                 )}
               >
-                <span className="flex items-start gap-2">
-                  {!notification.read && (
-                    <span className="mt-1.5 size-2 shrink-0 rounded-full bg-[#FFC61E]" />
-                  )}
+                <span className="flex items-start gap-2.5">
+                  <span
+                    aria-hidden
+                    className={cn(
+                      'mt-1.5 size-2 shrink-0 rounded-full',
+                      notification.read ? 'bg-transparent' : 'bg-[#ffc61e]',
+                    )}
+                  />
                   <span className="min-w-0">
-                    <span className="block truncate text-[13px] font-bold">
+                    <span
+                      className={cn(
+                        'block truncate text-[13px]',
+                        notification.read ? 'font-semibold' : 'font-bold',
+                      )}
+                    >
                       {notification.title}
                     </span>
-                    <span className="mt-0.5 line-clamp-2 block text-xs text-muted-foreground">
+                    <span className="mt-0.5 line-clamp-2 block text-[12.5px] text-muted-foreground">
                       {notification.body}
                     </span>
-                    <span className="mt-1 block text-[11px] text-muted-foreground">
+                    <span className="mt-1 block text-[11.5px] text-muted-foreground">
                       {formatClaimDate(notification.createdAt, true)}
                     </span>
                   </span>

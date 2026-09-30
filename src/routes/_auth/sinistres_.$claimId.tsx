@@ -1,20 +1,46 @@
+import { pageHead } from '#/lib/page-title'
 import { useRef, useState } from 'react'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Download, FileUp } from 'lucide-react'
+import {
+  CalendarDays,
+  CalendarRange,
+  Download,
+  FileText,
+  FileUp,
+  FileWarning,
+  History,
+  MapPin,
+  Paperclip,
+  TriangleAlert,
+  User,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '#/components/ui/button'
-import { Card } from '#/components/ui/card'
 import { Label } from '#/components/ui/label'
+import { Skeleton } from '#/components/ui/skeleton'
+import { KpiCard } from '#/components/dashboard/KpiCard'
+import { StatusPill } from '#/components/dashboard/StatusPill'
+import { BackLink } from '#/components/layout/BackLink'
+import {
+  DetailHeaderCard,
+  IconTile,
+} from '#/components/layout/DetailHeaderCard'
+import { EmptyState } from '#/components/layout/EmptyState'
+import { InfoList, InfoRow } from '#/components/layout/InfoList'
+import { KpiRow } from '#/components/layout/KpiRow'
+import { SectionCard } from '#/components/layout/SectionCard'
 import { ClaimActionDialog } from '#/components/claims/ClaimActionDialog'
 import { ClaimsAdminGate } from '#/components/claims/ClaimsAdminGate'
 import { ClaimStatusBadge } from '#/components/claims/ClaimStatusBadge'
 import { ClaimTimeline } from '#/components/claims/ClaimTimeline'
+import { useClientNames } from '#/components/claims/use-client-names'
 import {
   availableActions,
   canUploadAttachment,
   formatClaimDate,
   formatFileSize,
+  MAX_ATTACHMENTS,
   mapClaimError,
   validateClaimUpload,
 } from '#/lib/claims'
@@ -32,8 +58,54 @@ import type {
 } from '#/services/claims'
 
 export const Route = createFileRoute('/_auth/sinistres_/$claimId')({
+  head: pageHead('Détail du sinistre'),
   component: ClaimDetailRoute,
 })
+
+const backSearch = { page: 0, size: 20, sort: 'createdAt,desc' } as const
+
+const TEXTAREA_CLASS =
+  'w-full rounded-[10px] border bg-card px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50'
+
+function StateCard({
+  title,
+  description,
+  tone,
+  onRetry,
+}: {
+  title: string
+  description?: string
+  tone?: 'muted' | 'error'
+  onRetry?: () => void
+}) {
+  return (
+    <EmptyState
+      variant="card"
+      icon={TriangleAlert}
+      tone={tone}
+      title={title}
+      description={description}
+      action={
+        <div className="flex flex-wrap justify-center gap-2">
+          {onRetry && (
+            <Button className="rounded-[11px]" onClick={onRetry}>
+              Réessayer
+            </Button>
+          )}
+          <Button
+            asChild
+            variant={onRetry ? 'outline' : 'default'}
+            className="rounded-[11px]"
+          >
+            <Link to="/sinistres" search={backSearch}>
+              Retour aux sinistres
+            </Link>
+          </Button>
+        </div>
+      }
+    />
+  )
+}
 
 const actionLabels: Record<ClaimTransition, string> = {
   review: 'Prendre en charge',
@@ -44,6 +116,7 @@ const actionLabels: Record<ClaimTransition, string> = {
 
 export function ClaimDetailContent({ claimId }: { claimId: number }) {
   const queryClient = useQueryClient()
+  const { nameOf } = useClientNames()
   const fileInput = useRef<HTMLInputElement>(null)
   const [action, setAction] = useState<ClaimTransition | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
@@ -159,155 +232,204 @@ export function ClaimDetailContent({ claimId }: { claimId: number }) {
 
   if (isLoading)
     return (
-      <Card className="p-8 text-center text-muted-foreground">
-        Chargement du sinistre…
-      </Card>
+      <div className="flex flex-col gap-[18px]" aria-busy="true">
+        <Skeleton className="h-36 rounded-xl" />
+        <div className="grid grid-cols-3 gap-4">
+          <Skeleton className="h-[122px] rounded-2xl" />
+          <Skeleton className="h-[122px] rounded-2xl" />
+          <Skeleton className="h-[122px] rounded-2xl" />
+        </div>
+        <Skeleton className="h-64 rounded-xl" />
+      </div>
     )
-  if (error || !claim)
+  if (error || !claim) {
+    const kind = error ? mapClaimError(error).kind : 'not-found'
+    if (kind === 'forbidden')
+      return (
+        <StateCard
+          tone="error"
+          title="Accès refusé."
+          description="Vous n’avez pas les droits nécessaires pour consulter ce sinistre."
+        />
+      )
+    if (kind === 'not-found' || !error)
+      return (
+        <StateCard
+          title="Sinistre introuvable"
+          description="Ce sinistre n’existe pas ou a été supprimé."
+        />
+      )
     return (
-      <Card className="p-8 text-center">
-        <h1 className="text-xl font-bold">Sinistre introuvable</h1>
-        <Button asChild className="mt-4">
-          <Link
-            to="/sinistres"
-            search={{ page: 0, size: 20, sort: 'createdAt,desc' }}
-          >
-            Retour à la liste
-          </Link>
-        </Button>
-      </Card>
+      <StateCard
+        tone="error"
+        title="Impossible de charger le sinistre"
+        description="Une erreur est survenue. Réessayez dans un instant."
+        onRetry={() => void refetch()}
+      />
     )
+  }
   const actions = availableActions(claim.status)
   const terminal = ['APPROVED', 'REJECTED', 'CANCELLED'].includes(claim.status)
+  const attachments = claim.attachments ?? []
+  const events = claim.events ?? []
 
   return (
-    <>
-      <Button asChild variant="ghost" className="mb-4">
-        <Link
-          to="/sinistres"
-          search={{ page: 0, size: 20, sort: 'createdAt,desc' }}
-        >
-          <ArrowLeft />
-          Retour aux sinistres
-        </Link>
-      </Button>
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-extrabold">{claim.claimNumber}</h1>
-            <ClaimStatusBadge status={claim.status} />
-          </div>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Déclaré le {formatClaimDate(claim.createdAt, true)} · mis à jour le{' '}
+    <div className="flex flex-col gap-[18px]">
+      <BackLink to="/sinistres" search={backSearch}>
+        Retour aux sinistres
+      </BackLink>
+      <DetailHeaderCard
+        leading={
+          <IconTile>
+            <FileWarning />
+          </IconTile>
+        }
+        title={claim.claimNumber}
+        meta={
+          <>
+            {claim.claimTypeName} · {claim.productLabel} · Déclaré le{' '}
+            {formatClaimDate(claim.createdAt, true)} · mis à jour le{' '}
             {formatClaimDate(claim.updatedAt, true)}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {actions.map((available) => (
-            <Button
-              key={available}
-              variant={
-                available === 'reject'
-                  ? 'destructive'
-                  : available === 'approve'
-                    ? 'default'
-                    : 'outline'
-              }
-              onClick={() => setAction(available)}
-            >
-              {actionLabels[available]}
-            </Button>
-          ))}
-        </div>
-      </div>
+          </>
+        }
+        pills={
+          <>
+            <ClaimStatusBadge status={claim.status} />
+            <StatusPill tone="neutral">
+              Déclaré par{' '}
+              {claim.declaredBy === 'CLIENT' ? 'le client' : 'le back-office'}
+            </StatusPill>
+          </>
+        }
+        actions={actions.map((available) => (
+          <Button
+            key={available}
+            className={
+              available === 'approve'
+                ? 'rounded-[11px] shadow-[0_4px_14px_rgba(0,51,127,0.22)]'
+                : 'rounded-[11px]'
+            }
+            variant={
+              available === 'reject'
+                ? 'destructive'
+                : available === 'approve'
+                  ? 'default'
+                  : 'outline'
+            }
+            onClick={() => setAction(available)}
+          >
+            {actionLabels[available]}
+          </Button>
+        ))}
+      />
+
+      <KpiRow cols={3} className="mb-0">
+        <KpiCard
+          icon={<CalendarDays className="size-5 text-primary" />}
+          iconClass="bg-primary/[0.08]"
+          value={
+            <span className="text-[24px]">
+              {formatClaimDate(claim.occurredOn)}
+            </span>
+          }
+          label="Date de survenance"
+        />
+        <KpiCard
+          icon={<Paperclip className="size-5 text-[#1f53b0]" />}
+          iconClass="bg-[#1f53b0]/10"
+          value={`${attachments.length}/${MAX_ATTACHMENTS}`}
+          label="Pièces jointes"
+        />
+        <KpiCard
+          icon={<History className="size-5 text-[#8a6600]" />}
+          iconClass="bg-[#ffc61e]/20"
+          value={events.length}
+          label="Événements au dossier"
+        />
+      </KpiRow>
+
       {claim.status === 'INFO_REQUESTED' && (
-        <p className="mb-4 rounded-lg border border-violet-200 bg-violet-50 p-3 text-sm text-violet-900">
+        <p className="rounded-lg bg-[#fef3da] px-4 py-3 text-[13px] text-[#8a6600]">
           Le dossier attend une pièce. Aucune transition back-office n’est
           disponible; le dépôt d’une pièce le replacera automatiquement en
           instruction.
         </p>
       )}
       {terminal && (
-        <p className="mb-4 rounded-lg border bg-muted/40 p-3 text-sm">
+        <p className="rounded-lg bg-[#f0f1f4] px-4 py-3 text-[13px] text-muted-foreground">
           Ce statut est terminal : aucune transition et aucun dépôt de pièce ne
           sont possibles. Les notes internes restent disponibles.
         </p>
       )}
-      <div className="grid gap-5 xl:grid-cols-[1fr_1.15fr]">
-        <div className="space-y-5">
-          <Card>
-            <h2 className="text-lg font-bold">Déclaration</h2>
-            <dl className="mt-4 grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <dt className="text-muted-foreground">Client déclarant</dt>
-                <dd className="font-semibold">
-                  {claim.clientName?.trim() ? (
-                    <Link
-                      to="/clients/$clientId"
-                      params={{ clientId: String(claim.clientId) }}
-                      className="text-primary hover:underline"
-                    >
-                      {claim.clientName}
-                    </Link>
-                  ) : (
-                    `Client supprimé (#${claim.clientId})`
-                  )}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Type</dt>
-                <dd className="font-semibold">{claim.claimTypeName}</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Survenance</dt>
-                <dd>{formatClaimDate(claim.occurredOn)}</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Lieu</dt>
-                <dd>{claim.location || 'Non renseigné'}</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Déclaré par</dt>
-                <dd>
-                  {claim.declaredBy === 'CLIENT' ? 'Client' : 'Back-office'}
-                </dd>
-              </div>
-            </dl>
-            <p className="mt-4 whitespace-pre-wrap text-sm">
-              {claim.description}
-            </p>
-          </Card>
-          <Card>
-            <h2 className="text-lg font-bold">
-              Contexte du contrat à la déclaration
-            </h2>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Snapshot figé, non synchronisé avec l’état actuel du contrat.
-            </p>
-            <dl className="mt-4 grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <dt className="text-muted-foreground">Produit</dt>
-                <dd className="font-semibold">{claim.productLabel}</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Contrat</dt>
-                <dd>#{claim.subscriptionId}</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Début de couverture</dt>
-                <dd>{formatClaimDate(claim.coverageStart)}</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Fin de couverture</dt>
-                <dd>{formatClaimDate(claim.coverageEnd)}</dd>
-              </div>
-            </dl>
-          </Card>
-          <Card>
-            <h2 className="text-lg font-bold">Note interne</h2>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Cette note ne sera pas visible du client.
-            </p>
+
+      <div className="grid items-start gap-[18px] xl:grid-cols-[1fr_1.15fr]">
+        <div className="flex flex-col gap-[18px]">
+          <SectionCard title="Déclaration">
+            <InfoList columns={2}>
+              <InfoRow icon={<User />} label="Client déclarant">
+                {claim.clientName?.trim() ? (
+                  <Link
+                    to="/clients/$clientId"
+                    params={{ clientId: String(claim.clientId) }}
+                    className="text-primary hover:underline"
+                  >
+                    {nameOf(claim.clientId, claim.clientName)}
+                  </Link>
+                ) : (
+                  `Client supprimé (#${claim.clientId})`
+                )}
+              </InfoRow>
+              <InfoRow icon={<FileWarning />} label="Type">
+                {claim.claimTypeName}
+              </InfoRow>
+              <InfoRow icon={<CalendarDays />} label="Survenance">
+                {formatClaimDate(claim.occurredOn)}
+              </InfoRow>
+              <InfoRow
+                icon={<MapPin />}
+                label="Lieu"
+                placeholder="Non renseigné"
+              >
+                {claim.location}
+              </InfoRow>
+              <InfoRow icon={<User />} label="Déclaré par">
+                {claim.declaredBy === 'CLIENT' ? 'Client' : 'Back-office'}
+              </InfoRow>
+            </InfoList>
+            <div className="mt-5 border-t pt-4">
+              <p className="mb-1 text-[12.5px] text-muted-foreground">
+                Description
+              </p>
+              <p className="text-[13.5px] whitespace-pre-wrap">
+                {claim.description}
+              </p>
+            </div>
+          </SectionCard>
+
+          <SectionCard
+            title="Contexte du contrat à la déclaration"
+            description="Snapshot figé, non synchronisé avec l’état actuel du contrat."
+          >
+            <InfoList columns={2}>
+              <InfoRow icon={<FileText />} label="Produit">
+                {claim.productLabel}
+              </InfoRow>
+              <InfoRow icon={<FileText />} label="Contrat">
+                {claim.policyNumber ?? `#${claim.subscriptionId}`}
+              </InfoRow>
+              <InfoRow icon={<CalendarRange />} label="Début de couverture">
+                {formatClaimDate(claim.coverageStart)}
+              </InfoRow>
+              <InfoRow icon={<CalendarRange />} label="Fin de couverture">
+                {formatClaimDate(claim.coverageEnd)}
+              </InfoRow>
+            </InfoList>
+          </SectionCard>
+
+          <SectionCard
+            title="Note interne"
+            description="Cette note ne sera pas visible du client."
+          >
             <textarea
               aria-label="Commentaire de la note interne"
               rows={4}
@@ -317,14 +439,15 @@ export function ClaimDetailContent({ claimId }: { claimId: number }) {
                 setNote(event.target.value)
                 setNoteError(null)
               }}
-              className="mt-3 w-full rounded-[10px] border bg-transparent px-3 py-2 text-sm"
+              className={TEXTAREA_CLASS}
             />
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">
+            <div className="mt-2 flex items-center justify-between">
+              <span className="text-[12px] text-muted-foreground">
                 {note.length}/1000
               </span>
               <Button
                 size="sm"
+                className="rounded-[10px]"
                 disabled={noteMutation.isPending}
                 onClick={submitNote}
               >
@@ -336,21 +459,24 @@ export function ClaimDetailContent({ claimId }: { claimId: number }) {
                 {noteError}
               </p>
             )}
-          </Card>
-          <Card>
-            <h2 className="text-lg font-bold">Pièces jointes</h2>
+          </SectionCard>
+
+          <SectionCard
+            title="Pièces jointes"
+            description={`${attachments.length}/${MAX_ATTACHMENTS} pièces au dossier`}
+          >
             {canUploadAttachment(claim.status) && (
-              <div className="mt-3 rounded-xl border border-dashed p-3">
-                <Label htmlFor="claim-file">
-                  PDF, JPEG ou PNG · 10 Mo maximum ·{' '}
-                  {claim.attachments?.length ?? 0}/20
+              <div className="mb-4 rounded-xl border border-dashed bg-[#fafbfc] p-4">
+                <Label htmlFor="claim-file" className="text-[13px]">
+                  PDF, JPEG ou PNG · 10 Mo maximum · {attachments.length}/
+                  {MAX_ATTACHMENTS}
                 </Label>
                 <input
                   ref={fileInput}
                   id="claim-file"
                   type="file"
                   accept="application/pdf,image/jpeg,image/png"
-                  className="mt-2 block w-full text-sm"
+                  className="mt-2 block w-full text-sm file:mr-3 file:rounded-[9px] file:border-0 file:bg-primary/[0.08] file:px-3 file:py-1.5 file:text-[12.5px] file:font-semibold file:text-primary"
                   onChange={(event) => {
                     setFile(event.target.files?.[0] ?? null)
                     setUploadError(null)
@@ -362,10 +488,10 @@ export function ClaimDetailContent({ claimId }: { claimId: number }) {
                   maxLength={1000}
                   placeholder="Commentaire optionnel"
                   onChange={(event) => setUploadComment(event.target.value)}
-                  className="mt-3 h-10 w-full rounded-[10px] border bg-transparent px-3 text-sm"
+                  className="mt-3 h-10 w-full rounded-[10px] border bg-card px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                 />
                 <Button
-                  className="mt-3"
+                  className="mt-3 rounded-[10px]"
                   size="sm"
                   disabled={uploadMutation.isPending}
                   onClick={submitUpload}
@@ -385,28 +511,34 @@ export function ClaimDetailContent({ claimId }: { claimId: number }) {
                 )}
               </div>
             )}
-            <ul className="mt-4 divide-y">
-              {(claim.attachments ?? []).map((attachment) => (
+            <ul className="divide-y">
+              {attachments.map((attachment) => (
                 <li
                   key={attachment.id}
-                  className="flex items-center justify-between gap-3 py-3"
+                  className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
                 >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold">
-                      {attachment.name}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {attachment.contentType} ·{' '}
-                      {formatFileSize(attachment.sizeBytes)} ·{' '}
-                      {attachment.uploadedBy === 'CLIENT'
-                        ? 'Client'
-                        : 'Back-office'}{' '}
-                      · {formatClaimDate(attachment.createdAt, true)}
-                    </p>
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-primary/[0.08] text-primary">
+                      <FileText className="size-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-[13.5px] font-semibold">
+                        {attachment.name}
+                      </p>
+                      <p className="text-[12px] text-muted-foreground">
+                        {attachment.contentType} ·{' '}
+                        {formatFileSize(attachment.sizeBytes)} ·{' '}
+                        {attachment.uploadedBy === 'CLIENT'
+                          ? 'Client'
+                          : 'Back-office'}{' '}
+                        · {formatClaimDate(attachment.createdAt, true)}
+                      </p>
+                    </div>
                   </div>
                   <Button
                     variant="outline"
                     size="sm"
+                    className="rounded-[10px]"
                     aria-label={`Télécharger ${attachment.name}`}
                     onClick={() => download(attachment)}
                   >
@@ -414,18 +546,20 @@ export function ClaimDetailContent({ claimId }: { claimId: number }) {
                   </Button>
                 </li>
               ))}
-              {!(claim.attachments ?? []).length && (
-                <li className="py-3 text-sm text-muted-foreground">
+              {!attachments.length && (
+                <li className="text-[13.5px] text-muted-foreground">
                   Aucune pièce jointe.
                 </li>
               )}
             </ul>
-          </Card>
+          </SectionCard>
         </div>
-        <Card>
-          <h2 className="mb-5 text-lg font-bold">Historique du dossier</h2>
-          <ClaimTimeline events={claim.events ?? []} />
-        </Card>
+        <SectionCard
+          title="Historique du dossier"
+          description="Changements de statut, pièces et notes, du plus ancien au plus récent."
+        >
+          <ClaimTimeline events={events} />
+        </SectionCard>
       </div>
       {action && (
         <ClaimActionDialog
@@ -441,7 +575,7 @@ export function ClaimDetailContent({ claimId }: { claimId: number }) {
           }
         />
       )}
-    </>
+    </div>
   )
 }
 
@@ -453,9 +587,10 @@ function ClaimDetailRoute() {
       {Number.isSafeInteger(id) && id > 0 ? (
         <ClaimDetailContent claimId={id} />
       ) : (
-        <Card className="p-8 text-center">
-          Identifiant de sinistre invalide.
-        </Card>
+        <StateCard
+          title="Identifiant de sinistre invalide."
+          description="Vérifiez l’adresse de la page ou revenez à la liste."
+        />
       )}
     </ClaimsAdminGate>
   )

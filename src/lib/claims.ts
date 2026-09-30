@@ -23,6 +23,25 @@ export const CLAIM_STATUS_LABELS: Record<ClaimStatus, string> = {
   CANCELLED: 'Annulé par le client',
 }
 
+/** Claims still awaiting a decision (the dashboard's « Sinistres en cours »). */
+export const OPEN_CLAIM_STATUSES: readonly ClaimStatus[] = [
+  'SUBMITTED',
+  'UNDER_REVIEW',
+  'INFO_REQUESTED',
+]
+
+/** List status filter: one status, or `OPEN` for every undecided claim. */
+export type ClaimStatusFilter = ClaimStatus | 'OPEN'
+
+export function matchesStatusFilter(
+  status: ClaimStatus,
+  filter: ClaimStatusFilter | undefined,
+): boolean {
+  if (filter === undefined) return true
+  if (filter === 'OPEN') return OPEN_CLAIM_STATUSES.includes(status)
+  return status === filter
+}
+
 export type UploadValidationCode =
   | 'FILE_REQUIRED'
   | 'FILE_TOO_LARGE'
@@ -150,4 +169,49 @@ export function formatClaimDate(
     year: 'numeric',
     ...(withTime ? { hour: '2-digit', minute: '2-digit' } : {}),
   }).format(date)
+}
+
+/** Live mask for a French date field: « 03092026 » → « 03/09/2026 ». */
+export function maskFrDate(input: string): string {
+  const digits = input.replace(/\D/g, '').slice(0, 8)
+  if (digits.length <= 2) return digits
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`
+}
+
+/**
+ * « jj/mm/aaaa » → « aaaa-mm-jj » (what the API expects), or `null` when the
+ * text is not a real calendar date.
+ */
+export function parseFrDate(text: string): string | null {
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(text.trim())
+  if (!match) return null
+  const [, dd, mm, yyyy] = match
+  const date = new Date(Number(yyyy), Number(mm) - 1, Number(dd))
+  const real =
+    date.getFullYear() === Number(yyyy) &&
+    date.getMonth() === Number(mm) - 1 &&
+    date.getDate() === Number(dd)
+  return real ? `${yyyy}-${mm}-${dd}` : null
+}
+
+/** « aaaa-mm-jj » → « jj/mm/aaaa » (inverse of `parseFrDate`); '' if not an ISO date. */
+export function isoToFrDate(iso?: string | null): string {
+  const match = iso ? /^(\d{4})-(\d{2})-(\d{2})/.exec(iso) : null
+  return match ? `${match[3]}/${match[2]}/${match[1]}` : ''
+}
+
+/** Error message for the « date de survenance » field, or `undefined` when valid. */
+export function validateOccurredOn(
+  text: string,
+  today: Date = new Date(),
+): string | undefined {
+  if (!text.trim()) return 'La date de survenance est requise'
+  const iso = parseFrDate(text)
+  if (!iso) return 'Date invalide : saisissez jj/mm/aaaa'
+  const y = today.getFullYear()
+  const m = String(today.getMonth() + 1).padStart(2, '0')
+  const d = String(today.getDate()).padStart(2, '0')
+  if (iso > `${y}-${m}-${d}`) return 'La date ne peut pas être dans le futur'
+  return undefined
 }

@@ -1,11 +1,17 @@
 import { useState } from 'react'
-import { useForm } from '@tanstack/react-form'
+import { useForm, useStore } from '@tanstack/react-form'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
-import { Search } from 'lucide-react'
+import { Plus, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { assignUserToPartner, createUser, getUsers } from '#/services/users'
+import { useAllUsers } from '#/components/users/use-all-users'
+import { useUnsavedChangesGuard } from '#/components/forms/unsaved-changes'
+import { TruncatedText } from '#/components/layout/TruncatedText'
+import { formatPersonName } from '#/lib/people'
+import { formatPhone } from '#/lib/clients'
+import { formatRoleName, isPlaceholderPhone } from '#/lib/admin-roles'
 import type { CreateUserPayload, UserResponse } from '#/services/users'
 import { getRoles } from '#/services/roles'
 import { getPartners } from '#/services/partners'
@@ -13,6 +19,7 @@ import { cn } from '#/lib/utils'
 import { usePermissions } from '#/components/dashboard/use-permissions'
 import { Input } from '#/components/ui/input'
 import { Button } from '#/components/ui/button'
+import { Skeleton } from '#/components/ui/skeleton'
 import { Badge } from '#/components/ui/badge'
 import {
   Table,
@@ -57,46 +64,42 @@ const headCls =
 const errorBanner =
   'rounded-lg bg-destructive/10 px-3 py-2.5 text-[13px] font-medium text-destructive'
 const successBanner =
-  'rounded-lg bg-[#e7f6ee] px-3 py-2.5 text-[13px] font-medium text-[#1c8a57]'
+  'rounded-lg bg-[#e7f6ee] px-3 py-2.5 text-[13px] font-medium text-[#167347]'
 
 export function ManagerStep({ partnerId }: { partnerId: number }) {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const { can } = usePermissions()
   const canWrite = can('iam:write')
 
-  const { data: usersData, isLoading } = useQuery({
-    queryKey: ['users', 'all'],
-    queryFn: () => getUsers({ page: 0, size: 200 }),
-  })
+  const { data: usersData, isLoading } = useAllUsers()
 
-  const allUsers = usersData?.content ?? []
+  const allUsers = usersData?.items ?? []
   const currentManagers = allUsers.filter((u) => u.partnerId === partnerId)
 
   return (
     <div>
-      <div className="text-[16px] font-bold tracking-[-0.01em]">
+      <h2 className="text-[16px] font-bold tracking-[-0.01em]">
         Manager du partenaire
-      </div>
+      </h2>
       <p className="mt-1 mb-4 text-[13.5px] text-muted-foreground">
         Rattachez le responsable qui pilotera ce partenaire.
       </p>
 
       <PartnerManagerList managers={currentManagers} isLoading={isLoading} />
 
-      {usersData?.last === false && (
-        <p className="mt-2 text-[13px] text-[#9a7400]">
-          Plus de 200 utilisateurs : la détection des managers et la liste de
-          sélection peuvent être incomplètes.
+      {usersData?.capped && (
+        <p className="mt-2 text-[13px] text-[#8a6600]">
+          Plus de {allUsers.length} comptes : la détection des managers et la
+          liste de sélection peuvent être incomplètes.
         </p>
       )}
 
-      <div className="my-5 flex justify-end">
-        <Button type="button" onClick={() => setIsCreateOpen(true)}>
-          Nouveau manager
-        </Button>
-      </div>
+      <h3 className="mt-6 mb-3 text-[14px] font-bold">
+        Rattacher un manager existant
+      </h3>
 
       <SelectExistingManager
+        onCreate={() => setIsCreateOpen(true)}
         partnerId={partnerId}
         users={allUsers}
         isLoading={isLoading}
@@ -119,7 +122,9 @@ function SelectExistingManager({
   users,
   isLoading,
   canWrite,
+  onCreate,
 }: {
+  onCreate: () => void
   partnerId: number
   users: UserResponse[]
   isLoading: boolean
@@ -132,7 +137,7 @@ function SelectExistingManager({
 
   const { data: partnersData } = useQuery({
     queryKey: ['partners', 'all'],
-    queryFn: () => getPartners(0, 500),
+    queryFn: () => getPartners(0, 100),
   })
   const partnerNameById = new Map(
     (partnersData?.content ?? []).map((p) => [p.id, p.name]),
@@ -166,26 +171,42 @@ function SelectExistingManager({
         u.firstName.toLowerCase().includes(q) ||
         u.lastName.toLowerCase().includes(q) ||
         u.email.toLowerCase().includes(q) ||
-        u.role.toLowerCase().includes(q)
+        u.phoneNumber.replace(/\s/g, '').includes(q.replace(/\s/g, ''))
       )
     })
 
-  if (isLoading)
-    return <p className="text-[13.5px] text-muted-foreground">Chargement…</p>
+  if (isLoading) return <Skeleton className="h-32 rounded-xl" />
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="relative w-full max-w-[360px]">
-        <Search className="pointer-events-none absolute top-1/2 left-[13px] size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value)
-            setSuccess(false)
-          }}
-          placeholder="Rechercher un manager (nom, email, rôle)…"
-          className="h-10 rounded-[10px] pl-9 text-[13.5px]"
-        />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="relative w-full max-w-[360px]">
+          <Search className="pointer-events-none absolute top-1/2 left-[13px] size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            aria-label="Rechercher un manager"
+            onChange={(e) => {
+              setSearch(e.target.value)
+              setSuccess(false)
+            }}
+            placeholder="Nom, email ou téléphone…"
+            className="h-10 rounded-[10px] pl-9 text-[13.5px]"
+          />
+        </div>
+        <Button
+          type="button"
+          className="rounded-[11px] shadow-[0_4px_14px_rgba(0,51,127,0.22)]"
+          disabled={!canWrite}
+          title={
+            canWrite
+              ? undefined
+              : "Vous n'avez pas la permission requise (iam:write)."
+          }
+          onClick={onCreate}
+        >
+          <Plus />
+          Nouveau manager
+        </Button>
       </div>
 
       {serverError && <p className={errorBanner}>{serverError}</p>}
@@ -198,8 +219,7 @@ function SelectExistingManager({
           <TableHeader>
             <TableRow className="hover:bg-transparent">
               <TableHead className={cn(headCls, 'pl-[18px]')}>Nom</TableHead>
-              <TableHead className={headCls}>Email</TableHead>
-              <TableHead className={headCls}>Rôle</TableHead>
+              <TableHead className={headCls}>Coordonnées</TableHead>
               <TableHead className={headCls}>Siège actuel</TableHead>
               <TableHead className={headCls}>Statut</TableHead>
               <TableHead className={cn(headCls, 'pr-[18px] text-right')} />
@@ -212,27 +232,34 @@ function SelectExistingManager({
                   colSpan={6}
                   className="py-8 text-center text-[13.5px] text-muted-foreground"
                 >
-                  Aucun manager enregistré.
+                  {search
+                    ? 'Aucun manager ne correspond à votre recherche.'
+                    : 'Aucun manager enregistré : créez-en un avec « Nouveau manager ».'}
                 </TableCell>
               </TableRow>
             ) : (
               candidates.map((u) => (
                 <TableRow key={u.id}>
                   <TableCell className="py-3 pl-[18px] text-[13.5px] font-semibold">
-                    {u.firstName} {u.lastName}
+                    {formatPersonName(u.firstName, u.lastName)}
+                    <div className="text-[12px] font-normal text-muted-foreground">
+                      {formatRoleName(u.role)} · compte #{u.id}
+                    </div>
                   </TableCell>
-                  <TableCell className="py-3 text-[13px] text-muted-foreground">
-                    {u.email}
-                  </TableCell>
-                  <TableCell className="py-3 text-[13px] text-muted-foreground">
-                    {u.role}
+                  <TableCell className="max-w-[260px] py-3 text-[13px] text-muted-foreground">
+                    <TruncatedText>{u.email}</TruncatedText>
+                    <div className="tabular-nums">
+                      {isPlaceholderPhone(u.phoneNumber)
+                        ? 'Téléphone non renseigné'
+                        : formatPhone(u.phoneNumber)}
+                    </div>
                   </TableCell>
                   <TableCell className="py-3 text-[13px]">
                     {u.partnerId == null ? (
                       <span className="text-muted-foreground">Aucun</span>
                     ) : (
                       <span
-                        className="text-[#9a7400]"
+                        className="text-[#8a6600]"
                         title="Déjà manager d'un autre partenaire"
                       >
                         {partnerNameById.get(u.partnerId) ?? `#${u.partnerId}`}{' '}
@@ -242,13 +269,13 @@ function SelectExistingManager({
                   </TableCell>
                   <TableCell className="py-3">
                     {u.partnerId === partnerId ? (
-                      <Badge className="bg-[#e7f6ee] text-[#1c8a57] hover:bg-[#e7f6ee]">
+                      <Badge className="bg-[#e7f6ee] text-[#167347] hover:bg-[#e7f6ee]">
                         Rattaché
                       </Badge>
                     ) : u.partnerId == null ? (
                       <Badge variant="secondary">Disponible</Badge>
                     ) : (
-                      <Badge variant="outline" className="text-[#9a7400]">
+                      <Badge variant="outline" className="text-[#8a6600]">
                         Rattaché ailleurs
                       </Badge>
                     )}
@@ -323,7 +350,7 @@ function CreateNewManager({
       const created: { id?: number } = await createUser(payload)
       let userId = created.id
       if (userId == null) {
-        const list = await getUsers({ page: 0, size: 200 })
+        const list = await getUsers({ page: 0, size: 100 })
         userId = list.content.find(
           (u) => u.email.toLowerCase() === payload.email.toLowerCase(),
         )?.id
@@ -387,47 +414,58 @@ function CreateNewManager({
     },
   })
 
+  const dirty = useStore(form.store, (s) => !s.isDefaultValue)
+  const { dialog: guardDialog } = useUnsavedChangesGuard(dirty)
+
   return (
-    <FormDialog
-      onClose={onClose}
-      eyebrow="Partenaires"
-      title="Nouveau manager"
-      description="Créez un manager et rattachez-le automatiquement à ce partenaire."
-      onSubmit={() => form.handleSubmit()}
-      submitLabel={isPending ? 'Création…' : 'Créer et rattacher'}
-      pending={isPending}
-      submitDisabled={!canWrite || !managerRole}
-      error={serverError}
-    >
-      {FIELDS.map(({ name, label, type, required }) => (
-        <form.Field
-          key={name}
-          name={name}
-          validators={{
-            onBlur: ({ value }) => {
-              const result = schema.shape[name].safeParse(value)
-              return result.success ? undefined : result.error.issues[0].message
-            },
-            onSubmit: ({ value }) => {
-              const result = schema.shape[name].safeParse(value)
-              return result.success ? undefined : result.error.issues[0].message
-            },
-          }}
-        >
-          {(field) => (
-            <FormField
-              id={`manager-${name}`}
-              label={label}
-              type={type}
-              required={required}
-              value={field.state.value}
-              onChange={field.handleChange}
-              onBlur={field.handleBlur}
-              error={field.state.meta.errors[0]}
-            />
-          )}
-        </form.Field>
-      ))}
-    </FormDialog>
+    <>
+      {guardDialog}
+      <FormDialog
+        dirty={dirty}
+        onClose={onClose}
+        eyebrow="Partenaires"
+        title="Nouveau manager"
+        description="Créez un manager et rattachez-le automatiquement à ce partenaire."
+        onSubmit={() => form.handleSubmit()}
+        submitLabel={isPending ? 'Création…' : 'Créer et rattacher'}
+        pending={isPending}
+        submitDisabled={!canWrite || !managerRole}
+        error={serverError}
+      >
+        {FIELDS.map(({ name, label, type, required }) => (
+          <form.Field
+            key={name}
+            name={name}
+            validators={{
+              onBlur: ({ value }) => {
+                const result = schema.shape[name].safeParse(value)
+                return result.success
+                  ? undefined
+                  : result.error.issues[0].message
+              },
+              onSubmit: ({ value }) => {
+                const result = schema.shape[name].safeParse(value)
+                return result.success
+                  ? undefined
+                  : result.error.issues[0].message
+              },
+            }}
+          >
+            {(field) => (
+              <FormField
+                id={`manager-${name}`}
+                label={label}
+                type={type}
+                required={required}
+                value={field.state.value}
+                onChange={field.handleChange}
+                onBlur={field.handleBlur}
+                error={field.state.meta.errors[0]}
+              />
+            )}
+          </form.Field>
+        ))}
+      </FormDialog>
+    </>
   )
 }

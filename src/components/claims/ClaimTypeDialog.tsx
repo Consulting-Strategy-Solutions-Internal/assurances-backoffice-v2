@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useForm } from '@tanstack/react-form'
+import { useForm, useStore } from '@tanstack/react-form'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { z } from 'zod'
 import { Label } from '#/components/ui/label'
@@ -95,8 +95,11 @@ export function ClaimTypeDialog({
       return parsed.success ? undefined : parsed.error.issues[0].message
     },
   })
+  const dirty = useStore(form.store, (s) => !s.isDefaultValue)
+
   return (
     <FormDialog
+      dirty={dirty}
       onClose={onClose}
       eyebrow="Catalogue sinistres"
       title={claimType ? 'Modifier le type' : 'Nouveau type de sinistre'}

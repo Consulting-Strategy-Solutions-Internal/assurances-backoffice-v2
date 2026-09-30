@@ -4,17 +4,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
-import type {
-  ClaimFilters,
-  ClaimResponse,
-  PageResponse,
-} from '#/services/claims'
+import type { ClaimResponse, PageResponse } from '#/services/claims'
 import { ClaimsListContent } from './_auth/sinistres'
 
 const mocks = vi.hoisted(() => ({
   getClaims: vi.fn(),
   getClaimTypes: vi.fn(),
-  getClients: vi.fn(),
+  getAllClients: vi.fn(),
   navigate: vi.fn(),
   search: {
     page: 0,
@@ -45,16 +41,42 @@ vi.mock('#/services/claims', () => ({
     'REJECTED',
     'CANCELLED',
   ],
-  claimsKeys: { list: (filters: ClaimFilters) => ['claims', filters] },
+  claimsKeys: { all: ['claims'] },
   getClaims: mocks.getClaims,
 }))
 
 vi.mock('#/services/claim-types', () => ({
   getClaimTypes: mocks.getClaimTypes,
 }))
-vi.mock('#/services/clients', () => ({ getClients: mocks.getClients }))
-vi.mock('#/components/forms/FormSelect', () => ({
-  FormSelect: ({
+vi.mock('#/services/clients', () => ({
+  clientsKeys: { everyone: (sort: string) => ['clients', 'all', sort] },
+  getAllClients: mocks.getAllClients,
+}))
+vi.mock('#/components/claims/ClientPicker', () => ({
+  ClientPicker: ({
+    label,
+    value,
+    onChange,
+  }: {
+    label: string
+    value: string
+    onChange: (value: string) => void
+  }) => (
+    <select
+      aria-label={label}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+    >
+      <option value="">Tous</option>
+      <option value="42">Jean</option>
+    </select>
+  ),
+}))
+vi.mock('#/components/dashboard/shell', () => ({
+  useShell: () => ({ search: '' }),
+}))
+vi.mock('#/components/claims/FilterSelect', () => ({
+  FilterSelect: ({
     label,
     value,
     options,
@@ -65,21 +87,18 @@ vi.mock('#/components/forms/FormSelect', () => ({
     options: Array<{ value: string; label: string }>
     onChange?: (value: string) => void
   }) => (
-    <label>
-      {label}
-      <select
-        aria-label={label}
-        value={value}
-        onChange={(event) => onChange?.(event.target.value)}
-      >
-        <option value="">Tous</option>
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </label>
+    <select
+      aria-label={label}
+      value={value}
+      onChange={(event) => onChange?.(event.target.value)}
+    >
+      <option value="">Tous</option>
+      {options.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
   ),
 }))
 
@@ -127,7 +146,7 @@ function renderList() {
 beforeEach(() => {
   mocks.search = { page: 0, size: 20, sort: 'createdAt,desc' }
   mocks.getClaimTypes.mockResolvedValue(page([]))
-  mocks.getClients.mockResolvedValue(page([]))
+  mocks.getAllClients.mockResolvedValue({ items: [], total: 0, capped: false })
 })
 
 afterEach(() => {
@@ -140,7 +159,7 @@ describe('ClaimsListContent', () => {
     mocks.getClaims.mockReturnValue(new Promise(() => undefined))
     renderList()
 
-    expect(screen.getByText('Chargement des sinistres…')).toBeTruthy()
+    expect(screen.getByText('Chargement…')).toBeTruthy()
   })
 
   it('renders the empty state', async () => {
@@ -168,9 +187,41 @@ describe('ClaimsListContent', () => {
     expect(await screen.findByText('SIN-2026-0042')).toBeTruthy()
     expect(screen.getByText('Accident')).toBeTruthy()
     expect(screen.getByText('Auto')).toBeTruthy()
-    expect(screen.getAllByText('En instruction')).toHaveLength(2)
+    // filter option + KPI label + status pill
+    expect(screen.getAllByText('En instruction')).toHaveLength(3)
     expect(screen.getByText('Awa Koné')).toBeTruthy()
-    expect(screen.getByRole('link', { name: 'Instruire' })).toBeTruthy()
+  })
+
+  it('opens the claim detail when a row is activated', async () => {
+    mocks.getClaims.mockResolvedValue(page([listedClaim]))
+    renderList()
+
+    fireEvent.click((await screen.findByText('SIN-2026-0042')).closest('tr')!)
+
+    expect(mocks.navigate).toHaveBeenCalledWith({
+      to: '/sinistres/$claimId',
+      params: { claimId: '42' },
+    })
+  })
+
+  it('filters the loaded claims with the search field', async () => {
+    mocks.getClaims.mockResolvedValue(
+      page([
+        listedClaim,
+        {
+          ...listedClaim,
+          id: 43,
+          claimNumber: 'SIN-2026-0043',
+          clientName: 'Jean N’Guessan',
+        },
+      ]),
+    )
+    mocks.search = { ...mocks.search, q: 'jean' } as typeof mocks.search
+    renderList()
+    await screen.findByText('SIN-2026-0043')
+
+    expect(screen.queryByText('SIN-2026-0042')).toBeNull()
+    expect(screen.getByText('SIN-2026-0043')).toBeTruthy()
   })
 
   it('renders each client and falls back when a client was deleted', async () => {
@@ -195,18 +246,6 @@ describe('ClaimsListContent', () => {
 
   it('moves a server filter into route search parameters', async () => {
     mocks.getClaims.mockResolvedValue(page([]))
-    mocks.getClients.mockResolvedValue({
-      ...page([]),
-      content: [
-        { id: 41, firstName: 'Awa', lastName: 'Koné', phoneNumber: '+22501' },
-        {
-          id: 42,
-          firstName: 'Jean',
-          lastName: 'N’Guessan',
-          phoneNumber: '+22505',
-        },
-      ],
-    })
     renderList()
     await screen.findByText('Aucun sinistre pour le moment.')
 

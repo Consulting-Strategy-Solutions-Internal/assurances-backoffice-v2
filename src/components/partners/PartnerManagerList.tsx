@@ -1,10 +1,19 @@
 import type { UserResponse } from '#/services/users'
-import { Avatar, AvatarFallback } from '#/components/ui/avatar'
-import { Badge } from '#/components/ui/badge'
+import { StatusPill } from '#/components/dashboard/StatusPill'
+import { EmptyState } from '#/components/layout/EmptyState'
+import { EntityAvatar } from '#/components/layout/EntityAvatar'
+import { Skeleton } from '#/components/ui/skeleton'
+import { Link } from '@tanstack/react-router'
+import { Plus, UserRound } from 'lucide-react'
+import { Button } from '#/components/ui/button'
+import { formatPersonName } from '#/lib/people'
+import { formatRoleName } from '#/lib/admin-roles'
 
 interface PartnerManagerListProps {
   managers: UserResponse[]
   isLoading: boolean
+  /** When set, the empty state offers a link to the relations wizard. */
+  attachToPartnerId?: number
 }
 
 /**
@@ -14,14 +23,35 @@ interface PartnerManagerListProps {
 export function PartnerManagerList({
   managers,
   isLoading,
+  attachToPartnerId,
 }: PartnerManagerListProps) {
-  if (isLoading)
-    return <p className="text-[13.5px] text-muted-foreground">Chargement…</p>
+  if (isLoading) return <Skeleton className="h-[62px] rounded-xl" />
   if (managers.length === 0) {
     return (
-      <p className="text-[13.5px] text-muted-foreground">
-        Aucun manager rattaché à ce partenaire pour l'instant.
-      </p>
+      <EmptyState
+        icon={UserRound}
+        title="Aucun manager rattaché."
+        description="Ce partenaire n’a pas encore de manager."
+        className="py-4"
+        action={
+          attachToPartnerId !== undefined ? (
+            <Button
+              asChild
+              size="sm"
+              variant="outline"
+              className="rounded-[10px]"
+            >
+              <Link
+                to="/partners/$partnerId/relations"
+                params={{ partnerId: String(attachToPartnerId) }}
+              >
+                <Plus />
+                Rattacher un manager
+              </Link>
+            </Button>
+          ) : undefined
+        }
+      />
     )
   }
   return (
@@ -31,20 +61,16 @@ export function PartnerManagerList({
           key={m.id}
           className="flex items-center gap-3 rounded-xl border bg-[#fafbfc] px-3 py-2.5"
         >
-          <Avatar className="size-9">
-            <AvatarFallback className="bg-primary/10 text-[12.5px] font-bold text-primary">
-              {`${m.firstName.charAt(0)}${m.lastName.charAt(0)}`.toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+          <EntityAvatar name={formatPersonName(m.firstName, m.lastName)} />
           <div className="min-w-0 flex-1 leading-[1.3]">
             <div className="text-[13.5px] font-semibold">
-              {m.firstName} {m.lastName}
+              {formatPersonName(m.firstName, m.lastName)}
             </div>
-            <div className="text-[12px] text-muted-foreground">{m.email}</div>
+            <div className="truncate text-[12px] text-muted-foreground">
+              {m.email}
+            </div>
           </div>
-          <Badge variant="secondary" className="rounded-md text-[11.5px]">
-            {m.role}
-          </Badge>
+          <StatusPill tone="info">{formatRoleName(m.role)}</StatusPill>
         </div>
       ))}
     </div>

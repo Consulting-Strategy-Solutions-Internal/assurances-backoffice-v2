@@ -1,8 +1,36 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { useEffect, useMemo, useState } from 'react'
+import { pageHead } from '#/lib/page-title'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { z } from 'zod'
 import { useQuery } from '@tanstack/react-query'
-import { Building2, Store, User } from 'lucide-react'
-import { Card } from '#/components/ui/card'
+import {
+  Banknote,
+  Building2,
+  CheckCircle2,
+  FileText,
+  Send,
+  Store,
+  User,
+} from 'lucide-react'
+import { SearchableSelect } from '#/components/layout/SearchableSelect'
+import { KpiCard } from '#/components/dashboard/KpiCard'
+import { PageHeader } from '#/components/dashboard/PageHeader'
+import {
+  ClickableRow,
+  DataTableCard,
+  DataTableHead,
+  FIRST_CELL_CLASS,
+  RowChevron,
+  TableEmptyState,
+  TableErrorState,
+  TableSkeletonRows,
+} from '#/components/layout/DataTable'
+import { KpiRow } from '#/components/layout/KpiRow'
+import {
+  ResultCount,
+  Toolbar,
+  ToolbarSearch,
+} from '#/components/layout/Toolbar'
 import {
   Select,
   SelectContent,
@@ -10,49 +38,66 @@ import {
   SelectTrigger,
   SelectValue,
 } from '#/components/ui/select'
+import { TruncatedText } from '#/components/layout/TruncatedText'
+import { Skeleton } from '#/components/ui/skeleton'
+import { FrDateInput } from '#/components/quotations/FrDateInput'
+import { QuotationDetailDrawer } from '#/components/quotations/QuotationDetailDrawer'
+import { Button } from '#/components/ui/button'
+import { Pagination } from '#/components/ui/Pagination'
 import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from '#/components/ui/table'
-import { Pagination } from '#/components/ui/Pagination'
-import { cn, formatDate } from '#/lib/utils'
-import { PageHeader } from '#/components/dashboard/PageHeader'
-import { QuotationStatusBadge } from '#/components/quotations/QuotationStatusBadge'
+import {
+  QUOTATION_STATUS_META,
+  QuotationStatusBadge,
+} from '#/components/quotations/QuotationStatusBadge'
 import { useDistributionDirectory } from '#/components/quotations/useDistributionDirectory'
 import type { Attribution } from '#/components/quotations/useDistributionDirectory'
-import { getQuotations } from '#/services/quotations'
+import { mapClaimError } from '#/lib/claims'
+import { clientFullName } from '#/lib/clients'
+import { fetchAllPages } from '#/lib/fetch-all-pages'
+import {
+  computeQuotationStats,
+  filterQuotations,
+  QUOTATIONS_PAGE_SIZE,
+} from '#/lib/quotations'
+import { formatDate, formatFcfa } from '#/lib/utils'
+import { clientsKeys, getAllClients } from '#/services/clients'
+import { getQuotations, QUOTATION_STATUSES } from '#/services/quotations'
 
-export const Route = createFileRoute('/_auth/cotations')({
-  component: QuotationsPage,
+const optionalId = z.coerce
+  .number()
+  .int()
+  .positive()
+  .optional()
+  .catch(undefined)
+const optionalDate = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .optional()
+  .catch(undefined)
+
+const searchSchema = z.object({
+  partnerId: optionalId,
+  agencyId: optionalId,
+  sellerId: optionalId,
+  status: z.enum(QUOTATION_STATUSES).optional().catch(undefined),
+  q: z.string().optional().catch(undefined),
+  from: optionalDate,
+  to: optionalDate,
+  open: optionalId,
+  page: z.coerce.number().int().min(0).optional().catch(0),
 })
 
-const headCls =
-  'h-auto bg-[#fafbfc] px-3 py-3 text-[11px] font-bold uppercase tracking-[0.05em] text-muted-foreground'
-
-const ALL = '__all__'
-const nf = new Intl.NumberFormat('fr-FR')
-
-function formatFcfa(v?: number) {
-  if (v == null) return ''
-  return `${nf.format(v)} FCFA`
-}
-
-function MessageRow({ children }: { children: React.ReactNode }) {
-  return (
-    <TableRow className="hover:bg-transparent">
-      <TableCell
-        colSpan={7}
-        className="py-9 text-center text-[13.5px] text-muted-foreground"
-      >
-        {children}
-      </TableCell>
-    </TableRow>
-  )
-}
+export const Route = createFileRoute('/_auth/cotations')({
+  head: pageHead('Cotations'),
+  validateSearch: searchSchema,
+  component: QuotationsPage,
+})
 
 const KIND_ICON = {
   seller: User,
@@ -60,6 +105,8 @@ const KIND_ICON = {
   partner: Store,
   unknown: User,
 } as const
+
+const COLUMNS = 8
 
 function IssuerCell({ attribution }: { attribution: Attribution }) {
   const Icon = KIND_ICON[attribution.kind]
@@ -77,11 +124,14 @@ function IssuerCell({ attribution }: { attribution: Attribution }) {
         <Icon className="size-[15px] text-primary" />
       </div>
       <div className="min-w-0 leading-tight">
-        <div className="truncate text-[13.5px] font-semibold">
+        <TruncatedText className="text-[13.5px] font-semibold">
           {attribution.label}
-        </div>
-        <div className="text-[11.5px] text-muted-foreground tabular-nums">
+        </TruncatedText>
+        <div className="truncate text-[11.5px] text-muted-foreground tabular-nums">
           {kindLabel} · {attribution.code}
+          {attribution.partner && attribution.kind !== 'partner'
+            ? ` · ${attribution.partner.name}`
+            : ''}
         </div>
       </div>
     </div>
@@ -89,265 +139,517 @@ function IssuerCell({ attribution }: { attribution: Attribution }) {
 }
 
 function QuotationsPage() {
+  const search = Route.useSearch()
+  const navigate = useNavigate({ from: Route.fullPath })
   const dir = useDistributionDirectory()
 
-  const [partnerId, setPartnerId] = useState<string>(ALL)
-  const [agencyId, setAgencyId] = useState<string>(ALL)
-  const [sellerId, setSellerId] = useState<string>(ALL)
-  const [page, setPage] = useState(0)
+  const partnerId = search.partnerId == null ? '' : String(search.partnerId)
+  const agencyId = search.agencyId == null ? '' : String(search.agencyId)
+  const sellerId = search.sellerId == null ? '' : String(search.sellerId)
+  const setFilters = (patch: Partial<typeof search>) =>
+    void navigate({
+      search: (previous) => ({ ...previous, ...patch, page: 0 }),
+      replace: true,
+    })
+
+  // Search box: local state for typing, synced (debounced) to the URL.
+  const [query, setQuery] = useState(search.q ?? '')
+  const pushedQuery = useRef(search.q ?? '')
+  useEffect(() => {
+    const next = query.trim() === '' ? '' : query
+    if (next === pushedQuery.current) return
+    const timer = setTimeout(() => {
+      pushedQuery.current = next
+      setFilters({ q: next === '' ? undefined : next })
+    }, 250)
+    return () => clearTimeout(timer)
+  }, [query])
+  // Back/forward or « Réinitialiser » changed the URL: mirror it in the input.
+  useEffect(() => {
+    const urlValue = search.q ?? ''
+    if (urlValue !== pushedQuery.current) {
+      pushedQuery.current = urlValue
+      setQuery(urlValue)
+    }
+  }, [search.q])
 
   // Cascade option lists derived from the current selection.
-  const partnerOptions = dir.partners
   const agencyOptions = useMemo(
-    () => (partnerId === ALL ? [] : dir.agenciesOf(Number(partnerId))),
+    () => (partnerId === '' ? [] : dir.agenciesOf(Number(partnerId))),
     [dir, partnerId],
   )
   const sellerOptions = useMemo(() => {
-    if (partnerId === ALL) return []
+    if (partnerId === '') return []
     return dir.sellersOf({
       partnerId: Number(partnerId),
-      agencyId: agencyId === ALL ? undefined : Number(agencyId),
+      agencyId: agencyId === '' ? undefined : Number(agencyId),
     })
   }, [dir, partnerId, agencyId])
 
   // The most specific selection wins — that is the code we filter quotations by.
   const activeCode = useMemo(() => {
-    if (sellerId !== ALL) {
+    if (sellerId !== '') {
       return dir.sellers.find((s) => String(s.id) === sellerId)?.distributorCode
     }
-    if (agencyId !== ALL) {
+    if (agencyId !== '') {
       return dir.agencies.find((a) => String(a.id) === agencyId)
         ?.distributorCode
     }
-    if (partnerId !== ALL) {
+    if (partnerId !== '') {
       return dir.partners.find((p) => String(p.id) === partnerId)
         ?.distributorCode
     }
     return undefined
   }, [dir, partnerId, agencyId, sellerId])
 
-  // Any filter change goes back to the first page.
-  useEffect(() => {
-    setPage(0)
-  }, [activeCode])
+  const networkFilter = partnerId !== ''
+  // Wait for the directory only when an id filter from the URL needs it.
+  const waitingForDirectory = networkFilter && dir.isLoading
 
+  // The API only paginates: load every page (volume is small) so search,
+  // status, dates and KPIs cover all quotations, not one page.
   const {
-    data,
-    isLoading,
+    data: loaded,
+    isLoading: quotationsLoading,
     error: quotationsError,
+    refetch,
   } = useQuery({
-    queryKey: ['quotations', activeCode ?? null, page],
-    queryFn: () => getQuotations({ distributorCode: activeCode, page }),
+    queryKey: ['quotations', 'all', activeCode ?? null],
+    queryFn: () =>
+      fetchAllPages((page, size) =>
+        getQuotations({
+          distributorCode: activeCode,
+          page,
+          size,
+          sort: 'createdAt,desc',
+        }),
+      ),
+    enabled: !waitingForDirectory,
     retry: false,
   })
+  const isLoading = quotationsLoading || waitingForDirectory
 
-  const rows = data?.content ?? []
+  // Même cache que `useClientNames` / `ClientPicker` (pas de second chargement).
+  const { data: clientsLoaded } = useQuery({
+    queryKey: clientsKeys.everyone('lastName,asc'),
+    queryFn: () => getAllClients('lastName,asc'),
+    staleTime: 60_000,
+    retry: false,
+  })
+  const clientNames = useMemo(
+    () =>
+      new Map(
+        (clientsLoaded?.items ?? []).map(
+          (c) => [c.id, clientFullName(c)] as const,
+        ),
+      ),
+    [clientsLoaded],
+  )
+  const clientNameOf = (id?: number) =>
+    id == null ? undefined : clientNames.get(id)
+
+  const all = useMemo(() => loaded?.items ?? [], [loaded])
+  const rows = useMemo(
+    () =>
+      filterQuotations(
+        all,
+        {
+          query: search.q ?? '',
+          status: search.status,
+          from: search.from,
+          to: search.to,
+        },
+        (id) => (id == null ? undefined : clientNames.get(id)),
+      ),
+    [all, search.q, search.status, search.from, search.to, clientNames],
+  )
+  const stats = useMemo(() => computeQuotationStats(rows), [rows])
+
+  const totalPages = Math.max(1, Math.ceil(rows.length / QUOTATIONS_PAGE_SIZE))
+  const page = Math.min(search.page ?? 0, totalPages - 1)
+  const pageRows = rows.slice(
+    page * QUOTATIONS_PAGE_SIZE,
+    (page + 1) * QUOTATIONS_PAGE_SIZE,
+  )
+
+  const forbidden =
+    quotationsError !== null &&
+    mapClaimError(quotationsError).kind === 'forbidden'
+  const filtering =
+    networkFilter ||
+    Boolean(search.q) ||
+    search.status !== undefined ||
+    Boolean(search.from) ||
+    Boolean(search.to)
+  const kpi = (value: number | string) =>
+    isLoading ? '…' : quotationsError ? '—' : value
 
   const resetFilters = () => {
-    setPartnerId(ALL)
-    setAgencyId(ALL)
-    setSellerId(ALL)
+    setQuery('')
+    void navigate({ search: { page: 0 }, replace: true })
   }
+
+  const countLabel = isLoading
+    ? 'Chargement…'
+    : quotationsError
+      ? ''
+      : `${
+          rows.length === all.length
+            ? `${rows.length} cotation${rows.length > 1 ? 's' : ''}`
+            : `${rows.length} cotation${rows.length > 1 ? 's' : ''} sur ${all.length}`
+        }${activeCode ? ` · code distributeur ${activeCode}` : ''}`
+
+  const openQuotation = (id: number) =>
+    void navigate({ search: (previous) => ({ ...previous, open: id }) })
+  const closeQuotation = () =>
+    void navigate({ search: (previous) => ({ ...previous, open: undefined }) })
+
+  const directoryHint = dir.isError
+    ? 'Le réseau de distribution n’a pas pu être chargé (droits insuffisants ?).'
+    : undefined
 
   return (
     <>
       <PageHeader
         title="Cotations"
-        subtitle="Devis émis par le réseau · filtrez par partenaire, agence ou agent"
+        subtitle="Devis émis par le réseau : recherchez, filtrez par statut, date, partenaire, agence ou agent."
       />
 
-      {/* Filtres en cascade */}
-      <Card className="mb-[18px] gap-0 p-4">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <FilterSelect
-            label="Partenaire"
-            value={partnerId}
-            disabled={dir.isError}
-            allLabel="Tous les partenaires"
-            options={partnerOptions.map((p) => ({
-              value: String(p.id),
-              label: p.name,
-            }))}
-            onChange={(v) => {
-              setPartnerId(v)
-              setAgencyId(ALL)
-              setSellerId(ALL)
-            }}
-          />
-          <FilterSelect
-            label="Agence"
-            value={agencyId}
-            disabled={partnerId === ALL || dir.isError}
-            allLabel="Toutes les agences"
-            options={agencyOptions.map((a) => ({
-              value: String(a.id),
-              label: a.name,
-            }))}
-            onChange={(v) => {
-              setAgencyId(v)
-              setSellerId(ALL)
-            }}
-          />
-          <FilterSelect
-            label="Agent"
-            value={sellerId}
-            disabled={partnerId === ALL || dir.isError}
-            allLabel="Tous les agents"
-            options={sellerOptions.map((s) => ({
-              value: String(s.id),
-              label: `${s.firstName} ${s.lastName}`.trim() || s.distributorCode,
-            }))}
-            onChange={setSellerId}
-          />
-        </div>
-        <div className="mt-3 flex items-center justify-between gap-3">
-          <p className="text-[12px] text-muted-foreground">
-            {dir.isError
-              ? "Réseau indisponible (droits insuffisants) : la liste reste filtrable une fois les permissions accordées."
-              : activeCode
-                ? `Filtre actif · code distributeur ${activeCode}`
-                : 'Toutes les cotations du réseau'}
-          </p>
-          {activeCode && (
-            <button
-              type="button"
-              onClick={resetFilters}
-              className="text-[12px] font-semibold text-primary hover:underline"
-            >
-              Réinitialiser
-            </button>
-          )}
-        </div>
-      </Card>
+      <KpiRow>
+        <KpiCard
+          icon={<FileText className="size-5 text-primary" />}
+          iconClass="bg-primary/[0.08]"
+          value={kpi(rows.length)}
+          label={filtering ? 'Cotations (filtre)' : 'Cotations'}
+        />
+        <KpiCard
+          icon={<CheckCircle2 className="size-5 text-[#167347]" />}
+          iconClass="bg-[#1c8a57]/10"
+          value={kpi(stats.converted)}
+          label="Converties"
+        />
+        <KpiCard
+          icon={<Send className="size-5 text-[#1f53b0]" />}
+          iconClass="bg-[#1f53b0]/10"
+          value={kpi(stats.quoted)}
+          label="Cotées"
+        />
+        <KpiCard
+          icon={<Banknote className="size-5 text-[#8a6600]" />}
+          iconClass="bg-[#ffc61e]/20"
+          value={kpi(formatFcfa(stats.premium))}
+          label="Prime TTC cumulée"
+        />
+      </KpiRow>
 
-      <Card className="gap-0 overflow-hidden py-0">
+      <Toolbar
+        search={
+          <ToolbarSearch
+            label="Rechercher une cotation"
+            placeholder="Référence, client, assuré, produit…"
+            value={query}
+            onChange={setQuery}
+          />
+        }
+        filters={
+          <>
+            <Select
+              value={search.status ?? 'all'}
+              onValueChange={(v) =>
+                setFilters({
+                  status:
+                    v === 'all'
+                      ? undefined
+                      : (v as (typeof QUOTATION_STATUSES)[number]),
+                })
+              }
+            >
+              <SelectTrigger
+                aria-label="Statut"
+                className="h-10 w-[160px] rounded-[10px] bg-card"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous les statuts</SelectItem>
+                {QUOTATION_STATUSES.map((status) => (
+                  <SelectItem key={status} value={status}>
+                    {QUOTATION_STATUS_META[status].label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="flex items-center gap-2 text-[13px] text-muted-foreground">
+              <label htmlFor="cot-from">Du</label>
+              <FrDateInput
+                id="cot-from"
+                value={search.from}
+                onChange={(from) => setFilters({ from })}
+                className="h-10 w-[130px] rounded-[10px] bg-card"
+              />
+              <label htmlFor="cot-to">au</label>
+              <FrDateInput
+                id="cot-to"
+                value={search.to}
+                onChange={(to) => setFilters({ to })}
+                className="h-10 w-[130px] rounded-[10px] bg-card"
+              />
+            </div>
+          </>
+        }
+        actions={
+          filtering ? (
+            <Button
+              type="button"
+              variant="ghost"
+              className="rounded-[11px]"
+              onClick={resetFilters}
+            >
+              Réinitialiser les filtres
+            </Button>
+          ) : undefined
+        }
+      />
+
+      {/* Filtres réseau en cascade */}
+      <Toolbar
+        filters={
+          <>
+            <div className="flex flex-col gap-1">
+              <SearchableSelect
+                label="Partenaire"
+                value={partnerId}
+                disabled={dir.isError}
+                disabledHint={directoryHint}
+                loading={dir.isLoading}
+                allLabel="Tous les partenaires"
+                placeholder="Nom ou code distributeur…"
+                emptyLabel="Aucun partenaire trouvé."
+                options={dir.partners.map((p) => ({
+                  value: String(p.id),
+                  label: p.name,
+                  hint: `Code ${p.distributorCode}${p.location ? ` · ${p.location}` : ''}`,
+                }))}
+                onChange={(v) =>
+                  setFilters({
+                    partnerId: v === '' ? undefined : Number(v),
+                    agencyId: undefined,
+                    sellerId: undefined,
+                  })
+                }
+              />
+            </div>
+            <SearchableSelect
+              label="Agence"
+              value={agencyId}
+              disabled={partnerId === '' || dir.isError}
+              disabledHint={
+                directoryHint ?? 'Choisissez d’abord un partenaire.'
+              }
+              allLabel="Toutes les agences"
+              placeholder="Nom ou code de l’agence…"
+              emptyLabel="Aucune agence trouvée."
+              options={agencyOptions.map((a) => ({
+                value: String(a.id),
+                label: a.name,
+                hint: `Code ${a.distributorCode}`,
+              }))}
+              onChange={(v) =>
+                setFilters({
+                  agencyId: v === '' ? undefined : Number(v),
+                  sellerId: undefined,
+                })
+              }
+            />
+            <SearchableSelect
+              label="Agent"
+              value={sellerId}
+              disabled={partnerId === '' || dir.isError}
+              disabledHint={
+                directoryHint ?? 'Choisissez d’abord un partenaire.'
+              }
+              allLabel="Tous les agents"
+              placeholder="Nom ou code de l’agent…"
+              emptyLabel="Aucun agent trouvé."
+              options={sellerOptions.map((s) => ({
+                value: String(s.id),
+                label:
+                  `${s.firstName} ${s.lastName}`.trim() || s.distributorCode,
+                hint: `Code ${s.distributorCode}`,
+              }))}
+              onChange={(v) =>
+                setFilters({ sellerId: v === '' ? undefined : Number(v) })
+              }
+            />
+          </>
+        }
+      />
+      <ResultCount
+        note={
+          loaded?.capped
+            ? `Affichage limité aux ${all.length} cotations les plus récentes sur ${loaded.total}.`
+            : undefined
+        }
+      >
+        {countLabel}
+      </ResultCount>
+
+      <DataTableCard>
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead className={cn(headCls, 'pl-[22px]')}>Réf.</TableHead>
-              <TableHead className={headCls}>Date</TableHead>
-              <TableHead className={headCls}>Produit</TableHead>
-              <TableHead className={headCls}>Émis par</TableHead>
-              <TableHead className={headCls}>Partenaire</TableHead>
-              <TableHead className={headCls}>Statut</TableHead>
-              <TableHead className={cn(headCls, 'pr-[22px] text-right')}>
-                Prime TTC
-              </TableHead>
+              <DataTableHead first>Réf.</DataTableHead>
+              <DataTableHead>Date</DataTableHead>
+              <DataTableHead>Client</DataTableHead>
+              <DataTableHead>Produit</DataTableHead>
+              <DataTableHead>Émis par</DataTableHead>
+              <DataTableHead>Statut</DataTableHead>
+              <DataTableHead className="text-right">Prime TTC</DataTableHead>
+              <DataTableHead className="w-10" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <MessageRow>Chargement…</MessageRow>
+              <TableSkeletonRows
+                columns={[14, 22, 30, 30, 44, 20, 24]}
+                trailing
+              />
             ) : quotationsError ? (
-              <MessageRow>Impossible de charger les cotations.</MessageRow>
-            ) : rows.length === 0 ? (
-              <MessageRow>
-                {activeCode
-                  ? 'Aucune cotation pour ce filtre.'
-                  : 'Aucune cotation pour le moment.'}
-              </MessageRow>
+              <TableErrorState
+                colSpan={COLUMNS}
+                forbidden={forbidden}
+                title="Impossible de charger les cotations."
+                action={
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="rounded-[11px]"
+                    onClick={() => void refetch()}
+                  >
+                    Réessayer
+                  </Button>
+                }
+              />
+            ) : pageRows.length === 0 ? (
+              <TableEmptyState
+                colSpan={COLUMNS}
+                icon={FileText}
+                title={
+                  filtering
+                    ? 'Aucune cotation ne correspond à votre recherche.'
+                    : 'Aucune cotation pour le moment.'
+                }
+                action={
+                  filtering ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="rounded-[11px]"
+                      onClick={resetFilters}
+                    >
+                      Réinitialiser les filtres
+                    </Button>
+                  ) : undefined
+                }
+              />
             ) : (
-              rows.map((q) => {
+              pageRows.map((q) => {
                 const attribution = dir.resolveCode(q.distributorCode)
-                const partner = attribution.partner
+                const clientName = clientNameOf(q.clientId)
                 return (
-                  <TableRow key={q.id} className="hover:bg-transparent">
-                    <TableCell className="py-3.5 pl-[22px] text-[13px] font-bold text-primary tabular-nums">
+                  <ClickableRow
+                    key={q.id}
+                    onActivate={() => openQuotation(q.id)}
+                    aria-label={`Ouvrir la cotation ${q.id}`}
+                  >
+                    <TableCell
+                      className={`${FIRST_CELL_CLASS} py-3.5 text-[13px] font-bold text-primary tabular-nums`}
+                    >
                       #{q.id}
                     </TableCell>
-                    <TableCell className="py-3.5 text-[13px] text-muted-foreground tabular-nums">
+                    <TableCell className="py-3.5 text-[13px] whitespace-nowrap text-muted-foreground tabular-nums">
                       {formatDate(q.quoteAt ?? q.createdAt)}
+                    </TableCell>
+                    <TableCell className="max-w-[180px] py-3.5">
+                      {q.clientId == null ? (
+                        <span className="text-muted-foreground">—</span>
+                      ) : (
+                        <>
+                          <TruncatedText className="text-[13.5px] font-semibold">
+                            {clientName ?? `Client #${q.clientId}`}
+                          </TruncatedText>
+                          {q.insured?.relationship &&
+                            q.insured.relationship !== 'SELF' && (
+                              <div className="text-[12px] text-muted-foreground">
+                                Assuré :{' '}
+                                {`${q.insured.firstName ?? ''} ${q.insured.lastName ?? ''}`.trim()}
+                              </div>
+                            )}
+                        </>
+                      )}
                     </TableCell>
                     <TableCell className="py-3.5">
                       <div className="text-[13.5px] font-semibold">
                         {q.productSnapshot?.productLabel ??
                           (q.productId ? `Produit #${q.productId}` : 'Produit')}
                       </div>
-                      {q.productSnapshot?.categoryName && (
+                      {(q.formulaSnapshot?.label ??
+                        q.productSnapshot?.insuranceTypeLabel) && (
                         <div className="text-[12px] text-muted-foreground">
-                          {q.productSnapshot.categoryName}
+                          {q.formulaSnapshot?.label ??
+                            q.productSnapshot?.insuranceTypeLabel}
                         </div>
                       )}
                     </TableCell>
-                    <TableCell className="max-w-[230px] py-3.5">
-                      <IssuerCell attribution={attribution} />
-                    </TableCell>
-                    <TableCell className="py-3.5">
-                      {partner ? (
-                        <div className="leading-tight">
-                          <div className="text-[13px] font-semibold">
-                            {partner.name}
-                          </div>
-                          <div className="text-[11.5px] text-muted-foreground tabular-nums">
-                            Site {partner.idSite}
-                          </div>
-                        </div>
+                    <TableCell className="max-w-[280px] py-3.5">
+                      {dir.isLoading ? (
+                        <Skeleton className="h-8 w-36 rounded-md" />
                       ) : (
-                        <span className="text-[13px] text-muted-foreground">
-                          {dir.isLoading ? '…' : 'Non rattaché'}
-                        </span>
+                        <IssuerCell attribution={attribution} />
                       )}
                     </TableCell>
                     <TableCell className="py-3.5">
                       <QuotationStatusBadge status={q.status} />
                     </TableCell>
-                    <TableCell className="py-3.5 pr-[22px] text-right text-[13.5px] font-bold tabular-nums">
-                      {formatFcfa(q.grossPremium)}
+                    <TableCell className="py-3.5 text-right text-[13.5px] font-bold whitespace-nowrap tabular-nums">
+                      {q.grossPremium == null ? (
+                        <span className="font-normal text-muted-foreground">
+                          —
+                        </span>
+                      ) : (
+                        formatFcfa(q.grossPremium)
+                      )}
                     </TableCell>
-                  </TableRow>
+                    <RowChevron />
+                  </ClickableRow>
                 )
               })
             )}
           </TableBody>
         </Table>
-      </Card>
+      </DataTableCard>
 
       <Pagination
         page={page}
-        totalPages={data?.totalPages ?? 0}
-        isLast={data?.last ?? true}
-        onPrev={() => setPage((p) => p - 1)}
-        onNext={() => setPage((p) => p + 1)}
+        totalPages={totalPages}
+        isLast={page >= totalPages - 1}
+        onPrev={() =>
+          void navigate({
+            search: (previous) => ({ ...previous, page: page - 1 }),
+          })
+        }
+        onNext={() =>
+          void navigate({
+            search: (previous) => ({ ...previous, page: page + 1 }),
+          })
+        }
+      />
+
+      <QuotationDetailDrawer
+        quotationId={search.open ?? null}
+        onClose={closeQuotation}
+        resolveCode={dir.resolveCode}
       />
     </>
-  )
-}
-
-interface FilterSelectProps {
-  label: string
-  value: string
-  allLabel: string
-  options: { value: string; label: string }[]
-  disabled?: boolean
-  onChange: (value: string) => void
-}
-
-function FilterSelect({
-  label,
-  value,
-  allLabel,
-  options,
-  disabled,
-  onChange,
-}: FilterSelectProps) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <span className="text-[12px] font-semibold text-muted-foreground">
-        {label}
-      </span>
-      <Select value={value} onValueChange={onChange} disabled={disabled}>
-        <SelectTrigger className="h-10 w-full rounded-[10px]">
-          <SelectValue placeholder={allLabel} />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value={ALL}>{allLabel}</SelectItem>
-          {options.map((o) => (
-            <SelectItem key={o.value} value={o.value}>
-              {o.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
   )
 }
