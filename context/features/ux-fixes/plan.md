@@ -1,6 +1,7 @@
 # Correctifs UX (audit du 2026-09-30)
 
 **PR:** https://github.com/Consulting-Strategy-Solutions-Internal/assurances-backoffice-v2/pull/5 (branche `feat/ia-products`, 2026-09-30)
+**Status:** shipped — fusionnée dans `main` via la PR #5 (2026-09-30). Suivi : les ⚪ R3-2…R3-4 ont été corrigés sans relecture dédiée ; points hors périmètre et demandes backend listés dans la PR.
 Source : `context/project/ux-audit-2026-09-30.md`. L'utilisateur a demandé de **tout** corriger.
 Décisions utilisateur : pages `/products*` supprimées (fait) ; recherche de la Topbar à rendre **fonctionnelle** (recherche globale).
 Conventions : `context/project/ui-registry.md`, `context/memory.md`.
