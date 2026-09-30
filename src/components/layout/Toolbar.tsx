@@ -66,12 +66,21 @@ export function ToolbarSearch({
 }) {
   // The parent's `value` usually lives in the URL and only catches up once the
   // navigation commits: rendering it directly while typing put the previous
-  // value back and dropped letters. The input keeps its own draft and only
-  // follows `value` while it isn't being edited (e.g. « Réinitialiser »).
+  // value back and dropped letters. The input keeps its own draft; a `value`
+  // it emitted itself is only an echo (ignored), any other one comes from
+  // outside — Back/Forward, « Réinitialiser » — and replaces the draft.
   const [draft, setDraft] = useState(value)
-  const editing = useRef(false)
+  const emitted = useRef(new Set<string>())
+  const lastEmitted = useRef<string | null>(null)
   useEffect(() => {
-    if (!editing.current) setDraft(value)
+    if (emitted.current.has(value)) {
+      // Caught up with the last keystroke: older echoes will never come.
+      if (value === lastEmitted.current) emitted.current.clear()
+      else emitted.current.delete(value)
+      return
+    }
+    emitted.current.clear()
+    setDraft(value)
   }, [value])
   return (
     <div className="relative col-span-2 min-w-0 flex-1 @xl/main:col-span-1 @xl/main:min-w-[240px]">
@@ -80,12 +89,9 @@ export function ToolbarSearch({
         aria-label={label}
         placeholder={placeholder}
         value={draft}
-        onFocus={() => (editing.current = true)}
-        onBlur={() => {
-          editing.current = false
-          setDraft(value)
-        }}
         onChange={(e) => {
+          emitted.current.add(e.target.value)
+          lastEmitted.current = e.target.value
           setDraft(e.target.value)
           onChange(e.target.value)
         }}

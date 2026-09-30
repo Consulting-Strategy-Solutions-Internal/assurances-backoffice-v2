@@ -91,8 +91,9 @@
 
 ### L-012: A filter bound to the URL must stay cheap to navigate: no network in route guards on search-only changes, no input rendering the router's value while typing
 - **Why:** every keystroke in `/clients` search was a navigation; the `_auth` guard called a server fn (`/auth/me`) each time, and `ToolbarSearch` rendered the URL value, which lags until the navigation commits — typing waited on the network and dropped letters (« kouassi » → « i »).
-- **How to apply:** in a `beforeLoad`, skip remote checks when `cause === 'stay'` and the pathname is unchanged; a text input driven by search params keeps a local draft (as `ToolbarSearch` does) and only syncs from the URL when not being edited. Measure a new URL-bound filter by typing fast in the real app.
+- **How to apply:** in a `beforeLoad`, skip remote checks on `cause === 'stay'` for a page verified recently — never key it on « the last pathname »: hover preloads (`defaultPreload: 'intent'`) also arrive as `stay`, towards another page; a text input driven by search params keeps a local draft (as `ToolbarSearch` does) and only syncs from the URL when not being edited. Measure a new URL-bound filter by typing fast in the real app.
 - **Seen:** fix 2026-09-30 `client-search-lag`
+- **Seen:** fix 2026-09-30 `client-search-lag` review R1-1 — first fix keyed on the last pathname, overwritten by hover preloads
 - **Enforced by:** — (`ToolbarSearch` now handles it for every list using it)
 
 ## Enforced

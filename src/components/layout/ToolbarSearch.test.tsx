@@ -48,6 +48,59 @@ describe('ToolbarSearch (fix client-search-lag)', () => {
     expect(input.value).toBe('kouassi')
   })
 
+  it('R1 : suit Précédent/Suivant même quand le champ a le focus', async () => {
+    function Parent() {
+      const [url, setUrl] = useState('abc')
+      return (
+        <>
+          <ToolbarSearch
+            label="Rechercher"
+            placeholder=""
+            value={url}
+            onChange={(v) => setTimeout(() => setUrl(v), 20)}
+          />
+          <button type="button" onClick={() => setUrl('ancien')}>
+            Précédent
+          </button>
+        </>
+      )
+    }
+    render(<Parent />)
+    const input = screen.getByLabelText<HTMLInputElement>('Rechercher')
+    input.focus()
+    typeInto(input, 'd')
+    await act(() => new Promise((r) => setTimeout(r, 60)))
+    // Précédent sans perdre le focus (bouton de souris, Alt+←).
+    fireEvent.click(screen.getByText('Précédent'))
+    expect(input.value).toBe('ancien')
+  })
+
+  it('R1 : Précédent vers une valeur intermédiaire déjà tapée (« ko ») est suivi', async () => {
+    function Parent() {
+      const [url, setUrl] = useState('')
+      return (
+        <>
+          <ToolbarSearch
+            label="Rechercher"
+            placeholder=""
+            value={url}
+            // Le routeur regroupe les navigations : seule la dernière arrive.
+            onChange={(v) => v === 'kou' && setTimeout(() => setUrl(v), 20)}
+          />
+          <button type="button" onClick={() => setUrl('ko')}>
+            Précédent
+          </button>
+        </>
+      )
+    }
+    render(<Parent />)
+    const input = screen.getByLabelText<HTMLInputElement>('Rechercher')
+    typeInto(input, 'kou')
+    await act(() => new Promise((r) => setTimeout(r, 60)))
+    fireEvent.click(screen.getByText('Précédent'))
+    expect(input.value).toBe('ko')
+  })
+
   it('suit une remise à zéro venue du parent (bouton Réinitialiser)', async () => {
     render(<LaggingParent />)
     const input = screen.getByLabelText<HTMLInputElement>('Rechercher')

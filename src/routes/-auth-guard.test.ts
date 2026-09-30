@@ -60,6 +60,43 @@ describe('_auth beforeLoad (fix client-search-lag)', () => {
     window.history.replaceState(null, '', '/')
   })
 
+  it('R1 : survol du menu (préchargement `stay` vers une autre page) puis frappes → pas de nouvel appel', async () => {
+    const beforeLoad = await guard()
+    await beforeLoad({ cause: 'enter', location: { pathname: '/clients' } })
+    await beforeLoad({ cause: 'stay', location: { pathname: '/partners' } })
+    for (let i = 0; i < 7; i++) {
+      await beforeLoad({ cause: 'stay', location: { pathname: '/clients' } })
+    }
+    expect(mocks.verifyAuth).toHaveBeenCalledTimes(2)
+  })
+
+  it('R1 : frappes pendant une vérification en cours → un seul appel', async () => {
+    const beforeLoad = await guard()
+    let resolve!: () => void
+    mocks.verifyAuth.mockReturnValueOnce(
+      new Promise<void>((r) => (resolve = r)),
+    )
+    const calls = Array.from({ length: 5 }, () =>
+      beforeLoad({ cause: 'stay', location: { pathname: '/partners' } }),
+    )
+    resolve()
+    await Promise.all(calls)
+    expect(mocks.verifyAuth).toHaveBeenCalledTimes(1)
+  })
+
+  it('revérifie une page vérifiée il y a plus d’une minute', async () => {
+    vi.useFakeTimers()
+    try {
+      const beforeLoad = await guard()
+      await beforeLoad({ cause: 'enter', location: { pathname: '/clients' } })
+      vi.advanceTimersByTime(61_000)
+      await beforeLoad({ cause: 'stay', location: { pathname: '/clients' } })
+      expect(mocks.verifyAuth).toHaveBeenCalledTimes(2)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('revérifie en changeant de page', async () => {
     const beforeLoad = await guard()
     await beforeLoad({ cause: 'enter', location: { pathname: '/clients' } })
