@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Search } from 'lucide-react'
 import { Card } from '#/components/ui/card'
@@ -63,14 +64,31 @@ export function ToolbarSearch({
   /** Accessible name, e.g. « Rechercher un client ». */
   label: string
 }) {
+  // The parent's `value` usually lives in the URL and only catches up once the
+  // navigation commits: rendering it directly while typing put the previous
+  // value back and dropped letters. The input keeps its own draft and only
+  // follows `value` while it isn't being edited (e.g. « Réinitialiser »).
+  const [draft, setDraft] = useState(value)
+  const editing = useRef(false)
+  useEffect(() => {
+    if (!editing.current) setDraft(value)
+  }, [value])
   return (
     <div className="relative col-span-2 min-w-0 flex-1 @xl/main:col-span-1 @xl/main:min-w-[240px]">
       <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
       <Input
         aria-label={label}
         placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
+        value={draft}
+        onFocus={() => (editing.current = true)}
+        onBlur={() => {
+          editing.current = false
+          setDraft(value)
+        }}
+        onChange={(e) => {
+          setDraft(e.target.value)
+          onChange(e.target.value)
+        }}
         className="h-10 rounded-[10px] pl-9"
       />
     </div>
