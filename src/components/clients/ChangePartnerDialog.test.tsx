@@ -95,9 +95,7 @@ async function choose(label: string) {
 }
 
 const submit = () =>
-  fireEvent.click(
-    screen.getByRole('button', { name: 'Confirmer le changement' }),
-  )
+  fireEvent.click(screen.getByRole('button', { name: 'Confirmer' }))
 
 beforeEach(() => {
   mocks.getAllPartners.mockResolvedValue({
@@ -118,7 +116,7 @@ describe('ChangePartnerDialog', () => {
     await screen.findByRole('option', { name: 'Sunu Distribution' })
     expect(
       screen
-        .getByRole('button', { name: 'Confirmer le changement' })
+        .getByRole('button', { name: 'Confirmer' })
         .hasAttribute('disabled'),
     ).toBe(true)
   })

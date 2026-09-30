@@ -19,7 +19,7 @@
 
 - D-1 Liste `/clients` : sélecteur « Partenaire » (`SearchableSelect` : « Tous les partenaires », « Sans partenaire », partenaires de `GET /partners`), `?partner=<id>|none` dans l'URL, envoyé en `partnerId` au serveur ; recherche, compteurs et KPI portent sur les clients du filtre.
 - D-2 Le partenaire du filtre est affiché dans l'en-tête de la liste (compteur : « 12 clients · partenaire Sunu Distribution » / « · sans partenaire »).
-- D-3 Fiche client : bouton « Changer de partenaire » (visible sauf si `backoffice:admin` est connu et absent — action que le serveur garde, L-005) → dialogue : sélecteur (partenaires ou « Aucun partenaire »), encadré qui explique (les vendeurs de l'ancien partenaire n'y auront plus accès ; devis et contrats déjà faits inchangés, prochains devis au nouveau partenaire), bouton « Confirmer le changement ».
+- D-3 Fiche client : bouton « Changer de partenaire » (visible sauf si `backoffice:admin` est connu et absent — action que le serveur garde, L-005) → dialogue : sélecteur (partenaires ou « Aucun partenaire »), encadré qui explique (les vendeurs de l'ancien partenaire n'y auront plus accès ; devis et contrats déjà faits inchangés, prochains devis au nouveau partenaire), bouton « Confirmer ».
 - D-4 Le partenaire actuel n'est pas connu (non exposé) : le dialogue le dit et ne présélectionne rien.
 - D-5 Erreurs : 400 → « Choisissez un partenaire ou « Aucun partenaire ». » ; 404 → partenaire supprimé entre-temps (liste rechargée) ou client introuvable, selon le `message` ; 403 → « Seule l'administration NSIA peut changer le partenaire d'un client. » ; autre → message générique. Affichées dans le dialogue.
 - D-6 204 → toast « Partenaire de <client> : <partenaire>. » (ou « <client> n'a plus de partenaire. »), nommé d'après le partenaire **envoyé** ; invalidation des listes `['clients', …]`. Sélecteur figé pendant l'envoi. _(revue R1)_
@@ -50,3 +50,15 @@
 - Hors diff : « Retour aux clients » (`backSearch` figé) perd les filtres de la liste — préexistant, non traité.
 
 **Round 2** — 2026-09-30 · re-review of `0d3c9a7` · R1-1…3 confirmés corrigés, aucun nouveau constat · verdict : prêt
+
+## Acceptance run
+
+**Run 1** — 2026-09-30 · HEAD après R1 · Playwright contre la démo via le proxy de dev (port 3005), compte admin. La démo n'a pas encore le backend #121 : `GET /clients?partnerId=` est intercepté (réponse réelle réduite à 2 clients) et `PUT /owner-partner` simulé (204, puis 404, puis 403). Aucune écriture réelle.
+
+- AC-1 ✅ « Tous » → 15 clients (réel) ; partenaire DSIT → `?partner=402`, `partnerId=402` envoyé ; « Sans partenaire » → `?partner=none`, `partnerId=none` envoyé ; `?partner=1e30` ignoré (15 clients, pas de 400).
+- AC-2 ✅ « 2 clients · partenaire DSIT », « 2 clients · sans partenaire ».
+- AC-3 ✅ `{"partnerId":402}` → 204, dialogue fermé, toast « Partenaire de Yann Konaté : DSIT. » ; `{"partnerId":null}` envoyé pour « Aucun partenaire ».
+- AC-4 ✅ 404 → « Ce partenaire n'existe plus… », 403 → « Seule l'administration NSIA… ».
+- 390 px : pas de débordement ; libellé du bouton raccourci en « Confirmer » (coupé à 390 px), reconfirmé.
+- Erreurs de page : aucune.
+- À refaire après déploiement de #121 : une lecture réelle `GET /clients?partnerId=…` (sans écriture).

@@ -72,7 +72,7 @@ export function ChangePartnerDialog({
       eyebrow="Arbitrage NSIA"
       title="Changer de partenaire"
       description={`Choisissez le partenaire dont les vendeurs suivront ${clientName}.`}
-      submitLabel="Confirmer le changement"
+      submitLabel="Confirmer"
       submitDisabled={value === ''}
       pending={mutation.isPending}
       dirty={value !== ''}
