@@ -82,14 +82,14 @@ function save(dialog: HTMLElement) {
 }
 
 describe('WarrantiesScreen', () => {
-  it('liste les garanties dans l’ordre de la grille, code en repère, taxe en %', async () => {
+  it('liste les garanties dans l’ordre de la grille, sans code technique, taxe en %', async () => {
     renderWithClient(<WarrantiesScreen />)
     const table = await screen.findByRole('table')
     const names = (
       await within(table).findAllByText(/Incendie|Inondation|Vol/)
     ).map((n) => n.textContent)
     expect(names).toEqual(['Incendie', 'Inondation', 'Vol'])
-    expect(within(table).getByText('FIRE')).toBeTruthy()
+    expect(within(table).queryByText(/FIRE|FLOOD|BURGLARY/)).toBeNull()
     expect(within(table).getByText(/25\s%/)).toBeTruthy()
     expect(
       screen.queryByRole('button', { name: /Ajouter|Supprimer/ }),
@@ -177,6 +177,7 @@ describe('LineWarrantiesScreen', () => {
       within(rows[2]).getByText(/1\s‰ sur 25\s% des capitaux/),
     ).toBeTruthy()
     expect(within(rows[3]).getByText(/15\s000\sFCFA/)).toBeTruthy()
+    expect(within(table).queryByText(/^(FIRE|FLOOD|BURGLARY)$/)).toBeNull()
   })
 
   it('situation par défaut = la première de la grille ; changer de situation remonte le code', async () => {

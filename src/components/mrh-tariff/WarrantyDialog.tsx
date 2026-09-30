@@ -79,9 +79,9 @@ export function WarrantyDialog({
     <FormDialog
       dirty={dirty}
       onClose={onClose}
-      eyebrow={`Garantie · ${warranty.code}`}
+      eyebrow="Garantie"
       title="Modifier la garantie"
-      description="Le code est fixé par la grille NSIA."
+      description="La garantie elle-même est fixée par la grille NSIA."
       onSubmit={() => void form.handleSubmit()}
       submitLabel={isPending ? 'Enregistrement…' : 'Enregistrer'}
       pending={isPending}

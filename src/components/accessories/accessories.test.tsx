@@ -210,6 +210,28 @@ describe('AccessoriesScreen', () => {
     await waitFor(() =>
       expect(toast.error).toHaveBeenCalledWith(LAST_BRACKET_FR),
     )
+    // R1-9 : la confirmation se ferme, rien à re-cliquer.
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull())
+  })
+
+  it('R1-8 : accessory:write connu et absent → ajout, import, modification et suppression désactivés', async () => {
+    perms.granted = new Set(['accessory:read'])
+    vi.mocked(getAccessories).mockResolvedValue(page([bracket]))
+    renderWithClient(<AccessoriesScreen product="MRH_STANDARD" />)
+    const table = await screen.findByRole('table')
+    for (const name of ['Modifier la tranche', 'Supprimer la tranche']) {
+      const b = await within(table).findByRole('button', { name })
+      expect((b as HTMLButtonElement).disabled).toBe(true)
+    }
+  })
+
+  it('R1-8 : accessory:read connu et absent → bandeau de permission, aucune requête', async () => {
+    perms.granted = new Set(['accessory:write'])
+    renderWithClient(<AccessoriesScreen product="MRH_STANDARD" />)
+    expect(
+      await screen.findByText(/pas la permission de consulter les accessoires/),
+    ).toBeTruthy()
+    expect(getAccessories).not.toHaveBeenCalled()
   })
 })
 

@@ -39,7 +39,7 @@ import type {
   LegalQualityWarrantyResponse,
   MrhLegalQualityCode,
 } from '#/services/mrh-tariff'
-import { CodeTag, MRH_KEYS } from './grid-kit'
+import { MRH_KEYS } from './grid-kit'
 import { sortByGridOrder } from './LegalQualitiesScreen'
 import { LineWarrantyDialog } from './LineWarrantyDialog'
 
@@ -176,11 +176,6 @@ export function LineWarrantiesScreen({
                       <div className="text-[13.5px] font-semibold break-words">
                         {name}
                       </div>
-                      {warranty && (
-                        <div className="mt-0.5">
-                          <CodeTag>{warranty.code}</CodeTag>
-                        </div>
-                      )}
                       {/* Relais des colonnes Mode / Obligatoire masquées sous 672 px. */}
                       <div className="mt-1 text-[12px] text-muted-foreground @2xl/main:hidden">
                         {`${PREMIUM_TYPE_LABELS[line.premiumType]} · ${line.mandatory ? 'Obligatoire' : 'Optionnelle'}`}

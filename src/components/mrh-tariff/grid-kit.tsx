@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react'
 import type { QueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import type { PageResponse } from '#/lib/page'
@@ -80,16 +79,4 @@ export function splitServerError(
     Object.entries(parsed.fields).filter(([key]) => formFields.includes(key)),
   )
   return { fields, banner: orphanBannerMessage(parsed, formFields) }
-}
-
-/** Code fixe de la grille, affiché comme repère (jamais modifiable). */
-export function CodeTag({ children }: { children: ReactNode }) {
-  return (
-    <code
-      className="rounded bg-muted px-1.5 py-0.5 text-[11.5px] font-semibold text-muted-foreground"
-      title="Code fixe de la grille NSIA"
-    >
-      {children}
-    </code>
-  )
 }

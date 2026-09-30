@@ -5,7 +5,6 @@ import { FormDialog } from '#/components/forms/FormDialog'
 import { FormField } from '#/components/forms/FormField'
 import {
   BASE_RATE_FIELDS,
-  OPTIONAL_BASE_RATE_FIELDS,
   baseRateFieldsFor,
   buildBaseRatePayload,
   validateDecimalInput,
@@ -99,7 +98,7 @@ export function BaseRateDialog({
     <FormDialog
       dirty={dirty}
       onClose={onClose}
-      eyebrow={`Taux de base · ${legalQuality.code}`}
+      eyebrow="Taux de base"
       title={`Taux — ${legalQuality.name}`}
       description="Seuls les taux de cette situation sont modifiables ; un champ inchangé n’est pas envoyé."
       onSubmit={() => void form.handleSubmit()}
@@ -108,18 +107,17 @@ export function BaseRateDialog({
       error={serverError}
     >
       {fields.map(({ name, label, unit }) => {
-        const optional = OPTIONAL_BASE_RATE_FIELDS.includes(name)
+        // Affiché seulement s'il a une valeur, que l'API ne sait pas vider (D-8).
+        const informative = name === 'minimumContentsValue'
         const validate = ({ value }: { value: string | undefined }) =>
-          optional && (value ?? '').trim() === ''
-            ? undefined
-            : validateDecimalInput(
-                value ?? '',
-                unit === 'multiplier'
-                  ? { positive: true }
-                  : unit === 'fcfa'
-                    ? {}
-                    : { max: 1000 },
-              )
+          validateDecimalInput(
+            value ?? '',
+            unit === 'multiplier'
+              ? { positive: true }
+              : unit === 'fcfa'
+                ? {}
+                : { max: 1000 },
+          )
         return (
           <form.Field
             key={name}
@@ -130,7 +128,7 @@ export function BaseRateDialog({
               <FormField
                 id={`base-rate-${name}`}
                 label={label}
-                required={!optional}
+                required
                 value={field.state.value ?? ''}
                 onChange={(v) => {
                   setServerFields((prev) => {
@@ -144,7 +142,7 @@ export function BaseRateDialog({
                 hint={
                   unit === 'multiplier'
                     ? 'Risques locatifs = loyer mensuel × ce multiplicateur.'
-                    : optional
+                    : informative
                       ? 'Pour information : sans effet sur la prime.'
                       : undefined
                 }

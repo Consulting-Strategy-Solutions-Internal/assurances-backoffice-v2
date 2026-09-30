@@ -80,9 +80,9 @@ export function LegalQualityDialog({
     <FormDialog
       dirty={dirty}
       onClose={onClose}
-      eyebrow={`Situation · ${legalQuality.code}`}
+      eyebrow="Situation"
       title="Modifier la situation"
-      description="Le code, la base de calcul et l’occupation sont fixés par la grille NSIA."
+      description="La base de calcul et l’occupation sont fixées par la grille NSIA."
       onSubmit={() => void form.handleSubmit()}
       submitLabel={isPending ? 'Enregistrement…' : 'Enregistrer'}
       pending={isPending}

@@ -58,11 +58,6 @@ export const BASE_RATE_FIELDS: {
   },
 ]
 
-/** Seul champ facultatif : conservé pour référence, sans effet sur la prime. */
-export const OPTIONAL_BASE_RATE_FIELDS: readonly BaseRateField[] = [
-  'minimumContentsValue',
-]
-
 /**
  * Champs de la situation (D-7) : ceux que l'API renvoie non nuls, plus ceux
  * que la base de calcul exige (un taux exigé mais vide en base doit rester

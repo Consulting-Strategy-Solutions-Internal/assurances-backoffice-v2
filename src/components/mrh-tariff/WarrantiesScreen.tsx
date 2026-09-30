@@ -27,7 +27,7 @@ import {
 import { formatPercent } from '#/lib/format'
 import { MRH_WARRANTY_CODES, getWarranties } from '#/services/mrh-tariff'
 import type { WarrantyResponse } from '#/services/mrh-tariff'
-import { CodeTag, MRH_KEYS } from './grid-kit'
+import { MRH_KEYS } from './grid-kit'
 import { WarrantyDialog } from './WarrantyDialog'
 
 /** Ordre de la grille NSIA (Incendie d'abord). */
@@ -88,9 +88,6 @@ export function WarrantiesScreen() {
                   <DataTableCell first>
                     <div className="text-[13.5px] font-semibold break-words">
                       {w.name}
-                    </div>
-                    <div className="mt-0.5">
-                      <CodeTag>{w.code}</CodeTag>
                     </div>
                   </DataTableCell>
                   <TableCell className="text-[13.5px] whitespace-nowrap tabular-nums">

@@ -71,14 +71,14 @@ async function openRates(name: string) {
 }
 
 describe('LegalQualitiesScreen — lecture', () => {
-  it('une carte par situation, dans l’ordre de la grille, codes en repère', async () => {
+  it('une carte par situation, dans l’ordre de la grille, sans code technique affiché', async () => {
     renderWithClient(<LegalQualitiesScreen />)
     const titles = await screen.findAllByRole('heading', { level: 2 })
     expect(titles.map((h) => h.textContent)).toEqual([
       'Locataire',
       'Propriétaire non occupant',
     ])
-    expect(screen.getByText('TENANT')).toBeTruthy()
+    expect(screen.queryByText(/TENANT|NON_OCCUPANT_OWNER/)).toBeNull()
     expect(screen.queryByRole('textbox')).toBeNull()
   })
 
@@ -341,5 +341,29 @@ describe('revue R1', () => {
     expect(
       within(dialog).getByLabelText(/Multiplicateur du loyer/),
     ).toBeTruthy()
+  })
+})
+
+describe('revue R2', () => {
+  it('valeur minimale du contenu : ne peut pas être vidée (l’API ne sait pas l’effacer)', async () => {
+    vi.mocked(getBaseRates).mockResolvedValue(
+      page([{ ...TENANT_RATE, minimumContentsValue: 2000000 }]),
+    )
+    renderWithClient(<LegalQualitiesScreen />)
+    const dialog = await openRates('Locataire')
+    fireEvent.change(
+      within(dialog).getByLabelText(/Valeur minimale du contenu/),
+      {
+        target: { value: '' },
+      },
+    )
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Enregistrer' }))
+    expect(
+      await within(fieldOf(/Valeur minimale du contenu/)).findByText(
+        'Ce champ est requis.',
+      ),
+    ).toBeTruthy()
+    expect(updateBaseRate).not.toHaveBeenCalled()
+    expect(getBaseRate).not.toHaveBeenCalled()
   })
 })

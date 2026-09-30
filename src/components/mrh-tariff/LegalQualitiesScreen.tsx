@@ -30,7 +30,7 @@ import type {
   LegalQualityResponse,
 } from '#/services/mrh-tariff'
 import { BaseRateDialog } from './BaseRateDialog'
-import { CodeTag, MRH_KEYS } from './grid-kit'
+import { MRH_KEYS } from './grid-kit'
 import { LegalQualityDialog } from './LegalQualityDialog'
 
 const multiplierFormatter = new Intl.NumberFormat('fr-FR', {
@@ -98,9 +98,6 @@ function SituationCard({
       }
     >
       <InfoList columns={2}>
-        <InfoRow label="Code">
-          <CodeTag>{legalQuality.code}</CodeTag>
-        </InfoRow>
         <InfoRow label="Base de calcul">
           {PROPERTY_BASIS_LABELS[legalQuality.propertyBasis]}
         </InfoRow>

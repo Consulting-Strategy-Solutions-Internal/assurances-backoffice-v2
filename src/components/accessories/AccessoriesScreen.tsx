@@ -83,7 +83,11 @@ export function AccessoriesScreen({ product }: { product: AccessoryProduct }) {
       toast.success('Tranche supprimée.')
       setDeleting(null)
     },
-    onError: (err) => toast.error(parseIaErrorList(err).join(' ')),
+    onError: (err) => {
+      toast.error(parseIaErrorList(err).join(' '))
+      // Refus (ex. dernière tranche) : rien à re-tenter depuis la confirmation.
+      setDeleting(null)
+    },
   })
 
   const empty = !isPending && !isError && accessories.length === 0
