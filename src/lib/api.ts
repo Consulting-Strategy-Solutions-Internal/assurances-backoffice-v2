@@ -1,4 +1,4 @@
-import axios from 'axios'
+import axios, { isAxiosError } from 'axios'
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
@@ -68,3 +68,22 @@ api.interceptors.response.use(
     return Promise.reject(error)
   },
 )
+
+/**
+ * Pour une requête `responseType: 'blob'` : le corps d'erreur arrive lui aussi
+ * en Blob. Le relit en JSON (`ErrorResponse`) et le remet dans
+ * `error.response.data`, pour que les mappeurs d'erreur lisent `message`.
+ * N'est appelé que par les services de téléchargement : les autres appels
+ * gardent leur comportement.
+ */
+export async function readBlobErrorBody(error: unknown): Promise<unknown> {
+  if (!isAxiosError(error) || !error.response) return error
+  const data: unknown = error.response.data
+  if (!(data instanceof Blob)) return error
+  try {
+    error.response.data = JSON.parse(await data.text())
+  } catch {
+    // Corps illisible ou non JSON : seul le statut reste exploitable.
+  }
+  return error
+}

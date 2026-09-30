@@ -161,9 +161,16 @@ export interface AmendmentCurrent {
   amendmentNumber?: number | null
 }
 
+/** Ligne de la liste : la modification à plat + n° de police et souscripteur (PR backend #111). */
+export type AmendmentListItem = Amendment & {
+  policyNumber: string
+  /** « NOM Prénom » ; `null` quand le compte client a été supprimé. */
+  clientName: string | null
+}
+
 export interface AmendmentDetail extends Amendment {
   policyNumber?: string | null
-  /** « NOM Prénom ». */
+  /** « NOM Prénom » ; `null` quand le compte client a été supprimé. */
   clientName?: string | null
   current: AmendmentCurrent
 }
@@ -571,19 +578,103 @@ export function mapAmendmentError(error: unknown): {
   return { kind: 'other', message: apiErrorMessage(error) }
 }
 
-/** Erreur du téléchargement du PDF (corps de réponse en blob : seul le statut est lisible). */
-export function mapPolicyDocumentError(error: unknown): {
+/* ------------------------------------------------------------------ */
+/* Quittance : téléchargement                                          */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Le PDF d'une quittance existe dès la validation d'une ristourne, et après
+ * paiement d'un appel de prime ; jamais pour un appel à payer, une quittance
+ * annulée ou payée après la suppression de sa modification.
+ */
+export function isReceiptDownloadable(
+  receipt: Pick<AmendmentReceipt, 'kind' | 'status'>,
+): boolean {
+  return (
+    (receipt.kind === 'REFUND' && receipt.status === 'TO_REFUND') ||
+    (receipt.kind === 'SUPPLEMENTARY_CALL' && receipt.status === 'PAID')
+  )
+}
+
+/** Mention discrète quand la quittance n'a (pas encore) de PDF, `null` si elle est téléchargeable. */
+export function receiptPdfNote(
+  receipt: Pick<AmendmentReceipt, 'kind' | 'status'>,
+): string | null {
+  if (isReceiptDownloadable(receipt)) return null
+  if (receipt.status === 'TO_PAY') return 'PDF disponible après le paiement'
+  return 'Pas de PDF pour cette quittance'
+}
+
+/* ------------------------------------------------------------------ */
+/* Erreurs de téléchargement de PDF                                    */
+/* ------------------------------------------------------------------ */
+
+/** `message` du JSON d'erreur (`ErrorResponse`) ; le corps doit déjà être lu (voir `readBlobErrorBody`). */
+function errorMessageOf(error: unknown): string {
+  if (!isAxiosError(error)) return ''
+  const data: unknown = error.response?.data
+  if (!data || typeof data !== 'object') return ''
+  const message = (data as { message?: unknown }).message
+  return typeof message === 'string' ? message.toLowerCase() : ''
+}
+
+export interface DocumentError {
   retry: boolean
   message: string
-} {
+}
+
+/**
+ * Erreur du téléchargement du PDF d'une quittance : on lit le `message` du
+ * backend, car trois 404 différents y répondent (spec lot 2).
+ */
+export function mapReceiptDocumentError(error: unknown): DocumentError {
   if (isAxiosError(error)) {
     const status = error.response?.status
-    if (status === 404)
+    const message = errorMessageOf(error)
+    if (status === 404) {
+      if (message.includes('not issued yet'))
+        return {
+          retry: true,
+          message:
+            'Quittance en cours de production, réessayez dans quelques minutes.',
+        }
+      if (message.startsWith('receipt not found'))
+        return { retry: false, message: 'Quittance introuvable.' }
+      if (message.startsWith('subscription not found'))
+        return { retry: false, message: 'Contrat introuvable.' }
+    }
+    if (status === 403) return { retry: false, message: 'Accès refusé.' }
+    if (status === 400)
+      return {
+        retry: false,
+        message: 'Quittance invalide : impossible de télécharger ce document.',
+      }
+    if (status === 502)
+      return {
+        retry: true,
+        message: 'Service de documents indisponible, réessayez.',
+      }
+  }
+  return {
+    retry: true,
+    message: 'Impossible de télécharger la quittance. Réessayez plus tard.',
+  }
+}
+
+/** Erreur du téléchargement du PDF d'un avenant (le corps blob doit déjà être lu). */
+export function mapPolicyDocumentError(error: unknown): DocumentError {
+  if (isAxiosError(error)) {
+    const status = error.response?.status
+    if (status === 404) {
+      if (errorMessageOf(error).startsWith('subscription not found'))
+        return { retry: false, message: 'Contrat introuvable.' }
+      // « The policy document is not issued yet » (ou 404 sans message lisible).
       return {
         retry: true,
         message:
           'Le PDF n’est pas encore disponible : il suit l’émission de quelques minutes. Réessayez plus tard.',
       }
+    }
     if (status === 502)
       return {
         retry: true,
@@ -594,6 +685,11 @@ export function mapPolicyDocumentError(error: unknown): {
       return {
         retry: false,
         message: 'Vous n’avez pas le droit de consulter ce document.',
+      }
+    if (status === 400)
+      return {
+        retry: false,
+        message: 'Demande invalide : impossible de télécharger ce PDF.',
       }
   }
   return {
