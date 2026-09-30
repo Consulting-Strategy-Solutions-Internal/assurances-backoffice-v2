@@ -1,6 +1,6 @@
 # Build plan — Tarif MRH NSIA
 
-- **Status:** done
+- **Status:** in-progress
 - **Created:** 2026-09-30 · **Updated:** 2026-09-30
 - **PR:** —
 - **Branch:** `feat/mrh-tariff` · **Worktree:** `.claude/worktrees/mrh-tariff` · **Ports:** app 3001 · db —
@@ -35,6 +35,20 @@
 - Écran d'accessoires déplacé : `src/components/ia-products/accessories/` → `src/components/accessories/` (partagé IA/MRH).
 
 ## Review findings
+
+> Last review: round 1 · 2026-09-30 · base `c38dff8` · HEAD `93bde04` (+ uncommitted: no) · verdict : prêt après le 🟡 (2 relecteurs : grille / accessoires + devis + navigation)
+
+- [ ] **R1-1** 🟡 Nom et description sans limite (colonnes varchar 255) → 409 « Cet élément existe déjà. » trompeur — `src/components/mrh-tariff/LegalQualityDialog.tsx:96`, `WarrantyDialog.tsx`
+- [ ] **R1-2** ⚪ PUT réussi mais relecture en échec affiché comme un échec — `src/components/mrh-tariff/BaseRateDialog.tsx:39`
+- [ ] **R1-3** ⚪ Nom technique (`capitalShare`) dans le bandeau d'erreur des lignes — `src/components/mrh-tariff/LineWarrantyDialog.tsx:84`
+- [ ] **R1-4** ⚪ Erreurs serveur non effacées à la saisie (garantie, situation) — `src/components/mrh-tariff/WarrantyDialog.tsx:82`
+- [ ] **R1-5** ⚪ Cas « permission connue mais absente » non testé sur la grille (L-009) — `src/components/mrh-tariff/LegalQualitiesScreen.test.tsx:32`
+- [ ] **R1-6** ⚪ Mode et Obligatoire masqués sur téléphone sans relais (L-008) — `src/components/mrh-tariff/LineWarrantiesScreen.tsx:84`
+- [ ] **R1-7** ⚪ Montant saisi avec espace (« 15 000 ») refusé — `src/lib/mrh-tariff.ts:77`
+- [ ] **R1-8** ⚪ Cas « permission connue mais absente » non testé sur les accessoires (L-009) — `src/components/accessories/accessories.test.tsx:31`
+- [ ] **R1-9** ⚪ Refus de suppression : la confirmation reste ouverte — `src/components/accessories/AccessoriesScreen.tsx:138`
+- [ ] **R1-10** ⚪ (hors diff, fichier touché) 422 `ErrorResponse` « File is too large » lu comme `ImportResult` → plantage — `src/services/accessories.ts:97`
+- Écarts au plan : `minimumContentsValue` ni affiché ni modifiable ; un taux exigé mais vide en base n'a pas de champ (D-7) — `src/lib/mrh-tariff.ts:32`
 
 ## Acceptance run
 
