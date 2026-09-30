@@ -36,8 +36,19 @@
 ## Steps
 - [x] **S1.** Types + produit + comparatif MRH + erreurs (`src/lib/amendments.ts`) — AC-1, AC-2, AC-3, AC-5 — verify: tests unitaires
 - [x] **S2.** Détail : comparatif sans bénéficiaires pour MRH, Logement / Souscripteur, note de taxe — AC-2, AC-3 — verify: tests de route
-- [ ] **S3.** Contrôles + recette (démo si #119 déployée, sinon réponses simulées)
+- [x] **S3.** Contrôles + recette (démo si #119 déployée, sinon réponses simulées)
 
 ## Review findings
 
 ## Acceptance run
+
+> Run: run 1 · 2026-09-30 · HEAD `44154b4` · 6 pass · 0 fail — dev (port 3004) + proxy vers la démo, Playwright. La démo n'a **pas** encore la #119 (aucun champ `mrh`) : parcours MRH sur réponses simulées (contrat `origin/develop`), écritures bloquées ; parcours IA sur la vraie démo.
+
+- AC-1 — pass — `?product=MRH_STANDARD` : ligne « MRH-2026-000001 · KONE Awa · MRH Standard · Hausse · 6 018 FCFA ».
+- AC-2 — pass — détail #51 : Situation, Valeur du contenu (modifié), Loyer mensuel, Risques locatifs, Nombre de pièces (modifié), Garanties (modifié), Prime annuelle (modifié) ; pas de bénéficiaires ni de téléphone ; cartes Logement (Appartement, B12, 4 pièces, adresse) et Souscripteur.
+- AC-3 — pass — « Prime supplémentaire à payer », taxe −50 FCFA + note des taux 25 % / 14,5 %.
+- AC-4 — pass — confirmation « Une quittance de 6 018 FCFA sera envoyée au client… » ; `POST /subscription-amendments/51/validate` émis (intercepté, rien envoyé). Suppression et erreurs : tests simulés.
+- AC-5 — tests simulés (mêmes routes que l'IA, vérifiées en réel au lot 2).
+- AC-6 — pass — IA réel : liste APPLIED et détail #1 (IA-2026-000002) identiques.
+- 0 px de débordement à 1280 et 390 px.
+- **À refaire en réel** quand la #119 sera déployée sur la démo : lecture d'un vrai avenant MRH (lecture seule).
