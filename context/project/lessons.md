@@ -9,6 +9,7 @@
 - **Why:** `formatNumber` (`src/lib/utils.ts`) was made integer-only for FCFA amounts; the IA Barèmes screen used it for ‰ rates, so 0,25 ‰ displayed « 0 » and an admin could « fix » a correct tariff. Changing a shared helper's semantics silently breaks every caller.
 - **How to apply:** one formatter per use (`formatFcfa`, `formatPermille`, `formatPercent`…); before changing any shared helper, grep its callers and check each one.
 - **Seen:** 2026-09-30 `ux-fixes` R1-1 (🔴)
+- **Seen:** 2026-09-30 `responsive` R1-1 — `RowChevron` made sticky + opaque for every caller; selected-row tint lost on 4 tables
 - **Enforced by:** partly — `formatNumber` renamed `formatInteger` (no generic number formatter left in `utils.ts`); still a rule, not a check
 
 ### L-002: Type every request and response from the backend's OpenAPI, never from memory or guesses
@@ -41,6 +42,19 @@
 - **Why:** « 20 types » was the page slice (`rows.length`) while the KPI said 30; the audit had already found the same on Permissions (« 20 » vs 60 in the KPIs). Two numbers for the same set make an admin doubt both.
 - **How to apply:** counters read the filtered set (`matching.length`) or the server's `totalElements`; the page slice is only for rendering rows.
 - **Seen:** 2026-09-30 audit (Permissions), `ux-fixes` R1-10 (reopened round 2)
+- **Enforced by:** —
+
+### L-007: Two sticky table columns must fit together in the narrowest visible width
+- **Why:** Schémas and Distributions stuck the first column left and the action column right; at 360 px their sum (≈ 355–373 px) exceeded the 326 px visible, so the middle columns (Taux négocié, Statut) could never be scrolled into view.
+- **How to apply:** only stick both sides when left + right widths fit in the smallest content width (≈ 326 px), keeping ≥ 150 px free; otherwise pass `stickyFrom="sm"` (`DataTableHead`/`DataTableCell`) on one side — it only sticks from 576 px of content — or switch to cards. Measure at 360 with real rows.
+- **Seen:** 2026-09-30 `responsive` R1-3
+- **Seen:** 2026-09-30 `responsive` round 2 — Portefeuilles, Accessoires IA (two sticky sides) and Schémas (right sticky alone 213 px)
+- **Enforced by:** —
+
+### L-008: Choose column-hiding thresholds from the measured table width, never by guess
+- **Why:** `hideBelow="lg"/"xl"` was set on Sinistres and Cotations columns although those tables fit at 1024/1280 (audit measured 672 / 866 px); desktop users lost Produit, Déclaré par, Émis par for nothing.
+- **How to apply:** measure the table's natural width (Playwright sweep) and hide a column only below the content width where the table stops fitting; content thresholds are 576/672/896/1024 px (`sm/md/lg/xl` of `hideBelow`), not viewport breakpoints.
+- **Seen:** 2026-09-30 `responsive` R1-4
 - **Enforced by:** —
 
 ## Enforced
