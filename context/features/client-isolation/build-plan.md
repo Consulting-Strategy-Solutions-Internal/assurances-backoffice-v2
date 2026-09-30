@@ -43,8 +43,10 @@
 
 **Round 1** — 2026-09-30 · base `origin/main` · HEAD `0765d44` · verdict : prêt à commiter (0 🔴, 0 🟡, 3 ⚪)
 
-- [~] **R1-1** ⚪ id démesuré dans `?partner` (`1e30`) → 400 serveur — `src/lib/client-partner.ts:13` → `Number.isSafeInteger`, cas ajoutés au test
-- [~] **R1-2** ⚪ toast lu sur la sélection courante, pas celle envoyée — `src/components/clients/ChangePartnerDialog.tsx:46` → message depuis les `variables`, sélecteur désactivé pendant l'envoi, test R1-2
-- [~] **R1-3** ⚪ sélecteur Partenaire de la liste non testé en interaction — `src/routes/_auth/clients.tsx:195` → test « le sélecteur Partenaire écrit ?partner »
+- [x] **R1-1** ⚪ id démesuré dans `?partner` (`1e30`) → 400 serveur — `src/lib/client-partner.ts:13` → `Number.isSafeInteger`, cas ajoutés au test
+- [x] **R1-2** ⚪ toast lu sur la sélection courante, pas celle envoyée — `src/components/clients/ChangePartnerDialog.tsx:46` → message depuis les `variables`, sélecteur désactivé pendant l'envoi, test R1-2
+- [x] **R1-3** ⚪ sélecteur Partenaire de la liste non testé en interaction — `src/routes/_auth/clients.tsx:195` → test « le sélecteur Partenaire écrit ?partner »
 - Plan gaps (compteur, texte du toast) : D-6 et D-8 mis à jour.
 - Hors diff : « Retour aux clients » (`backSearch` figé) perd les filtres de la liste — préexistant, non traité.
+
+**Round 2** — 2026-09-30 · re-review of `0d3c9a7` · R1-1…3 confirmés corrigés, aucun nouveau constat · verdict : prêt
