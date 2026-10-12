@@ -347,7 +347,10 @@ describe('R3 : seuils, squelette, clavier', () => {
     renderList()
     await screen.findByText('2 contrats')
     const table = inTable()
-    expect(table.getByText('09:05')).toBeTruthy()
-    expect(table.queryByText('T09:0')).toBeNull()
+    const time = table.getByText('09:05')
+    // Ligne sans heure : la date seule, pas de seconde ligne.
+    const dateOnly = table.getAllByText('12 oct. 2026')[1]?.closest('td')
+    expect(time.closest('td')?.className).toContain('@4xl/main:table-cell')
+    expect(dateOnly?.querySelectorAll('div')[1]?.textContent).toBe('')
   })
 })
