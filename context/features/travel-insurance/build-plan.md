@@ -1,6 +1,6 @@
 # Build plan — Assurance Voyage (EVO) au back-office
 
-- **Status:** in-progress
+- **Status:** done
 - **Created:** 2026-10-12 · **Updated:** 2026-10-12
 - **PR:** —
 - **Branch:** `feat/travel-insurance` · **Worktree:** `.claude/worktrees/travel-insurance` · **Ports:** app 3001
@@ -48,7 +48,18 @@
 - [x] **S7.** Menu + Ctrl+K + ui-registry — files: `Sidebar.tsx`, `src/components/search/*`, `context/project/ui-registry.md` — satisfies: AC-13 — verify: test Sidebar
 - [x] **S8.** `notificationTarget` + NotificationsMenu — files: `src/lib/notifications.ts`, `NotificationsMenu.tsx` — satisfies: AC-11 — verify: `src/lib/notifications.test.ts`
 - [x] **S9.** _(fait avant S8 : les liens des notifications visent cette route, que le routeur typé exige existante)_ Page `/remboursements/$refundId` — files: `src/routes/_auth/remboursements_.$refundId.tsx`, `src/components/refunds/*` — satisfies: AC-12 — verify: `src/routes/-refund-detail.test.tsx`
-- [ ] **S10.** Contrôles complets + `generate-routes` — verify: `npx tsc --noEmit && pnpm lint && pnpm test`
+- [x] **S10.** Contrôles complets + `generate-routes` — verify: `npx tsc --noEmit && pnpm lint && pnpm test`
+
+## AC → tests
+
+- AC-1 `src/routes/-contract-detail.test.tsx` (reprise du panneau, états 404/403/500, en-tête), `-contract-detail-api.test.tsx`, `-clients-api.test.tsx` (clic → page, `?contract=` redirigé)
+- AC-2…AC-4 `-contract-detail.test.tsx` « Contrat voyage »
+- AC-5 `src/routes/-travel-supervision.test.tsx` (filtre, page, jamais de `sort`, compteur, 404 offre coupée, 403, vide), `src/services/travel.test.ts`
+- AC-6…AC-10 `src/components/contracts/TravelDecisionPanel.test.tsx` (droit `null` / connu absent / présent, avant / après `reconcilableFrom`, plafond de renvois, chaque 422, 502, 403, confirmation du refus) + `src/lib/travel.test.ts` (`decisionState`, `mapTravelDecisionError`)
+- AC-11 `src/lib/notifications.test.ts`, `src/components/notifications/NotificationsMenu.test.tsx`
+- AC-12 `src/routes/-refund-detail.test.tsx`, `src/lib/refunds.test.ts` (normalisation identique au backend, préfixe / opérateur, erreurs, alerte)
+- AC-13 `src/components/dashboard/sidebar-contrats.test.ts`, `src/components/search/search-logic.test.ts`
+- AC-14 couvert par les assertions de dates / montants des tests ci-dessus (`formatClaimDate`, `formatFcfa`, `parseAbidjanDateTime`)
 
 ## Review findings
 
