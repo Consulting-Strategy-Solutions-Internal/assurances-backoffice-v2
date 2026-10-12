@@ -1,6 +1,6 @@
 # Build plan — Assurance Voyage (EVO) au back-office
 
-- **Status:** in-progress
+- **Status:** done
 - **Created:** 2026-10-12 · **Updated:** 2026-10-12
 - **PR:** —
 - **Branch:** `feat/travel-insurance` · **Worktree:** `.claude/worktrees/travel-insurance` · **Ports:** app 3001
@@ -20,7 +20,7 @@
 - **D-9** Menu Contrats › Supervision voyage, entrées filtrées une à une par leur droit connu, Ctrl+K, exception notée dans ui-registry. — user
 - **D-10** `notificationTarget(n)` : `SUBSCRIPTION` → `/contrats/{id}`, `REFUND_REQUEST` → `/remboursements/{id}` sauf `PAYOUT_FUNDS_INSUFFICIENT` (pas de lien) ; support et sinistre inchangés. — user / defaulted
 - **D-11** `/remboursements/$refundId` : alerte retrouvée dans les 500 notifications les plus récentes (5 pages de 100, `createdAt,desc`) ; aide-mémoire ; formulaire toujours proposé ; validation identique au normaliseur backend. — user / defaulted
-- **D-12** Retour de la page contrat : `?from=voyage` (+ filtres) → supervision ; sinon fiche client. — defaulted
+- **D-12** Retour de la page contrat : `?from=voyage` (+ filtres) → supervision ; sinon fiche client. Les trois alertes voyage ouvrent le contrat avec ce retour vers la supervision filtrée (TO_RECONCILE → `TO_RECONCILE`, REJECTED → `REJECTED`, CERTIFICATE_MISSING → `ISSUED`). — defaulted (précisé en revue R1)
 - **D-13** Types écrits à la main depuis `assurances-backend-v2@cfe620a`. — code
 
 ## Code context
@@ -41,8 +41,8 @@
 
 - [x] **S1.** Types + services voyage et logique pure — files: `src/services/subscriptions.ts` (`travel`, `InsuranceType`, `getSubscription(id, {refresh})`), `src/services/travel.ts` (liste, attach/retry/refuse, `findTravelSupervisionItem`, `downloadTravelCertificate`), `src/lib/travel.ts` (libellés/teintes EVO, `decisionState`, `isGaveUp`, `mapTravelDecisionError`, `travelSearchSchema`), fixtures `src/lib/travel.fixtures.ts` — satisfies: AC-6, AC-7…AC-10 (logique) — verify: `src/lib/travel.test.ts`, `src/services/travel.test.ts`
 - [x] **S2.** Remboursements, logique pure + service — files: `src/lib/refunds.ts` (`normalizeIvorianNumber`, `validateRefundDestination`, `mapRefundDestinationError`, `findRefundAlert`), `src/services/refunds.ts` — satisfies: AC-12 (logique) — verify: `src/lib/refunds.test.ts`
-- [x] **S3.** Page contrat `/contrats/$subscriptionId` reprenant le tiroir ; fiche client → page ; `?contract=` redirige ; suppression de `ContractDrawer` (tests portés) — files: `src/routes/_auth/contrats_.$subscriptionId.tsx`, `src/components/contracts/*`, `clients_.$clientId.tsx` — satisfies: AC-1, AC-12 (D-12) — verify: `src/routes/-contract-detail.test.tsx`, tests portés, `-clients-api.test.tsx`
-- [x] **S4.** Bloc voyage + actualisation EVO + attestation — files: `src/components/contracts/TravelSection.tsx` — satisfies: AC-2, AC-3, AC-4, AC-14 — verify: tests de composant
+- [x] **S3.** Page contrat `/contrats/$subscriptionId` reprenant le tiroir ; fiche client → page ; `?contract=` redirige ; suppression de `ContractDrawer` (tests portés) — files: `src/routes/_auth/contrats.$subscriptionId.tsx`, `src/components/contracts/*`, `clients_.$clientId.tsx` — satisfies: AC-1, AC-12 (D-12) — verify: `src/routes/-contract-detail.test.tsx`, tests portés, `-clients-api.test.tsx`
+- [x] **S4.** Bloc voyage + actualisation EVO + attestation — files: `src/components/contracts/TravelSections.tsx` — satisfies: AC-2, AC-3, AC-4, AC-14 — verify: tests de composant
 - [x] **S5.** Encadré Décision + 3 dialogues — files: `src/components/contracts/TravelDecisionPanel.tsx`, dialogues — satisfies: AC-6…AC-10 — verify: tests (droit `null` / connu absent / présent, avant / après `reconcilableFrom`, chaque 422)
 - [x] **S6.** Liste `/contrats/voyage` — files: `src/routes/_auth/contrats.voyage.tsx` — satisfies: AC-5 — verify: `src/routes/-travel-supervision.test.tsx`
 - [x] **S7.** Menu + Ctrl+K + ui-registry — files: `Sidebar.tsx`, `src/components/search/*`, `context/project/ui-registry.md` — satisfies: AC-13 — verify: test Sidebar
@@ -65,16 +65,16 @@
 
 > Last review: round 1 · 2026-10-12 · base `2788363` · HEAD `283e63b` (+ uncommitted: no) · 2 relecteurs (contrat/supervision ; remboursements/notifications) · verdict : prêt après les 🟡
 
-- [ ] **R1-1** 🟡 colonne « Client » de la supervision en texte, pas en lien (AC-5, D-8) — `src/routes/_auth/contrats.voyage.tsx:64`
-- [ ] **R1-2** 🟡 page remboursement : l'état du formulaire (saisie, bandeau « enregistré ») survit au changement de `refundId` (pas de remontage) ; une saisie pour RF-12 peut partir vers RF-13 — `src/routes/_auth/remboursements_.$refundId.tsx:169`
-- [ ] **R1-3** ⚪ `ContractGate` sans test des cas `null` / connu absent (L-009) — `src/components/contracts/ContractGate.tsx:12`
-- [ ] **R1-4** ⚪ police inconnue au rattachement : le backend répond 500 → message générique au lieu de « vérifiez l'identifiant » — `src/lib/travel.ts:246`
-- [ ] **R1-5** ⚪ après une décision, la liste des contrats de la fiche client (`['subscriptions','all']`) n'est pas invalidée — `src/components/contracts/TravelDecisionPanel.tsx:51`
-- [ ] **R1-6** ⚪ clé morte `subscriptionsKeys.evoRefresh` — `src/services/subscriptions.ts:128`
+- [~] **R1-1** 🟡 colonne « Client » de la supervision en texte, pas en lien (AC-5, D-8) — `src/routes/_auth/contrats.voyage.tsx:64` (fix: d158bf9)
+- [~] **R1-2** 🟡 page remboursement : l'état du formulaire (saisie, bandeau « enregistré ») survit au changement de `refundId` (pas de remontage) ; une saisie pour RF-12 peut partir vers RF-13 — `src/routes/_auth/remboursements_.$refundId.tsx:169` (fix: d158bf9)
+- [~] **R1-3** ⚪ `ContractGate` sans test des cas `null` / connu absent (L-009) — `src/components/contracts/ContractGate.tsx:12` (fix: d158bf9)
+- [~] **R1-4** ⚪ police inconnue au rattachement : le backend répond 500 → message générique au lieu de « vérifiez l'identifiant » — `src/lib/travel.ts:246` (fix: d158bf9)
+- [~] **R1-5** ⚪ après une décision, la liste des contrats de la fiche client (`['subscriptions','all']`) n'est pas invalidée — `src/components/contracts/TravelDecisionPanel.tsx:51` (fix: d158bf9)
+- [~] **R1-6** ⚪ clé morte `subscriptionsKeys.evoRefresh` — `src/services/subscriptions.ts:128` (fix: d158bf9)
 - [ ] **R1-7** ⚪ seuil `hideBelow="lg"` de « Dernière erreur » non mesuré (L-008) — à mesurer en verify — `src/routes/_auth/contrats.voyage.tsx:203`
-- [ ] **R1-8** ⚪ tests portés gardant les anciens numéros d'AC du tiroir (`renderDrawer`, « AC-5 ») — `src/routes/-contract-detail.test.tsx`
-- [ ] **R1-9** ⚪ redirection `?contract=` rendue seulement après chargement du client (client supprimé/403 → pas de redirection) — `src/routes/_auth/clients_.$clientId.tsx:241`
-- [ ] **R1-10** ⚪ page remboursement sans `BackLink` ; garde « Droit insuffisant » et id invalide non testés — `src/routes/_auth/remboursements_.$refundId.tsx:265`
+- [~] **R1-8** ⚪ tests portés gardant les anciens numéros d'AC du tiroir (`renderDrawer`, « AC-5 ») — `src/routes/-contract-detail.test.tsx` (fix: d158bf9)
+- [~] **R1-9** ⚪ redirection `?contract=` rendue seulement après chargement du client (client supprimé/403 → pas de redirection) — `src/routes/_auth/clients_.$clientId.tsx:241` (fix: d158bf9)
+- [~] **R1-10** ⚪ page remboursement sans `BackLink` ; garde « Droit insuffisant » et id invalide non testés — `src/routes/_auth/remboursements_.$refundId.tsx:265` (fix: d158bf9)
 - Plan gaps : (a) les alertes voyage ouvrent le contrat avec retour vers la supervision filtrée (`notificationTarget`) — à consigner dans D-12 ; (b) garde de page sur `/remboursements/{id}` (droits `withdrawal:*` connus absents) non prévue par AC-12 ; (c) police inconnue = 500 (R1-4) non prévue par AC-7 ; (d) chemins réels `contrats.$subscriptionId.tsx`, `TravelSections.tsx` vs plan.
 - Lesson recurred : L-009 (R1-3).
 
