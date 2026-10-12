@@ -35,6 +35,7 @@ const RESOURCE_LABELS: Record<string, string> = {
   support: 'Support client',
   wallet: 'Portefeuilles',
   warranty: 'Garanties',
+  withdrawal: 'Retraits et remboursements',
 }
 
 /** Ce que couvre la ressource, formulé pour compléter un verbe d'action. */
@@ -69,6 +70,7 @@ const RESOURCE_OBJECTS: Record<string, string> = {
   support: 'les conversations du support client',
   wallet: 'les portefeuilles de commissions',
   warranty: 'les garanties des produits',
+  withdrawal: 'les retraits des vendeurs et les remboursements des clients',
 }
 
 const ACTION_LABELS: Record<string, string> = {
@@ -81,6 +83,7 @@ const ACTION_LABELS: Record<string, string> = {
   terminate: 'Résilier',
   'read-all': 'Tout consulter',
   'read-agency': 'Consulter son agence',
+  reconcile: 'Trancher une émission',
 }
 
 const ACTION_VERBS: Record<string, string> = {
@@ -107,8 +110,14 @@ const PERMISSION_DESCRIPTIONS: Record<string, string> = {
   'subscription:read-agency': 'Consulter les contrats de son agence.',
   'subscription:read-all':
     'Consulter tous les contrats, quel que soit le vendeur.',
+  'subscription:reconcile':
+    'Trancher l’émission incertaine d’un contrat voyage chez EVO (rattacher, relancer, refuser) et recevoir les alertes voyage.',
   'subscription:terminate': 'Résilier un contrat.',
   'support:self': 'Échanger avec le support client depuis son propre compte.',
+  'withdrawal:read':
+    'Suivre les retraits et remboursements, et recevoir les alertes de remboursement à traiter.',
+  'withdrawal:write':
+    'Traiter les retraits et saisir le numéro de remboursement d’un client.',
   'wallet:self': 'Consulter uniquement son propre portefeuille de commissions.',
   'notification:self': 'Consulter uniquement ses propres notifications in-app.',
   'support:write':

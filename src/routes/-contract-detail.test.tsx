@@ -485,3 +485,18 @@ describe('Contrat voyage (AC-2…AC-4)', () => {
     expect(await screen.findByRole('alert')).toBeTruthy()
   })
 })
+
+describe('Contrat voyage : encadré Décision (AC-6)', () => {
+  it('affiché seulement pour un contrat TO_RECONCILE', async () => {
+    vi.mocked(getSubscription).mockResolvedValue(
+      travelContract({}, { evoIssuanceStatus: 'TO_RECONCILE' }),
+    )
+    renderDrawer(812)
+    expect(await screen.findByText('Décision à prendre')).toBeTruthy()
+    cleanup()
+    vi.mocked(getSubscription).mockResolvedValue(travelContract())
+    renderDrawer(812)
+    await screen.findByText('Voyage')
+    expect(screen.queryByText('Décision à prendre')).toBeNull()
+  })
+})

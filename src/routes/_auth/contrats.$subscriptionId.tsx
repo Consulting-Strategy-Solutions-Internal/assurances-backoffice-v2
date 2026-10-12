@@ -9,6 +9,7 @@ import {
   ReceiptsCard,
   SignatureCard,
 } from '#/components/contracts/ContractSections'
+import { TravelDecisionPanel } from '#/components/contracts/TravelDecisionPanel'
 import {
   CertificateCard,
   EvoIssuanceCard,
@@ -183,6 +184,9 @@ export function ContractDetailContent({
         }
       />
 
+      {travel?.evoIssuanceStatus === 'TO_RECONCILE' && (
+        <TravelDecisionPanel subscriptionId={contract.id} />
+      )}
       {travel ? (
         <div className="grid items-start gap-[18px] lg:grid-cols-2">
           <div className="flex flex-col gap-[18px]">
