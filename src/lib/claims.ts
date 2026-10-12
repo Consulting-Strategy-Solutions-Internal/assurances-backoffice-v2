@@ -171,6 +171,13 @@ export function formatClaimDate(
   }).format(date)
 }
 
+/** « 09:05 » from a `LocalDateTime` (no zone conversion) ; '' when it has no time. */
+export function formatClaimTime(value?: string | null): string {
+  if (!value) return ''
+  const match = /^\d{4}-\d{2}-\d{2}T(\d{2}):(\d{2})/.exec(value)
+  return match ? `${match[1]}:${match[2]}` : ''
+}
+
 /** Live mask for a French date field: « 03092026 » → « 03/09/2026 ». */
 export function maskFrDate(input: string): string {
   const digits = input.replace(/\D/g, '').slice(0, 8)

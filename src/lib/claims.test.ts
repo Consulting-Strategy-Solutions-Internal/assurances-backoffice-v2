@@ -2,6 +2,7 @@
 
 import { describe, expect, it } from 'vitest'
 import {
+  formatClaimTime,
   matchesStatusFilter,
   MAX_ATTACHMENT_BYTES,
   availableActions,
@@ -144,5 +145,13 @@ describe('matchesStatusFilter (R1-27)', () => {
     expect(matchesStatusFilter('APPROVED', 'APPROVED')).toBe(true)
     expect(matchesStatusFilter('SUBMITTED', 'APPROVED')).toBe(false)
     expect(matchesStatusFilter('REJECTED', undefined)).toBe(true)
+  })
+})
+
+describe('formatClaimTime', () => {
+  it('heure HH:mm d’un LocalDateTime, vide sinon', () => {
+    expect(formatClaimTime('2026-10-12T09:05:41')).toBe('09:05')
+    expect(formatClaimTime('2026-10-12')).toBe('')
+    expect(formatClaimTime(null)).toBe('')
   })
 })

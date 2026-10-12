@@ -28,11 +28,14 @@ import { Route as AuthClientsClientIdRouteImport } from './routes/_auth/clients_
 import { Route as AuthCommissionsDistributionsRouteImport } from './routes/_auth/commissions.distributions'
 import { Route as AuthCommissionsSchemesRouteImport } from './routes/_auth/commissions.schemes'
 import { Route as AuthCommissionsWalletsRouteImport } from './routes/_auth/commissions.wallets'
+import { Route as AuthContratsSubscriptionIdRouteImport } from './routes/_auth/contrats.$subscriptionId'
 import { Route as AuthContratsModificationsRouteImport } from './routes/_auth/contrats.modifications'
+import { Route as AuthContratsVoyageRouteImport } from './routes/_auth/contrats.voyage'
 import { Route as AuthPartnersPartnerIdRouteImport } from './routes/_auth/partners_.$partnerId'
 import { Route as AuthProduitsIaIaPourTousRouteImport } from './routes/_auth/produits-ia.ia-pour-tous'
 import { Route as AuthProduitsIaIaStandardRouteImport } from './routes/_auth/produits-ia.ia-standard'
 import { Route as AuthProduitsMrhMrhStandardRouteImport } from './routes/_auth/produits-mrh.mrh-standard'
+import { Route as AuthRemboursementsRefundIdRouteImport } from './routes/_auth/remboursements_.$refundId'
 import { Route as AuthSinistresClaimIdRouteImport } from './routes/_auth/sinistres_.$claimId'
 import { Route as AuthSinistresTypesRouteImport } from './routes/_auth/sinistres_.types'
 import { Route as AuthSupportConversationIdRouteImport } from './routes/_auth/support_.$conversationId'
@@ -148,12 +151,23 @@ const AuthCommissionsWalletsRoute = AuthCommissionsWalletsRouteImport.update({
   path: '/commissions/wallets',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthContratsSubscriptionIdRoute =
+  AuthContratsSubscriptionIdRouteImport.update({
+    id: '/contrats/$subscriptionId',
+    path: '/contrats/$subscriptionId',
+    getParentRoute: () => AuthRoute,
+  } as any)
 const AuthContratsModificationsRoute =
   AuthContratsModificationsRouteImport.update({
     id: '/contrats/modifications',
     path: '/contrats/modifications',
     getParentRoute: () => AuthRoute,
   } as any)
+const AuthContratsVoyageRoute = AuthContratsVoyageRouteImport.update({
+  id: '/contrats/voyage',
+  path: '/contrats/voyage',
+  getParentRoute: () => AuthRoute,
+} as any)
 const AuthPartnersPartnerIdRoute = AuthPartnersPartnerIdRouteImport.update({
   id: '/partners_/$partnerId',
   path: '/partners/$partnerId',
@@ -175,6 +189,12 @@ const AuthProduitsMrhMrhStandardRoute =
   AuthProduitsMrhMrhStandardRouteImport.update({
     id: '/produits-mrh/mrh-standard',
     path: '/produits-mrh/mrh-standard',
+    getParentRoute: () => AuthRoute,
+  } as any)
+const AuthRemboursementsRefundIdRoute =
+  AuthRemboursementsRefundIdRouteImport.update({
+    id: '/remboursements_/$refundId',
+    path: '/remboursements/$refundId',
     getParentRoute: () => AuthRoute,
   } as any)
 const AuthSinistresClaimIdRoute = AuthSinistresClaimIdRouteImport.update({
@@ -309,11 +329,14 @@ export interface FileRoutesByFullPath {
   '/commissions/distributions': typeof AuthCommissionsDistributionsRoute
   '/commissions/schemes': typeof AuthCommissionsSchemesRoute
   '/commissions/wallets': typeof AuthCommissionsWalletsRoute
+  '/contrats/$subscriptionId': typeof AuthContratsSubscriptionIdRoute
   '/contrats/modifications': typeof AuthContratsModificationsRoute
+  '/contrats/voyage': typeof AuthContratsVoyageRoute
   '/partners/$partnerId': typeof AuthPartnersPartnerIdRoute
   '/produits-ia/ia-pour-tous': typeof AuthProduitsIaIaPourTousRoute
   '/produits-ia/ia-standard': typeof AuthProduitsIaIaStandardRouteWithChildren
   '/produits-mrh/mrh-standard': typeof AuthProduitsMrhMrhStandardRouteWithChildren
+  '/remboursements/$refundId': typeof AuthRemboursementsRefundIdRoute
   '/sinistres/$claimId': typeof AuthSinistresClaimIdRoute
   '/sinistres/types': typeof AuthSinistresTypesRoute
   '/support/$conversationId': typeof AuthSupportConversationIdRoute
@@ -353,9 +376,12 @@ export interface FileRoutesByTo {
   '/commissions/distributions': typeof AuthCommissionsDistributionsRoute
   '/commissions/schemes': typeof AuthCommissionsSchemesRoute
   '/commissions/wallets': typeof AuthCommissionsWalletsRoute
+  '/contrats/$subscriptionId': typeof AuthContratsSubscriptionIdRoute
   '/contrats/modifications': typeof AuthContratsModificationsRoute
+  '/contrats/voyage': typeof AuthContratsVoyageRoute
   '/partners/$partnerId': typeof AuthPartnersPartnerIdRoute
   '/produits-ia/ia-pour-tous': typeof AuthProduitsIaIaPourTousRoute
+  '/remboursements/$refundId': typeof AuthRemboursementsRefundIdRoute
   '/sinistres/$claimId': typeof AuthSinistresClaimIdRoute
   '/sinistres/types': typeof AuthSinistresTypesRoute
   '/support/$conversationId': typeof AuthSupportConversationIdRoute
@@ -397,11 +423,14 @@ export interface FileRoutesById {
   '/_auth/commissions/distributions': typeof AuthCommissionsDistributionsRoute
   '/_auth/commissions/schemes': typeof AuthCommissionsSchemesRoute
   '/_auth/commissions/wallets': typeof AuthCommissionsWalletsRoute
+  '/_auth/contrats/$subscriptionId': typeof AuthContratsSubscriptionIdRoute
   '/_auth/contrats/modifications': typeof AuthContratsModificationsRoute
+  '/_auth/contrats/voyage': typeof AuthContratsVoyageRoute
   '/_auth/partners_/$partnerId': typeof AuthPartnersPartnerIdRoute
   '/_auth/produits-ia/ia-pour-tous': typeof AuthProduitsIaIaPourTousRoute
   '/_auth/produits-ia/ia-standard': typeof AuthProduitsIaIaStandardRouteWithChildren
   '/_auth/produits-mrh/mrh-standard': typeof AuthProduitsMrhMrhStandardRouteWithChildren
+  '/_auth/remboursements_/$refundId': typeof AuthRemboursementsRefundIdRoute
   '/_auth/sinistres_/$claimId': typeof AuthSinistresClaimIdRoute
   '/_auth/sinistres_/types': typeof AuthSinistresTypesRoute
   '/_auth/support_/$conversationId': typeof AuthSupportConversationIdRoute
@@ -443,11 +472,14 @@ export interface FileRouteTypes {
     | '/commissions/distributions'
     | '/commissions/schemes'
     | '/commissions/wallets'
+    | '/contrats/$subscriptionId'
     | '/contrats/modifications'
+    | '/contrats/voyage'
     | '/partners/$partnerId'
     | '/produits-ia/ia-pour-tous'
     | '/produits-ia/ia-standard'
     | '/produits-mrh/mrh-standard'
+    | '/remboursements/$refundId'
     | '/sinistres/$claimId'
     | '/sinistres/types'
     | '/support/$conversationId'
@@ -487,9 +519,12 @@ export interface FileRouteTypes {
     | '/commissions/distributions'
     | '/commissions/schemes'
     | '/commissions/wallets'
+    | '/contrats/$subscriptionId'
     | '/contrats/modifications'
+    | '/contrats/voyage'
     | '/partners/$partnerId'
     | '/produits-ia/ia-pour-tous'
+    | '/remboursements/$refundId'
     | '/sinistres/$claimId'
     | '/sinistres/types'
     | '/support/$conversationId'
@@ -530,11 +565,14 @@ export interface FileRouteTypes {
     | '/_auth/commissions/distributions'
     | '/_auth/commissions/schemes'
     | '/_auth/commissions/wallets'
+    | '/_auth/contrats/$subscriptionId'
     | '/_auth/contrats/modifications'
+    | '/_auth/contrats/voyage'
     | '/_auth/partners_/$partnerId'
     | '/_auth/produits-ia/ia-pour-tous'
     | '/_auth/produits-ia/ia-standard'
     | '/_auth/produits-mrh/mrh-standard'
+    | '/_auth/remboursements_/$refundId'
     | '/_auth/sinistres_/$claimId'
     | '/_auth/sinistres_/types'
     | '/_auth/support_/$conversationId'
@@ -699,11 +737,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCommissionsWalletsRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_auth/contrats/$subscriptionId': {
+      id: '/_auth/contrats/$subscriptionId'
+      path: '/contrats/$subscriptionId'
+      fullPath: '/contrats/$subscriptionId'
+      preLoaderRoute: typeof AuthContratsSubscriptionIdRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/_auth/contrats/modifications': {
       id: '/_auth/contrats/modifications'
       path: '/contrats/modifications'
       fullPath: '/contrats/modifications'
       preLoaderRoute: typeof AuthContratsModificationsRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/contrats/voyage': {
+      id: '/_auth/contrats/voyage'
+      path: '/contrats/voyage'
+      fullPath: '/contrats/voyage'
+      preLoaderRoute: typeof AuthContratsVoyageRouteImport
       parentRoute: typeof AuthRoute
     }
     '/_auth/partners_/$partnerId': {
@@ -732,6 +784,13 @@ declare module '@tanstack/react-router' {
       path: '/produits-mrh/mrh-standard'
       fullPath: '/produits-mrh/mrh-standard'
       preLoaderRoute: typeof AuthProduitsMrhMrhStandardRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/remboursements_/$refundId': {
+      id: '/_auth/remboursements_/$refundId'
+      path: '/remboursements/$refundId'
+      fullPath: '/remboursements/$refundId'
+      preLoaderRoute: typeof AuthRemboursementsRefundIdRouteImport
       parentRoute: typeof AuthRoute
     }
     '/_auth/sinistres_/$claimId': {
@@ -940,11 +999,14 @@ interface AuthRouteChildren {
   AuthCommissionsDistributionsRoute: typeof AuthCommissionsDistributionsRoute
   AuthCommissionsSchemesRoute: typeof AuthCommissionsSchemesRoute
   AuthCommissionsWalletsRoute: typeof AuthCommissionsWalletsRoute
+  AuthContratsSubscriptionIdRoute: typeof AuthContratsSubscriptionIdRoute
   AuthContratsModificationsRoute: typeof AuthContratsModificationsRoute
+  AuthContratsVoyageRoute: typeof AuthContratsVoyageRoute
   AuthPartnersPartnerIdRoute: typeof AuthPartnersPartnerIdRoute
   AuthProduitsIaIaPourTousRoute: typeof AuthProduitsIaIaPourTousRoute
   AuthProduitsIaIaStandardRoute: typeof AuthProduitsIaIaStandardRouteWithChildren
   AuthProduitsMrhMrhStandardRoute: typeof AuthProduitsMrhMrhStandardRouteWithChildren
+  AuthRemboursementsRefundIdRoute: typeof AuthRemboursementsRefundIdRoute
   AuthSinistresClaimIdRoute: typeof AuthSinistresClaimIdRoute
   AuthSinistresTypesRoute: typeof AuthSinistresTypesRoute
   AuthSupportConversationIdRoute: typeof AuthSupportConversationIdRoute
@@ -969,11 +1031,14 @@ const AuthRouteChildren: AuthRouteChildren = {
   AuthCommissionsDistributionsRoute: AuthCommissionsDistributionsRoute,
   AuthCommissionsSchemesRoute: AuthCommissionsSchemesRoute,
   AuthCommissionsWalletsRoute: AuthCommissionsWalletsRoute,
+  AuthContratsSubscriptionIdRoute: AuthContratsSubscriptionIdRoute,
   AuthContratsModificationsRoute: AuthContratsModificationsRoute,
+  AuthContratsVoyageRoute: AuthContratsVoyageRoute,
   AuthPartnersPartnerIdRoute: AuthPartnersPartnerIdRoute,
   AuthProduitsIaIaPourTousRoute: AuthProduitsIaIaPourTousRoute,
   AuthProduitsIaIaStandardRoute: AuthProduitsIaIaStandardRouteWithChildren,
   AuthProduitsMrhMrhStandardRoute: AuthProduitsMrhMrhStandardRouteWithChildren,
+  AuthRemboursementsRefundIdRoute: AuthRemboursementsRefundIdRoute,
   AuthSinistresClaimIdRoute: AuthSinistresClaimIdRoute,
   AuthSinistresTypesRoute: AuthSinistresTypesRoute,
   AuthSupportConversationIdRoute: AuthSupportConversationIdRoute,

@@ -42,6 +42,9 @@ vi.mock('@tanstack/react-router', () => ({
   }),
   lazyRouteComponent: () => () => null,
   Link: ({ children }: { children: ReactNode }) => <a>{children}</a>,
+  Navigate: (props: { to: string; params: object; replace?: boolean }) => (
+    <span data-testid="redirect">{JSON.stringify(props)}</span>
+  ),
   useNavigate: () => mocks.navigate,
 }))
 
@@ -64,23 +67,6 @@ vi.mock('#/services/subscriptions-by-client', async (importOriginal) => ({
 
 vi.mock('#/components/claims/CreateClaimDialog', () => ({
   CreateClaimDialog: () => null,
-}))
-
-vi.mock('#/components/clients/ContractDrawer', () => ({
-  ContractDrawer: ({
-    subscriptionId,
-    onClose,
-  }: {
-    subscriptionId: number | null
-    onClose: () => void
-  }) => (
-    <div>
-      <span data-testid="contract-drawer">{String(subscriptionId)}</span>
-      <button type="button" onClick={onClose}>
-        fermer-panneau
-      </button>
-    </div>
-  ),
 }))
 
 vi.mock('#/components/layout/SearchableSelect', () => ({
@@ -310,48 +296,49 @@ describe('fiche client — documents des contrats', () => {
     })
   }
 
-  it('AC-1 : cliquer un contrat ouvre son panneau (?contract=id)', async () => {
+  it('AC-1 : cliquer un contrat ouvre sa page /contrats/{id}', async () => {
     setup()
     renderWithQuery(<ClientDetailContent clientId={42} />)
     const row = await screen.findByRole('button', {
       name: /Ouvrir le contrat IA-2026-000005/,
     })
     fireEvent.click(row)
-    const call = mocks.navigate.mock.calls.find(
-      (c) => typeof (c[0] as { search?: unknown }).search === 'function',
-    )
-    const next = (
-      call?.[0] as { search: (p: object) => { contract?: number } }
-    ).search({ page: 0 })
-    expect(next.contract).toBe(5)
+    expect(mocks.navigate).toHaveBeenCalledWith({
+      to: '/contrats/$subscriptionId',
+      params: { subscriptionId: '5' },
+    })
   })
 
-  it('AC-1 : ?contract=5 ouvre le panneau de ce contrat ; un contrat d’un autre client ne s’ouvre pas', async () => {
-    setup()
-    mocks.search = { ...mocks.search, contract: 5 }
-    const { unmount } = renderWithQuery(<ClientDetailContent clientId={42} />)
-    await screen.findByText('IA-2026-000005')
-    expect(screen.getByTestId('contract-drawer').textContent).toBe('5')
-    unmount()
-    mocks.search = { ...mocks.search, contract: 6 }
-    renderWithQuery(<ClientDetailContent clientId={42} />)
-    await screen.findByText('IA-2026-000005')
-    expect(screen.getByTestId('contract-drawer').textContent).toBe('null')
-    mocks.search = { page: 0, size: 20, sort: 'lastName,asc' }
-  })
-
-  it('AC-1 : fermer le panneau retire ?contract de l’URL', async () => {
+  it('AC-1 : l’ancien lien ?contract=5 redirige vers /contrats/5', async () => {
     setup()
     mocks.search = { ...mocks.search, contract: 5 }
     renderWithQuery(<ClientDetailContent clientId={42} />)
-    await screen.findByText('IA-2026-000005')
-    mocks.navigate.mockClear()
-    fireEvent.click(screen.getByText('fermer-panneau'))
-    const call = mocks.navigate.mock.calls.at(-1)?.[0] as {
-      search: (p: object) => { contract?: number }
-    }
-    expect(call.search({ page: 0, contract: 5 }).contract).toBeUndefined()
+    expect(mocks.getClient).not.toHaveBeenCalled()
+    expect(JSON.parse(screen.getByTestId('redirect').textContent)).toEqual({
+      to: '/contrats/$subscriptionId',
+      params: { subscriptionId: '5' },
+      replace: true,
+    })
     mocks.search = { page: 0, size: 20, sort: 'lastName,asc' }
+  })
+
+  it('R1-9 : ?contract redirige même si le client ne se charge pas', async () => {
+    setup()
+    mocks.getClient.mockRejectedValue({
+      isAxiosError: true,
+      response: { status: 404, data: {} },
+    })
+    mocks.search = { ...mocks.search, contract: 5 }
+    renderWithQuery(<ClientDetailContent clientId={42} />)
+    expect(screen.getByTestId('redirect')).toBeTruthy()
+    mocks.search = { page: 0, size: 20, sort: 'lastName,asc' }
+  })
+
+  it('AC-1 : sans ?contract, aucune redirection', async () => {
+    setup()
+    renderWithQuery(<ClientDetailContent clientId={42} />)
+    await screen.findByText('IA-2026-000005')
+    expect(screen.queryByTestId('redirect')).toBeNull()
   })
 
   it('R1-3 : la ligne d’un contrat se termine par un chevron (ligne cliquable)', async () => {

@@ -138,6 +138,13 @@ export const PAGES: PageEntry[] = [
     keywords: 'tickets chat conversations messages aide',
   },
   {
+    title: 'Supervision voyage',
+    section: 'Contrats',
+    to: '/contrats/voyage',
+    keywords:
+      'assurance voyage evo cover edge emission police attestation trancher rattacher relancer refuser',
+  },
+  {
     title: 'Cotations',
     to: '/cotations',
     keywords: 'devis simulation prime quotation',
