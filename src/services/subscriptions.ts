@@ -18,11 +18,77 @@ export interface SubscriptionInsured {
   phone?: string | null
 }
 
+export type InsuranceType = 'IA' | 'MRH' | 'TRAVEL'
+
+export const EVO_ISSUANCE_STATUSES = [
+  'PENDING',
+  'SENDING',
+  'ISSUED',
+  'CERTIFICATE_READY',
+  'TO_RECONCILE',
+  'REJECTED',
+] as const
+/** État de l'émission de la police chez EVO (`EvoIssuanceStatus`). */
+export type EvoIssuanceStatus = (typeof EVO_ISSUANCE_STATUSES)[number]
+
+export type TravelerRole = 'PRINCIPAL' | 'SPOUSE' | 'CHILD' | 'ADULT'
+
+/** Voyageur d'un contrat voyage (`TravelerResponse`). */
+export interface TravelerResponse {
+  role: TravelerRole
+  lastName: string
+  firstName: string
+  /** LocalDate. */
+  birthDate: string
+  gender: string | null
+  nationality: string | null
+  residenceCountry: string | null
+  passportNumber: string | null
+  email: string | null
+  phone: string | null
+  otherFields: Record<string, string> | null
+}
+
+/** Police lue chez EVO (`?refresh=true` seulement) ; chaînes brutes d'EVO. */
+export interface EvoPolicyState {
+  /** `active` | `disabled` (minuscules). */
+  status: string
+  policyNumber: string | null
+  startDate: string | null
+  endDate: string | null
+  cancelDate: string | null
+}
+
+/**
+ * Bloc `travel` d'un contrat voyage (`TravelContractResponse`) ; clé absente
+ * sur IA et MRH.
+ */
+export interface TravelContractResponse {
+  category: string | null
+  destinationArea: string | null
+  /** LocalDate. */
+  startDate: string | null
+  endDate: string | null
+  composition: 'SINGLE' | 'GROUP' | null
+  /** Code produit EVO de la formule (« 988 »). */
+  formulaCode: string | null
+  formulaName: string | null
+  /** Nul tant que le contrat n'est pas payé. */
+  evoIssuanceStatus: EvoIssuanceStatus | null
+  /** Numéro EVO (`NSIACIVO…`). */
+  policyNumber: string | null
+  /** Attestation copiée chez nous ; nulle jusque-là. */
+  certificateDocumentId: number | null
+  travelers: TravelerResponse[]
+  /** Présent seulement avec `?refresh=true` quand EVO a répondu. */
+  evo?: EvoPolicyState
+}
+
 export interface SubscriptionProductSnapshot {
   productId?: number | null
   productLabel?: string | null
   productCode?: number | null
-  insuranceType?: 'IA' | 'MRH' | null
+  insuranceType?: InsuranceType | null
   insuranceTypeLabel?: string | null
 }
 
@@ -42,6 +108,7 @@ export interface SubscriptionResponse {
   coverageEnd?: string | null
   insured?: SubscriptionInsured | null
   productSnapshot?: SubscriptionProductSnapshot | null
+  travel?: TravelContractResponse
   createdAt: string
   updatedAt: string
 }
@@ -57,6 +124,8 @@ export interface SubscriptionFilters {
 export const subscriptionsKeys = {
   all: ['subscriptions'] as const,
   detail: (id: number) => ['subscriptions', 'detail', id] as const,
+  /** Lecture `?refresh=true` (état EVO), seulement sur demande. */
+  evoRefresh: (id: number) => ['subscriptions', 'evo-refresh', id] as const,
   renewal: (id: number) => ['subscriptions', 'renewal', id] as const,
 }
 
@@ -132,6 +201,8 @@ export interface SubscriptionDetailResponse {
   coverageEnd?: string | null
   housing?: SubscriptionHousing | null
   insuredCompany?: SubscriptionInsuredCompany | null
+  /** Contrat voyage seulement. */
+  travel?: TravelContractResponse
 }
 
 /** `RenewalResponse.receipt` (`GET /subscriptions/{id}/renewal`). */
@@ -154,10 +225,14 @@ export interface SubscriptionRenewal {
 /** Fiche d'un contrat (`subscription:read-all`). */
 export async function getSubscription(
   id: number,
+  options: { refresh?: boolean } = {},
 ): Promise<SubscriptionDetailResponse> {
-  const response = await api.get<SubscriptionDetailResponse>(
-    `/subscriptions/${id}`,
-  )
+  const url = `/subscriptions/${id}`
+  const response = options.refresh
+    ? await api.get<SubscriptionDetailResponse>(url, {
+        params: { refresh: true },
+      })
+    : await api.get<SubscriptionDetailResponse>(url)
   return response.data
 }
 
