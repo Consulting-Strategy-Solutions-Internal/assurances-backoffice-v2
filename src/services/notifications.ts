@@ -23,6 +23,7 @@ export async function getNotifications(options: {
   unreadOnly?: boolean
   page?: number
   size?: number
+  sort?: string
 }): Promise<PageResponse<NotificationResponse>> {
   const response = await api.get<PageResponse<NotificationResponse>>(
     '/notifications',
@@ -31,6 +32,7 @@ export async function getNotifications(options: {
         unreadOnly: options.unreadOnly,
         page: options.page ?? 0,
         size: options.size ?? 10,
+        sort: options.sort,
       },
     },
   )
