@@ -45,7 +45,7 @@
 - [x] **S4.** Bloc voyage + actualisation EVO + attestation — files: `src/components/contracts/TravelSection.tsx` — satisfies: AC-2, AC-3, AC-4, AC-14 — verify: tests de composant
 - [x] **S5.** Encadré Décision + 3 dialogues — files: `src/components/contracts/TravelDecisionPanel.tsx`, dialogues — satisfies: AC-6…AC-10 — verify: tests (droit `null` / connu absent / présent, avant / après `reconcilableFrom`, chaque 422)
 - [x] **S6.** Liste `/contrats/voyage` — files: `src/routes/_auth/contrats.voyage.tsx` — satisfies: AC-5 — verify: `src/routes/-travel-supervision.test.tsx`
-- [ ] **S7.** Menu + Ctrl+K + ui-registry — files: `Sidebar.tsx`, `src/components/search/*`, `context/project/ui-registry.md` — satisfies: AC-13 — verify: test Sidebar
+- [x] **S7.** Menu + Ctrl+K + ui-registry — files: `Sidebar.tsx`, `src/components/search/*`, `context/project/ui-registry.md` — satisfies: AC-13 — verify: test Sidebar
 - [ ] **S8.** `notificationTarget` + NotificationsMenu — files: `src/lib/notifications.ts`, `NotificationsMenu.tsx` — satisfies: AC-11 — verify: `src/lib/notifications.test.ts`
 - [ ] **S9.** Page `/remboursements/$refundId` — files: `src/routes/_auth/remboursements_.$refundId.tsx`, `src/components/refunds/*` — satisfies: AC-12 — verify: `src/routes/-refund-detail.test.tsx`
 - [ ] **S10.** Contrôles complets + `generate-routes` — verify: `npx tsc --noEmit && pnpm lint && pnpm test`

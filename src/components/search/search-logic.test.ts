@@ -48,6 +48,10 @@ describe('searchPages', () => {
   it('returns nothing for a blank query', () => {
     expect(searchPages('  ')).toEqual([])
   })
+  it('finds the travel supervision (AC-13)', () => {
+    expect(searchPages('voyage')[0]?.target.to).toBe('/contrats/voyage')
+    expect(searchPages('evo')[0]?.title).toBe('Supervision voyage')
+  })
 })
 
 describe('searchClients', () => {

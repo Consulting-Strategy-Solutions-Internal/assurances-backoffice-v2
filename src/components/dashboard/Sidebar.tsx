@@ -87,13 +87,24 @@ const PRODUITS_CHILDREN: NavChild[] = [
   },
 ]
 
-const CONTRATS_CHILDREN: NavChild[] = [
-  {
-    to: '/contrats/modifications',
-    label: 'Modifications',
-    matchChildren: true,
-  },
-]
+/**
+ * Entrées du groupe Contrats, chacune gardée par son droit connu (L-005) :
+ * la supervision voyage n'exige pas le droit des modifications.
+ */
+export function contratsChildren(
+  canKnown: (code: string) => boolean,
+): NavChild[] {
+  const children: NavChild[] = []
+  if (canKnown('amendment:read-all'))
+    children.push({
+      to: '/contrats/modifications',
+      label: 'Modifications',
+      matchChildren: true,
+    })
+  if (canKnown('subscription:read-all'))
+    children.push({ to: '/contrats/voyage', label: 'Supervision voyage' })
+  return children
+}
 
 const COMMISSIONS_CHILDREN = [
   { to: '/commissions/schemes', label: 'Schémas' },
@@ -272,6 +283,7 @@ export function Sidebar({
   const isAdmin = user?.role.toUpperCase() === 'ADMIN'
   // Droit inconnu = refus : le menu n'apparaît que si le droit est accordé (L-005).
   const { canKnown } = usePermissions()
+  const contrats = contratsChildren(canKnown)
 
   // Badge de messages support non lus — la file est commune à tous les
   // agents ; en cas de rôle sans `support:write` la requête échoue en
@@ -358,12 +370,12 @@ export function Sidebar({
 
           {renderItem({ to: '/cotations', label: 'Cotations', icon: FileText })}
 
-          {canKnown('amendment:read-all') && (
+          {contrats.length > 0 && (
             <CollapsibleNavGroup
               icon={FilePenLine}
               label="Contrats"
               basePath="/contrats"
-              items={CONTRATS_CHILDREN}
+              items={contrats}
               pathname={pathname}
             />
           )}
