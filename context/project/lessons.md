@@ -73,6 +73,7 @@
 - **How to apply:** in permission tests, mock `usePermissions` with the real semantics (`permissions: null` ⇒ `can()` true, `canKnown()` false) and assert both cases: unknown and known-but-absent.
 - **Seen:** 2026-09-30 `contract-amendments` R1-2
 - **Seen:** 2026-09-30 `mrh-tariff` R1-5, R1-8 — grid and accessories screens only mocked the unknown case
+- **Seen:** 2026-10-12 `travel-insurance` R1-3 — `ContractGate` (page guard) shipped without a test of either case
 - **Enforced by:** —
 
 ### L-010: Check phone layouts once with JavaScript disabled — the server render must not overflow either
@@ -95,6 +96,13 @@
 - **Seen:** fix 2026-09-30 `client-search-lag`
 - **Seen:** fix 2026-09-30 `client-search-lag` review R1-1 — first fix keyed on the last pathname, overwritten by hover preloads
 - **Enforced by:** — (`ToolbarSearch` now handles it for every list using it)
+
+### L-013: A page keyed by a route param must reset its local state when the param changes
+
+- **Why:** TanStack Router keeps the route component mounted when only `$refundId` changes; the refund page kept the « Numéro enregistré » banner of RF-12 on RF-13 and a number typed for RF-12 would have been sent to RF-13.
+- **How to apply:** on any `/x/$id` page holding local state (form, success banner, dialog), mount that state under `key={id}` (or set `remountDeps` on the route), and test it by re-rendering with another id.
+- **Seen:** 2026-10-12 `travel-insurance` R1-2 (🟡)
+- **Enforced by:** —
 
 ## Enforced
 

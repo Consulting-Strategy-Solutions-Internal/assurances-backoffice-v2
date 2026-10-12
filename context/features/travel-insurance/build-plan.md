@@ -5,7 +5,7 @@
 - **PR:** —
 - **Branch:** `feat/travel-insurance` · **Worktree:** `.claude/worktrees/travel-insurance` · **Ports:** app 3001
 - **Depends on:** —
-- **Spec:** [spec.md](spec.md) · **Brief:** [brief.md](brief.md) · **ADRs:** — · **Lessons applied:** L-002 (types lus dans le backend), L-004 (cache avant toast), L-005 (masquer = `canKnown`, action gardée = `can`), L-006 (compteur), L-007/L-008 (colonnes mesurées), L-009 (droits `null` et absents testés), L-010, L-011 (motif 400, policyId 100, numéro 30), L-012 (filtres URL)
+- **Spec:** [spec.md](spec.md) · **Brief:** [brief.md](brief.md) · **ADRs:** — · **Lessons applied:** L-002 (types lus dans le backend), L-004 (cache avant toast), L-005 (masquer = `canKnown`, action gardée = `can`), L-006 (compteur), L-007/L-008 (colonnes mesurées), L-009 (droits `null` et absents testés), L-010, L-011 (motif 400, policyId 100, numéro 30), L-012 (filtres URL), L-013 (état local par id)
 
 ## Décisions
 
