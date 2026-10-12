@@ -1,6 +1,6 @@
 # Build plan — Assurance Voyage (EVO) au back-office
 
-- **Status:** done
+- **Status:** in-progress
 - **Created:** 2026-10-12 · **Updated:** 2026-10-12
 - **PR:** —
 - **Branch:** `feat/travel-insurance` · **Worktree:** `.claude/worktrees/travel-insurance` · **Ports:** app 3001
@@ -62,6 +62,21 @@
 - AC-14 couvert par les assertions de dates / montants des tests ci-dessus (`formatClaimDate`, `formatFcfa`, `parseAbidjanDateTime`)
 
 ## Review findings
+
+> Last review: round 1 · 2026-10-12 · base `2788363` · HEAD `283e63b` (+ uncommitted: no) · 2 relecteurs (contrat/supervision ; remboursements/notifications) · verdict : prêt après les 🟡
+
+- [ ] **R1-1** 🟡 colonne « Client » de la supervision en texte, pas en lien (AC-5, D-8) — `src/routes/_auth/contrats.voyage.tsx:64`
+- [ ] **R1-2** 🟡 page remboursement : l'état du formulaire (saisie, bandeau « enregistré ») survit au changement de `refundId` (pas de remontage) ; une saisie pour RF-12 peut partir vers RF-13 — `src/routes/_auth/remboursements_.$refundId.tsx:169`
+- [ ] **R1-3** ⚪ `ContractGate` sans test des cas `null` / connu absent (L-009) — `src/components/contracts/ContractGate.tsx:12`
+- [ ] **R1-4** ⚪ police inconnue au rattachement : le backend répond 500 → message générique au lieu de « vérifiez l'identifiant » — `src/lib/travel.ts:246`
+- [ ] **R1-5** ⚪ après une décision, la liste des contrats de la fiche client (`['subscriptions','all']`) n'est pas invalidée — `src/components/contracts/TravelDecisionPanel.tsx:51`
+- [ ] **R1-6** ⚪ clé morte `subscriptionsKeys.evoRefresh` — `src/services/subscriptions.ts:128`
+- [ ] **R1-7** ⚪ seuil `hideBelow="lg"` de « Dernière erreur » non mesuré (L-008) — à mesurer en verify — `src/routes/_auth/contrats.voyage.tsx:203`
+- [ ] **R1-8** ⚪ tests portés gardant les anciens numéros d'AC du tiroir (`renderDrawer`, « AC-5 ») — `src/routes/-contract-detail.test.tsx`
+- [ ] **R1-9** ⚪ redirection `?contract=` rendue seulement après chargement du client (client supprimé/403 → pas de redirection) — `src/routes/_auth/clients_.$clientId.tsx:241`
+- [ ] **R1-10** ⚪ page remboursement sans `BackLink` ; garde « Droit insuffisant » et id invalide non testés — `src/routes/_auth/remboursements_.$refundId.tsx:265`
+- Plan gaps : (a) les alertes voyage ouvrent le contrat avec retour vers la supervision filtrée (`notificationTarget`) — à consigner dans D-12 ; (b) garde de page sur `/remboursements/{id}` (droits `withdrawal:*` connus absents) non prévue par AC-12 ; (c) police inconnue = 500 (R1-4) non prévue par AC-7 ; (d) chemins réels `contrats.$subscriptionId.tsx`, `TravelSections.tsx` vs plan.
+- Lesson recurred : L-009 (R1-3).
 
 ## Acceptance run
 
