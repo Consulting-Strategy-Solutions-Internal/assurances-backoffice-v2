@@ -80,6 +80,12 @@
 
 > Last review: round 2 · 2026-10-12 · re-review `283e63b` → `d158bf9` · R1-1…6, 8…10 confirmés · verdict : prêt (0 🔴, 0 🟡)
 
+> Last review: round 3 · 2026-10-12 · re-review `aca70cf` → `59ce471` (V1-1) · V1-1 confirmé au niveau du code (mesure : verify) · verdict : prêt (0 🔴, 0 🟡)
+
+- [ ] **R3-1** ⚪ squelette de chargement sans `hideBelow` : 7 cellules sous un en-tête de 5–6 colonnes — `src/routes/_auth/contrats.voyage.tsx:258`
+- [ ] **R3-2** ⚪ seuil `xl` de « Dernier envoi » peut-être plus prudent que la mesure (à 1280 la colonne est masquée alors que ≈ 888 px tiendraient dans 954) — `src/routes/_auth/contrats.voyage.tsx:251`
+- [ ] **R3-3** ⚪ heure du dernier envoi découpée dans la chaîne brute (`value.slice(11, 16)`) au lieu d'un formateur — `src/routes/_auth/contrats.voyage.tsx:99`
+- [ ] **R3-4** ⚪ seuils `hideBelow` de Client / Dernier envoi non testés — `src/routes/-travel-supervision.test.tsx:268`
 - [ ] **R2-1** ⚪ lien client dans une ligne `role="button"` (ARIA nested-interactive) — à passer à axe en verify — `src/routes/_auth/contrats.voyage.tsx:72`
 - [ ] **R2-2** ⚪ `stopPropagation` au clavier (Entrée sur le lien client) non testé — `src/routes/-travel-supervision.test.tsx:228`
 - [~] **V1-1** 🟡 table de supervision plus large que l'écran à toutes les largeurs bureau : largeur naturelle 1 322 px (Contrat 164, Client 94, État 138, Envois 71, Dernier envoi 137, Couverture 199, Décision 207, Dernière erreur 276) pour 698 px visibles à 1024, 954 à 1280, 1 114 à 1440 → défilement horizontal ; seuils `hideBelow` à recalculer et colonnes à resserrer (L-008) — S-2 / AC-5 (fix: 59ce471 — mesuré après correctif : 698/698 px à 1024, 826/826 à 1152, 954/954 à 1280, 1114/1114 à 1440)
