@@ -1,6 +1,6 @@
 # Build plan — Assurance Voyage (EVO) au back-office
 
-- **Status:** in-progress
+- **Status:** done
 - **Created:** 2026-10-12 · **Updated:** 2026-10-12
 - **PR:** —
 - **Branch:** `feat/travel-insurance` · **Worktree:** `.claude/worktrees/travel-insurance` · **Ports:** app 3001
@@ -88,12 +88,16 @@
 - [ ] **R3-4** ⚪ seuils `hideBelow` de Client / Dernier envoi non testés — `src/routes/-travel-supervision.test.tsx:268`
 - [ ] **R2-1** ⚪ lien client dans une ligne `role="button"` (ARIA nested-interactive) — à passer à axe en verify — `src/routes/_auth/contrats.voyage.tsx:72`
 - [ ] **R2-2** ⚪ `stopPropagation` au clavier (Entrée sur le lien client) non testé — `src/routes/-travel-supervision.test.tsx:228`
-- [~] **V1-1** 🟡 table de supervision plus large que l'écran à toutes les largeurs bureau : largeur naturelle 1 322 px (Contrat 164, Client 94, État 138, Envois 71, Dernier envoi 137, Couverture 199, Décision 207, Dernière erreur 276) pour 698 px visibles à 1024, 954 à 1280, 1 114 à 1440 → défilement horizontal ; seuils `hideBelow` à recalculer et colonnes à resserrer (L-008) — S-2 / AC-5 (fix: 59ce471 — mesuré après correctif : 698/698 px à 1024, 826/826 à 1152, 954/954 à 1280, 1114/1114 à 1440)
+- [x] **V1-1** 🟡 table de supervision plus large que l'écran à toutes les largeurs bureau : largeur naturelle 1 322 px (Contrat 164, Client 94, État 138, Envois 71, Dernier envoi 137, Couverture 199, Décision 207, Dernière erreur 276) pour 698 px visibles à 1024, 954 à 1280, 1 114 à 1440 → défilement horizontal ; seuils `hideBelow` à recalculer et colonnes à resserrer (L-008) — S-2 / AC-5 (fix: 59ce471 — mesuré après correctif : 698/698 px à 1024, 826/826 à 1152, 954/954 à 1280, 1114/1114 à 1440) (fixed, run 2)
 - [ ] **R2-3** ⚪ test « la page propose un retour » ne vérifie pas la cible (`/dashboard`) — `src/routes/-refund-detail.test.tsx:287`
 
 ## Acceptance run
 
-> Run: run 1 · 2026-10-12 · HEAD `aca70cf` (+ uncommitted: no) · 33 pass · 0 fail · 1 visible defect (V1-1) · 4 manual (1 confirmed, 3 deferred)
+> Run: run 2 · 2026-10-12 · HEAD `8b796a6` (+ uncommitted: no) · 27 simulés + 4 réels pass · 0 fail · 4 manual (1 confirmed, 3 deferred)
+> Run 2 rejoue tout le parcours simulé (`verify/mock.mjs`) après V1-1 ; la partie réelle (lecture seule) est reprise du run 1 — le correctif ne touche que la liste, dont l'état vide réel est inchangé.
+> - V1-1 — pass — table de supervision : 698/698 px à 1024, 954/954 à 1280, 1114/1114 à 1440 (aucun défilement horizontal) ; 0 px de débordement à 360/390, avec et sans JavaScript.
+
+> Run 1 (historique) · 2026-10-12 · HEAD `aca70cf` (+ uncommitted: no) · 33 pass · 0 fail · 1 visible defect (V1-1) · 4 manual (1 confirmed, 3 deferred)
 > App : `pnpm exec vite dev --port 3001`, proxy vers la préprod `nsia.c2s-demo.cloud` (offre voyage active, EVO UAT), compte ADMIN. Préprod : **0 contrat voyage** (`totalElements: 0`) et aucune alerte voyage/remboursement → parcours voyage joués sur réponses **interceptées dans le navigateur** (Playwright `route.fulfill`) ; aucune écriture n'a atteint la préprod (toutes les requêtes POST/PUT servies par l'interception). Scripts : scratchpad `verify/real2.mjs` (réel, lecture) et `verify/mock.mjs` (simulé).
 
 **Réel (préprod, lecture seule)**
