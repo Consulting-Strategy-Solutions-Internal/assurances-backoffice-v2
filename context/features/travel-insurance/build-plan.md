@@ -1,6 +1,6 @@
 # Build plan — Assurance Voyage (EVO) au back-office
 
-- **Status:** done
+- **Status:** shipped — fusionnée dans main (2026-10-12)
 - **Created:** 2026-10-12 · **Updated:** 2026-10-12
 - **PR:** https://github.com/Consulting-Strategy-Solutions-Internal/assurances-backoffice-v2/pull/15
 - **Branch:** `feat/travel-insurance` · **Worktree:** `.claude/worktrees/travel-insurance` · **Ports:** app 3001
@@ -137,7 +137,23 @@ Observations : une fois, l’overlay Vite a affiché « socket hang up » (proxy
 
 ## Timeline
 
+- **Lead time:** 3.9h (shipped) · idle between stages: 16m
+| Stage | Active | Waiting on the user | Runs |
+|---|---|---|---|
+| scope | 42m | 0m | 1 |
+| architect | 8m | 0m | 1 |
+| build | 39m | 0m | 2 |
+| review | 29m | 0m | 1 |
+| verify | 1.5h | 0m | 1 |
+| ship | 15m | 0m | 1 |
+| land | 0m | 0m | 1 |
+- **Quality:** review rounds 4 · 🔴 found 0 · verify fails 3 · bugs after ship 0
+
 ## Follow-up
+
+- **Succès (brief § Success)** — au premier contrat voyage réel `TO_RECONCILE` sur la préprod (ou à l'ouverture de l'offre en production) : un ADMIN ouvre l'alerte, voit « Décision possible à partir du … » et tranche depuis le back-office sans autre outil ; au premier `REFUND_ATTENTION` « attend un numéro », le numéro saisi repasse le remboursement en `REQUESTED`. Où : préprod `nsia.c2s-demo.cloud`, cloche + `/contrats/voyage`. Quand : revoir le 2026-10-26.
+- **Recettes reportées** — M-2 (vrai contrat voyage), M-3 (rattachement réel EVO UAT, avec accord), M-4 (axe / R2-1) — même date.
+- **Demandes backend** — voir *Open questions*.
 
 ## Open questions
 
