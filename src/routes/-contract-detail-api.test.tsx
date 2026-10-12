@@ -2,9 +2,21 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, render, screen } from '@testing-library/react'
+import type { ReactNode } from 'react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { api } from '#/lib/api'
-import { ContractDrawer } from './ContractDrawer'
+import { ContractDetailContent } from './_auth/contrats.$subscriptionId'
+
+vi.mock('@tanstack/react-router', () => ({
+  createFileRoute: () => (options: unknown) => options,
+  lazyRouteComponent: () => () => null,
+  Link: ({ children, to }: { children: ReactNode; to?: string }) => (
+    <a href="/x" data-to={to}>
+      {children}
+    </a>
+  ),
+}))
+
 
 afterEach(() => {
   cleanup()
@@ -45,7 +57,7 @@ it('AC-5 : n’appelle jamais les routes de signature ni de pièces d’identit�
   })
   render(
     <QueryClientProvider client={client}>
-      <ContractDrawer subscriptionId={7} onClose={() => undefined} />
+      <ContractDetailContent subscriptionId={7} />
     </QueryClientProvider>,
   )
   await screen.findByText('Carte nationale d’identité — recto et verso')

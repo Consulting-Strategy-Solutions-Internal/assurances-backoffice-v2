@@ -28,6 +28,7 @@ import { Route as AuthClientsClientIdRouteImport } from './routes/_auth/clients_
 import { Route as AuthCommissionsDistributionsRouteImport } from './routes/_auth/commissions.distributions'
 import { Route as AuthCommissionsSchemesRouteImport } from './routes/_auth/commissions.schemes'
 import { Route as AuthCommissionsWalletsRouteImport } from './routes/_auth/commissions.wallets'
+import { Route as AuthContratsSubscriptionIdRouteImport } from './routes/_auth/contrats.$subscriptionId'
 import { Route as AuthContratsModificationsRouteImport } from './routes/_auth/contrats.modifications'
 import { Route as AuthPartnersPartnerIdRouteImport } from './routes/_auth/partners_.$partnerId'
 import { Route as AuthProduitsIaIaPourTousRouteImport } from './routes/_auth/produits-ia.ia-pour-tous'
@@ -148,6 +149,12 @@ const AuthCommissionsWalletsRoute = AuthCommissionsWalletsRouteImport.update({
   path: '/commissions/wallets',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthContratsSubscriptionIdRoute =
+  AuthContratsSubscriptionIdRouteImport.update({
+    id: '/contrats/$subscriptionId',
+    path: '/contrats/$subscriptionId',
+    getParentRoute: () => AuthRoute,
+  } as any)
 const AuthContratsModificationsRoute =
   AuthContratsModificationsRouteImport.update({
     id: '/contrats/modifications',
@@ -309,6 +316,7 @@ export interface FileRoutesByFullPath {
   '/commissions/distributions': typeof AuthCommissionsDistributionsRoute
   '/commissions/schemes': typeof AuthCommissionsSchemesRoute
   '/commissions/wallets': typeof AuthCommissionsWalletsRoute
+  '/contrats/$subscriptionId': typeof AuthContratsSubscriptionIdRoute
   '/contrats/modifications': typeof AuthContratsModificationsRoute
   '/partners/$partnerId': typeof AuthPartnersPartnerIdRoute
   '/produits-ia/ia-pour-tous': typeof AuthProduitsIaIaPourTousRoute
@@ -353,6 +361,7 @@ export interface FileRoutesByTo {
   '/commissions/distributions': typeof AuthCommissionsDistributionsRoute
   '/commissions/schemes': typeof AuthCommissionsSchemesRoute
   '/commissions/wallets': typeof AuthCommissionsWalletsRoute
+  '/contrats/$subscriptionId': typeof AuthContratsSubscriptionIdRoute
   '/contrats/modifications': typeof AuthContratsModificationsRoute
   '/partners/$partnerId': typeof AuthPartnersPartnerIdRoute
   '/produits-ia/ia-pour-tous': typeof AuthProduitsIaIaPourTousRoute
@@ -397,6 +406,7 @@ export interface FileRoutesById {
   '/_auth/commissions/distributions': typeof AuthCommissionsDistributionsRoute
   '/_auth/commissions/schemes': typeof AuthCommissionsSchemesRoute
   '/_auth/commissions/wallets': typeof AuthCommissionsWalletsRoute
+  '/_auth/contrats/$subscriptionId': typeof AuthContratsSubscriptionIdRoute
   '/_auth/contrats/modifications': typeof AuthContratsModificationsRoute
   '/_auth/partners_/$partnerId': typeof AuthPartnersPartnerIdRoute
   '/_auth/produits-ia/ia-pour-tous': typeof AuthProduitsIaIaPourTousRoute
@@ -443,6 +453,7 @@ export interface FileRouteTypes {
     | '/commissions/distributions'
     | '/commissions/schemes'
     | '/commissions/wallets'
+    | '/contrats/$subscriptionId'
     | '/contrats/modifications'
     | '/partners/$partnerId'
     | '/produits-ia/ia-pour-tous'
@@ -487,6 +498,7 @@ export interface FileRouteTypes {
     | '/commissions/distributions'
     | '/commissions/schemes'
     | '/commissions/wallets'
+    | '/contrats/$subscriptionId'
     | '/contrats/modifications'
     | '/partners/$partnerId'
     | '/produits-ia/ia-pour-tous'
@@ -530,6 +542,7 @@ export interface FileRouteTypes {
     | '/_auth/commissions/distributions'
     | '/_auth/commissions/schemes'
     | '/_auth/commissions/wallets'
+    | '/_auth/contrats/$subscriptionId'
     | '/_auth/contrats/modifications'
     | '/_auth/partners_/$partnerId'
     | '/_auth/produits-ia/ia-pour-tous'
@@ -697,6 +710,13 @@ declare module '@tanstack/react-router' {
       path: '/commissions/wallets'
       fullPath: '/commissions/wallets'
       preLoaderRoute: typeof AuthCommissionsWalletsRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/contrats/$subscriptionId': {
+      id: '/_auth/contrats/$subscriptionId'
+      path: '/contrats/$subscriptionId'
+      fullPath: '/contrats/$subscriptionId'
+      preLoaderRoute: typeof AuthContratsSubscriptionIdRouteImport
       parentRoute: typeof AuthRoute
     }
     '/_auth/contrats/modifications': {
@@ -940,6 +960,7 @@ interface AuthRouteChildren {
   AuthCommissionsDistributionsRoute: typeof AuthCommissionsDistributionsRoute
   AuthCommissionsSchemesRoute: typeof AuthCommissionsSchemesRoute
   AuthCommissionsWalletsRoute: typeof AuthCommissionsWalletsRoute
+  AuthContratsSubscriptionIdRoute: typeof AuthContratsSubscriptionIdRoute
   AuthContratsModificationsRoute: typeof AuthContratsModificationsRoute
   AuthPartnersPartnerIdRoute: typeof AuthPartnersPartnerIdRoute
   AuthProduitsIaIaPourTousRoute: typeof AuthProduitsIaIaPourTousRoute
@@ -969,6 +990,7 @@ const AuthRouteChildren: AuthRouteChildren = {
   AuthCommissionsDistributionsRoute: AuthCommissionsDistributionsRoute,
   AuthCommissionsSchemesRoute: AuthCommissionsSchemesRoute,
   AuthCommissionsWalletsRoute: AuthCommissionsWalletsRoute,
+  AuthContratsSubscriptionIdRoute: AuthContratsSubscriptionIdRoute,
   AuthContratsModificationsRoute: AuthContratsModificationsRoute,
   AuthPartnersPartnerIdRoute: AuthPartnersPartnerIdRoute,
   AuthProduitsIaIaPourTousRoute: AuthProduitsIaIaPourTousRoute,

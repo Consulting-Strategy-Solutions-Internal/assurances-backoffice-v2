@@ -1,10 +1,14 @@
 import { pageHead } from '#/lib/page-title'
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import {
+  Navigate,
+  createFileRoute,
+  Link,
+  useNavigate,
+} from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { z } from 'zod'
 import { ChangePartnerDialog } from '#/components/clients/ChangePartnerDialog'
-import { ContractDrawer } from '#/components/clients/ContractDrawer'
 import { usePermissions } from '#/components/dashboard/use-permissions'
 import {
   CalendarClock,
@@ -69,7 +73,7 @@ import {
 } from '#/services/subscriptions-by-client'
 
 const searchSchema = z.object({
-  /** Contrat ouvert dans le panneau latéral. */
+  /** Ancien lien vers le panneau d'un contrat : redirigé vers `/contrats/{id}`. */
   contract: z.coerce.number().int().positive().optional().catch(undefined),
 })
 
@@ -183,15 +187,11 @@ function VerifiedNote({ at }: { at?: string | null }) {
 
 function ClientDetail({ client }: { client: ClientResponse }) {
   const navigate = useNavigate()
-  const { contract: openContract } = Route.useSearch()
-  const setOpenContract = (contract: number | undefined) =>
+  const { contract: legacyContract } = Route.useSearch()
+  const openContract = (subscriptionId: number) =>
     void navigate({
-      to: '.',
-      search: (previous: Record<string, unknown>) => ({
-        ...previous,
-        contract,
-      }),
-      replace: true,
+      to: '/contrats/$subscriptionId',
+      params: { subscriptionId: String(subscriptionId) },
     })
   const clientId = client.id
   const name = clientFullName(client)
@@ -238,16 +238,13 @@ function ClientDetail({ client }: { client: ClientResponse }) {
 
   return (
     <div className="flex flex-col gap-[18px]">
-      <ContractDrawer
-        subscriptionId={
-          openContract !== undefined &&
-          (subscriptionsQuery.isPending ||
-            contracts.some((c) => c.id === openContract))
-            ? openContract
-            : null
-        }
-        onClose={() => setOpenContract(undefined)}
-      />
+      {legacyContract !== undefined && (
+        <Navigate
+          to="/contrats/$subscriptionId"
+          params={{ subscriptionId: String(legacyContract) }}
+          replace
+        />
+      )}
       {declaring && (
         <CreateClaimDialog
           defaultClientId={clientId}
@@ -464,8 +461,7 @@ function ClientDetail({ client }: { client: ClientResponse }) {
                 {contracts.map((contract) => (
                   <ClickableRow
                     key={contract.id}
-                    selected={openContract === contract.id}
-                    onActivate={() => setOpenContract(contract.id)}
+                    onActivate={() => openContract(contract.id)}
                     aria-label={`Ouvrir le contrat ${contract.policyNumber?.trim() || `#${contract.id}`}`}
                   >
                     <TableCell className="pl-6 font-semibold whitespace-nowrap">

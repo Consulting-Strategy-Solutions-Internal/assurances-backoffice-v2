@@ -11,6 +11,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react'
+import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   downloadPolicyDocument,
@@ -24,12 +25,29 @@ import {
 } from '#/services/subscriptions'
 import type * as SubscriptionsService from '#/services/subscriptions'
 import type { SubscriptionDetailResponse } from '#/services/subscriptions'
-import { ContractDrawer } from './ContractDrawer'
+import { ContractDetailContent } from './_auth/contrats.$subscriptionId'
+
+vi.mock('@tanstack/react-router', () => ({
+  createFileRoute: () => (options: unknown) => options,
+  lazyRouteComponent: () => () => null,
+  Link: ({ children, to }: { children: ReactNode; to?: string }) => (
+    <a href="/x" data-to={to}>
+      {children}
+    </a>
+  ),
+}))
+
 
 vi.mock('#/services/subscriptions', async (importOriginal) => ({
   ...(await importOriginal<typeof SubscriptionsService>()),
   getSubscription: vi.fn(),
   getSubscriptionRenewal: vi.fn(),
+}))
+vi.mock('#/services/clients', () => ({
+  clientsKeys: { detail: (id: number) => ['client', id] },
+  getClient: vi.fn(() =>
+    Promise.resolve({ id: 2, firstName: 'Awa', lastName: 'Kouassi' }),
+  ),
 }))
 vi.mock('#/services/amendments', async (importOriginal) => ({
   ...(await importOriginal<typeof AmendmentsService>()),
@@ -64,17 +82,15 @@ function axiosError(status: number, data: unknown): AxiosError {
   } as AxiosResponse)
 }
 
-function renderDrawer(id: number | null = 7) {
+function renderDrawer(id = 7) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   })
-  const onClose = vi.fn()
   render(
     <QueryClientProvider client={client}>
-      <ContractDrawer subscriptionId={id} onClose={onClose} />
+      <ContractDetailContent subscriptionId={id} />
     </QueryClientProvider>,
   )
-  return onClose
 }
 
 beforeEach(() => {
@@ -91,12 +107,12 @@ beforeEach(() => {
 })
 afterEach(cleanup)
 
-describe('ContractDrawer', () => {
+describe('Page contrat (reprise du panneau)', () => {
   it('AC-2 : signature et pièces d’identité fournies', async () => {
     renderDrawer()
     const section = (
       await screen.findByText('Signature et pièces d’identité')
-    ).closest('section') as HTMLElement
+    ).closest('[data-slot="card"]') as HTMLElement
     expect(within(section).getByText('Signé')).toBeTruthy()
     expect(
       within(section).getByText('Carte nationale d’identité — recto et verso'),
@@ -210,9 +226,7 @@ describe('ContractDrawer', () => {
     })
     vi.mocked(downloadReceiptDocument).mockResolvedValue(new Blob(['%PDF']))
     renderDrawer()
-    const section = (await screen.findByText('Quittances')).closest(
-      'section',
-    ) as HTMLElement
+    const section = (await screen.findByText('Quittances')).closest('[data-slot="card"]') as HTMLElement
     await within(section).findByText(/Ristourne — modification n° 3/)
     expect(within(section).getByText('Renouvellement')).toBeTruthy()
     expect(within(section).queryByText(/Q-OTHER/)).toBeNull()
@@ -247,9 +261,7 @@ describe('ContractDrawer', () => {
       },
     })
     renderDrawer()
-    const section = (await screen.findByText('Quittances')).closest(
-      'section',
-    ) as HTMLElement
+    const section = (await screen.findByText('Quittances')).closest('[data-slot="card"]') as HTMLElement
     expect(await within(section).findByText('Renouvellement')).toBeTruthy()
     expect(
       within(section).getByText(/droit de consulter les modifications/),
@@ -271,9 +283,7 @@ describe('ContractDrawer', () => {
       },
     })
     renderDrawer()
-    const section = (await screen.findByText('Quittances')).closest(
-      'section',
-    ) as HTMLElement
+    const section = (await screen.findByText('Quittances')).closest('[data-slot="card"]') as HTMLElement
     expect(await within(section).findByText('Renouvellement')).toBeTruthy()
     expect(
       within(section).getByText(
@@ -294,5 +304,42 @@ describe('ContractDrawer', () => {
         /seules les 2 000 modifications les plus récentes/,
       ),
     ).toBeTruthy()
+  })
+})
+
+describe('Page contrat : états (AC-1)', () => {
+  it('404 → Contrat introuvable', async () => {
+    vi.mocked(getSubscription).mockRejectedValue(
+      axiosError(404, { status: 404, message: 'Subscription not found' }),
+    )
+    renderDrawer()
+    expect(await screen.findByText('Contrat introuvable')).toBeTruthy()
+  })
+
+  it('403 → Droit insuffisant', async () => {
+    vi.mocked(getSubscription).mockRejectedValue(
+      axiosError(403, { status: 403, message: 'Access denied' }),
+    )
+    renderDrawer()
+    expect(await screen.findByText('Droit insuffisant')).toBeTruthy()
+  })
+
+  it('500 → Réessayer', async () => {
+    vi.mocked(getSubscription).mockRejectedValue(axiosError(500, {}))
+    renderDrawer()
+    expect(
+      await screen.findByText('Impossible de charger le contrat'),
+    ).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Réessayer' })).toBeTruthy()
+  })
+
+  it('en-tête : n° de police, client, statut, retour à la fiche client', async () => {
+    renderDrawer()
+    expect(await screen.findByText('IA-2026-000042')).toBeTruthy()
+    expect(await screen.findByText(/Kouassi/)).toBeTruthy()
+    expect(screen.getByText('Actif')).toBeTruthy()
+    expect(
+      screen.getByText('Retour à la fiche client').closest('a')?.dataset.to,
+    ).toBe('/clients/$clientId')
   })
 })
