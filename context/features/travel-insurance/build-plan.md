@@ -46,7 +46,7 @@
 - [x] **S5.** Encadré Décision + 3 dialogues — files: `src/components/contracts/TravelDecisionPanel.tsx`, dialogues — satisfies: AC-6…AC-10 — verify: tests (droit `null` / connu absent / présent, avant / après `reconcilableFrom`, chaque 422)
 - [x] **S6.** Liste `/contrats/voyage` — files: `src/routes/_auth/contrats.voyage.tsx` — satisfies: AC-5 — verify: `src/routes/-travel-supervision.test.tsx`
 - [x] **S7.** Menu + Ctrl+K + ui-registry — files: `Sidebar.tsx`, `src/components/search/*`, `context/project/ui-registry.md` — satisfies: AC-13 — verify: test Sidebar
-- [ ] **S8.** `notificationTarget` + NotificationsMenu — files: `src/lib/notifications.ts`, `NotificationsMenu.tsx` — satisfies: AC-11 — verify: `src/lib/notifications.test.ts`
+- [x] **S8.** `notificationTarget` + NotificationsMenu — files: `src/lib/notifications.ts`, `NotificationsMenu.tsx` — satisfies: AC-11 — verify: `src/lib/notifications.test.ts`
 - [x] **S9.** _(fait avant S8 : les liens des notifications visent cette route, que le routeur typé exige existante)_ Page `/remboursements/$refundId` — files: `src/routes/_auth/remboursements_.$refundId.tsx`, `src/components/refunds/*` — satisfies: AC-12 — verify: `src/routes/-refund-detail.test.tsx`
 - [ ] **S10.** Contrôles complets + `generate-routes` — verify: `npx tsc --noEmit && pnpm lint && pnpm test`
 

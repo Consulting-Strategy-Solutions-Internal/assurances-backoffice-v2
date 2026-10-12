@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '#/components/ui/dropdown-menu'
 import { formatClaimDate } from '#/lib/claims'
+import { notificationTarget } from '#/lib/notifications'
 import { cn } from '#/lib/utils'
 import {
   getNotifications,
@@ -24,7 +25,9 @@ import type { NotificationResponse } from '#/services/notifications'
 
 /**
  * Cloche de notifications in-app (`GET /notifications`) : alerte notamment
- * les agents des nouveaux tickets de support (SUPPORT_TICKET_OPENED).
+ * les agents des nouveaux tickets de support (SUPPORT_TICKET_OPENED), des
+ * contrats voyage à trancher et des remboursements à traiter ; le lien suit
+ * `notificationTarget`.
  */
 export function NotificationsMenu() {
   const navigate = useNavigate()
@@ -62,23 +65,8 @@ export function NotificationsMenu() {
       }
     }
     setOpen(false)
-    if (
-      notification.resourceType === 'SUPPORT_CONVERSATION' &&
-      notification.resourceId != null
-    ) {
-      await navigate({
-        to: '/support/$conversationId',
-        params: { conversationId: String(notification.resourceId) },
-      })
-    } else if (
-      notification.resourceType === 'CLAIM' &&
-      notification.resourceId != null
-    ) {
-      await navigate({
-        to: '/sinistres/$claimId',
-        params: { claimId: String(notification.resourceId) },
-      })
-    }
+    const target = notificationTarget(notification)
+    if (target) await navigate(target)
   }
 
   return (
