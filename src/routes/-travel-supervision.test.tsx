@@ -202,7 +202,8 @@ describe('TravelSupervisionContent (AC-5)', () => {
     expect(table.getByText('NSIACIVO00000057')).toBeTruthy()
     expect(table.getAllByText('Client #106').length).toBe(2)
     expect(table.getAllByText('À trancher').length).toBe(2)
-    expect(table.getByText(/À partir du 13 oct\. 2026/)).toBeTruthy()
+    expect(table.getByText('À partir du')).toBeTruthy()
+    expect(table.getByText(/13 oct\. 2026/)).toBeTruthy()
     expect(table.getByText('Décision possible')).toBeTruthy()
     expect(table.getByText(/Gave up after 5 attempts/)).toBeTruthy()
   })
@@ -263,3 +264,34 @@ async function inTableAsync(text: RegExp) {
   await screen.findAllByText(text)
   return inTable().getByText(text)
 }
+
+describe('V1-1 : table resserrée (largeur mesurée, L-008)', () => {
+  it('tentatives et dernière erreur sous l’état ; couverture, décision et dernier envoi sur deux lignes', async () => {
+    mocks.getTravelSupervision.mockResolvedValue(
+      page([
+        travelItem({
+          evoIssuanceAttempts: 5,
+          evoLastError: 'Gave up after 5 attempts (max 5): HTTP 401',
+          reconcilableFrom: '2026-10-13T09:30:00',
+        }),
+      ]),
+    )
+    renderList()
+    await screen.findByText('1 contrat')
+    const table = inTable()
+    const headers = table.getAllByRole('columnheader').map((h) => h.textContent)
+    expect(headers).not.toContain('Envois')
+    expect(headers).not.toContain('Dernière erreur')
+    const state = table
+      .getAllByText('À trancher')[0]
+      ?.closest('td') as HTMLElement
+    expect(within(state).getByText(/5 envois/)).toBeTruthy()
+    expect(within(state).getByText(/Gave up after 5 attempts/)).toBeTruthy()
+    const coverage = table
+      .getByText('20 oct. 2026')
+      .closest('td') as HTMLElement
+    expect(within(coverage).getByText(/→ 30 oct\. 2026/)).toBeTruthy()
+    const decision = table.getByText('À partir du').closest('td') as HTMLElement
+    expect(within(decision).getByText(/13 oct\. 2026/)).toBeTruthy()
+  })
+})

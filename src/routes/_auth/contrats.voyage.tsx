@@ -44,7 +44,7 @@ export const Route = createFileRoute('/_auth/contrats/voyage')({
   component: TravelSupervisionRoute,
 })
 
-const COLUMNS = 9
+const COLUMNS = 7
 const PAGE_SIZE = 20
 
 const FILTER_LABELS: Record<TravelFilter, string> = {
@@ -87,6 +87,40 @@ function decisionLabel(item: TravelSupervisionItem, now: Date): string | null {
   const from = parseAbidjanDateTime(item.reconcilableFrom)
   if (!from || now.getTime() >= from.getTime()) return 'Décision possible'
   return `À partir du ${formatClaimDate(item.reconcilableFrom, true)}`
+}
+
+/** Date au-dessus, heure dessous : la colonne reste étroite (V1-1). */
+function DateTimeCell({ value }: { value: string | null }) {
+  if (!value) return <span className="text-muted-foreground">—</span>
+  return (
+    <>
+      <div>{formatClaimDate(value)}</div>
+      <div className="text-[12px] text-muted-foreground">
+        {value.slice(11, 16)}
+      </div>
+    </>
+  )
+}
+
+function DecisionCell({
+  item,
+  now,
+}: {
+  item: TravelSupervisionItem
+  now: Date
+}) {
+  const decision = decisionLabel(item, now)
+  if (!decision) return <span className="text-muted-foreground">—</span>
+  if (decision === 'Décision possible')
+    return <span className="font-semibold text-[#8a6600]">{decision}</span>
+  return (
+    <div className="text-muted-foreground">
+      <div>À partir du</div>
+      <div className="text-[12px]">
+        {formatClaimDate(item.reconcilableFrom, true)}
+      </div>
+    </div>
+  )
 }
 
 function coverage(item: TravelSupervisionItem) {
@@ -210,22 +244,18 @@ export function TravelSupervisionContent() {
               <DataTableHead first sticky="left">
                 Contrat
               </DataTableHead>
-              <DataTableHead>Client</DataTableHead>
-              <DataTableHead>État</DataTableHead>
-              <DataTableHead className="text-right">Envois</DataTableHead>
-              <DataTableHead>Dernier envoi</DataTableHead>
+              {/* Seuils mesurés (V1-1, L-008) : ≈ 888 px tout affiché, 788 sans « Dernier envoi », 674 sans « Client ». */}
+              <DataTableHead hideBelow="lg">Client</DataTableHead>
+              <DataTableHead>État et dernière erreur</DataTableHead>
+              <DataTableHead hideBelow="xl">Dernier envoi</DataTableHead>
               <DataTableHead>Couverture</DataTableHead>
               <DataTableHead>Décision</DataTableHead>
-              <DataTableHead hideBelow="lg">Dernière erreur</DataTableHead>
               <DataTableHead className="w-10" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableSkeletonRows
-                columns={[28, 20, 24, 10, 24, 28, 24, 32]}
-                trailing
-              />
+              <TableSkeletonRows columns={[28, 20, 32, 20, 24, 24]} trailing />
             ) : offerOff ? (
               <TableEmptyState
                 colSpan={COLUMNS}
@@ -248,7 +278,6 @@ export function TravelSupervisionContent() {
               />
             ) : (
               rows.map((item) => {
-                const decision = decisionLabel(item, now)
                 return (
                   <ClickableRow
                     key={item.id}
@@ -262,44 +291,32 @@ export function TravelSupervisionContent() {
                     >
                       {contractLabel(item)}
                     </DataTableCell>
-                    <DataTableCell className="whitespace-nowrap">
+                    <DataTableCell hideBelow="lg" className="whitespace-nowrap">
                       <ClientCell clientId={item.clientId} />
                     </DataTableCell>
                     <DataTableCell>
                       <EvoStatusPill status={item.evoIssuanceStatus} />
+                      <div className="mt-1 text-[12px] text-muted-foreground">
+                        {item.evoIssuanceAttempts} envoi
+                        {item.evoIssuanceAttempts > 1 ? 's' : ''}
+                        {item.evoLastError && (
+                          <TruncatedText className="max-w-[200px]">
+                            {item.evoLastError}
+                          </TruncatedText>
+                        )}
+                      </div>
                     </DataTableCell>
-                    <DataTableCell className="text-right tabular-nums">
-                      {item.evoIssuanceAttempts}
+                    <DataTableCell hideBelow="xl" className="whitespace-nowrap">
+                      <DateTimeCell value={item.evoSentAt} />
                     </DataTableCell>
                     <DataTableCell className="whitespace-nowrap">
-                      {formatClaimDate(item.evoSentAt, true)}
+                      <div>{formatClaimDate(item.coverageStart)}</div>
+                      <div className="text-[12px] text-muted-foreground">
+                        → {formatClaimDate(item.coverageEnd)}
+                      </div>
                     </DataTableCell>
                     <DataTableCell className="whitespace-nowrap">
-                      {coverage(item)}
-                    </DataTableCell>
-                    <DataTableCell className="whitespace-nowrap">
-                      {decision ? (
-                        <span
-                          className={
-                            decision === 'Décision possible'
-                              ? 'font-semibold text-[#8a6600]'
-                              : 'text-muted-foreground'
-                          }
-                        >
-                          {decision}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </DataTableCell>
-                    <DataTableCell hideBelow="lg">
-                      {item.evoLastError ? (
-                        <TruncatedText className="max-w-[260px] text-muted-foreground">
-                          {item.evoLastError}
-                        </TruncatedText>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
+                      <DecisionCell item={item} now={now} />
                     </DataTableCell>
                     <RowChevron />
                   </ClickableRow>

@@ -87,7 +87,7 @@
 
 ## Acceptance run
 
-> Run: run 1 · 2026-10-12 · HEAD `aca70cf` (+ uncommitted: no) · 33 pass · 0 fail · 1 visible defect (V1-1) · 4 manual (0 confirmed, 4 pending)
+> Run: run 1 · 2026-10-12 · HEAD `aca70cf` (+ uncommitted: no) · 33 pass · 0 fail · 1 visible defect (V1-1) · 4 manual (1 confirmed, 3 deferred)
 > App : `pnpm exec vite dev --port 3001`, proxy vers la préprod `nsia.c2s-demo.cloud` (offre voyage active, EVO UAT), compte ADMIN. Préprod : **0 contrat voyage** (`totalElements: 0`) et aucune alerte voyage/remboursement → parcours voyage joués sur réponses **interceptées dans le navigateur** (Playwright `route.fulfill`) ; aucune écriture n'a atteint la préprod (toutes les requêtes POST/PUT servies par l'interception). Scripts : scratchpad `verify/real2.mjs` (réel, lecture) et `verify/mock.mjs` (simulé).
 
 **Réel (préprod, lecture seule)**
@@ -110,10 +110,10 @@
 - **V1-1** — visible defect — table de supervision en défilement horizontal à 1024 / 1280 / 1440 (voir *Review findings*).
 
 **Manuel**
-- M-1 — manual — pending — aspect visuel des 3 écrans (`/contrats/voyage`, `/contrats/{id}` voyage, `/remboursements/{id}`), libellés et ton.
-- M-2 — manual — pending — un vrai contrat voyage de la préprod (aucun n’existe à ce jour) : bloc voyage, actualisation EVO réelle, attestation réelle.
-- M-3 — manual — pending — rattachement réel sur EVO UAT (D-11 du brief : seulement avec accord, et un `TO_RECONCILE` ne s’obtient pas à la demande).
-- M-4 — manual — pending — accessibilité du lien client dans une ligne cliquable (R2-1) : axe non disponible ici.
+- M-1 — manual — confirmed 2026-10-12 — aspect visuel des 3 écrans (`/contrats/voyage`, `/contrats/{id}` voyage, `/remboursements/{id}`), libellés et ton.
+- M-2 — manual — deferred (accord utilisateur 2026-10-12, à inscrire dans la PR) — un vrai contrat voyage de la préprod (aucun n’existe à ce jour) : bloc voyage, actualisation EVO réelle, attestation réelle.
+- M-3 — manual — deferred (accord utilisateur 2026-10-12, à inscrire dans la PR) — rattachement réel sur EVO UAT (D-11 du brief : seulement avec accord, et un `TO_RECONCILE` ne s’obtient pas à la demande).
+- M-4 — manual — deferred (accord utilisateur 2026-10-12, à inscrire dans la PR) — accessibilité du lien client dans une ligne cliquable (R2-1) : axe non disponible ici.
 
 Observations : une fois, l’overlay Vite a affiché « socket hang up » (proxy de dev vers la préprod), non reproduit ; les radios d’opérateur affichent le préfixe « 07… » (lecture un peu sèche).
 
