@@ -1,6 +1,6 @@
 # Build plan — Assurance Voyage (EVO) au back-office
 
-- **Status:** done
+- **Status:** in-progress
 - **Created:** 2026-10-12 · **Updated:** 2026-10-12
 - **PR:** —
 - **Branch:** `feat/travel-insurance` · **Worktree:** `.claude/worktrees/travel-insurance` · **Ports:** app 3001
@@ -71,7 +71,7 @@
 - [x] **R1-4** ⚪ police inconnue au rattachement : le backend répond 500 → message générique au lieu de « vérifiez l'identifiant » — `src/lib/travel.ts:246` (fix: d158bf9) (fixed, round 2)
 - [x] **R1-5** ⚪ après une décision, la liste des contrats de la fiche client (`['subscriptions','all']`) n'est pas invalidée — `src/components/contracts/TravelDecisionPanel.tsx:51` (fix: d158bf9) (fixed, round 2)
 - [x] **R1-6** ⚪ clé morte `subscriptionsKeys.evoRefresh` — `src/services/subscriptions.ts:128` (fix: d158bf9) (fixed, round 2)
-- [ ] **R1-7** ⚪ seuil `hideBelow="lg"` de « Dernière erreur » non mesuré (L-008) — à mesurer en verify — `src/routes/_auth/contrats.voyage.tsx:203`
+- ~~**R1-7**~~ mesuré en verify run 1 → défaut confirmé, suivi en **V1-1**
 - [x] **R1-8** ⚪ tests portés gardant les anciens numéros d'AC du tiroir (`renderDrawer`, « AC-5 ») — `src/routes/-contract-detail.test.tsx` (fix: d158bf9) (fixed, round 2)
 - [x] **R1-9** ⚪ redirection `?contract=` rendue seulement après chargement du client (client supprimé/403 → pas de redirection) — `src/routes/_auth/clients_.$clientId.tsx:241` (fix: d158bf9) (fixed, round 2)
 - [x] **R1-10** ⚪ page remboursement sans `BackLink` ; garde « Droit insuffisant » et id invalide non testés — `src/routes/_auth/remboursements_.$refundId.tsx:265` (fix: d158bf9) (fixed, round 2)
@@ -82,9 +82,40 @@
 
 - [ ] **R2-1** ⚪ lien client dans une ligne `role="button"` (ARIA nested-interactive) — à passer à axe en verify — `src/routes/_auth/contrats.voyage.tsx:72`
 - [ ] **R2-2** ⚪ `stopPropagation` au clavier (Entrée sur le lien client) non testé — `src/routes/-travel-supervision.test.tsx:228`
+- [ ] **V1-1** 🟡 table de supervision plus large que l'écran à toutes les largeurs bureau : largeur naturelle 1 322 px (Contrat 164, Client 94, État 138, Envois 71, Dernier envoi 137, Couverture 199, Décision 207, Dernière erreur 276) pour 698 px visibles à 1024, 954 à 1280, 1 114 à 1440 → défilement horizontal ; seuils `hideBelow` à recalculer et colonnes à resserrer (L-008) — S-2 / AC-5
 - [ ] **R2-3** ⚪ test « la page propose un retour » ne vérifie pas la cible (`/dashboard`) — `src/routes/-refund-detail.test.tsx:287`
 
 ## Acceptance run
+
+> Run: run 1 · 2026-10-12 · HEAD `aca70cf` (+ uncommitted: no) · 33 pass · 0 fail · 1 visible defect (V1-1) · 4 manual (0 confirmed, 4 pending)
+> App : `pnpm exec vite dev --port 3001`, proxy vers la préprod `nsia.c2s-demo.cloud` (offre voyage active, EVO UAT), compte ADMIN. Préprod : **0 contrat voyage** (`totalElements: 0`) et aucune alerte voyage/remboursement → parcours voyage joués sur réponses **interceptées dans le navigateur** (Playwright `route.fulfill`) ; aucune écriture n'a atteint la préprod (toutes les requêtes POST/PUT servies par l'interception). Scripts : scratchpad `verify/real2.mjs` (réel, lecture) et `verify/mock.mjs` (simulé).
+
+**Réel (préprod, lecture seule)**
+- AC-13 — pass — menu Contrats › Modifications + Supervision voyage (ADMIN, 54 droits dont `subscription:read-all`/`reconcile`) ; Ctrl+K « voyage » + Entrée → `/contrats/voyage?status=TO_RECONCILE&page=0`.
+- AC-5 — pass — `/contrats/voyage` : défaut `?status=TO_RECONCILE&page=0`, « 0 contrat », « Aucun contrat voyage à trancher. » ; filtre « Tous les états » → `?status=ALL` ; requêtes sans `sort` ; `sort` envoyé à la main → 400 (contrat backend confirmé).
+- AC-1 — pass — contrat MRH #508 depuis la fiche client → `/contrats/508` : Documents, Quittances, Signature, « Retour à la fiche client », nom du client en lien ; `/clients/253?contract=508` → `/contrats/508` ; `/contrats/999999` → « Contrat introuvable » ; `/contrats/abc` → « Identifiant de contrat invalide. ».
+- AC-12 — pass — `/remboursements/1` sans alerte → « Alerte introuvable… », formulaire proposé.
+
+**Simulé (réponses interceptées)**
+- S-2 / AC-5 — pass — 4 lignes, « 4 contrats », 2 « Décision possible » + 1 « À partir du … » ; lien « Client #253 » → `/clients/253` sans ouvrir le contrat ; clic ligne → `/contrats/900812?from=voyage&status=TO_RECONCILE&page=0` ; 404 → « L’offre voyage n’est pas active sur ce serveur. » ; 403 → « Accès refusé. ».
+- S-3 / AC-6 — pass — encadré + rappel Cover Edge ; boutons actifs après `reconcilableFrom`, désactivés avant avec « Décision possible à partir du 12 oct. 2026, 20:46 (heure d’Abidjan) » (envoi + 24 h lu en UTC) ; « Gave up after 5 attempts » → « Vérifiez la configuration EVO avant de relancer ».
+- AC-7 — pass — rattacher `7781` → 422 MISMATCH : « Cette police n’est pas celle du contrat : Coverage dates differ… » sous le champ ; 500 → « EVO ne reconnaît pas cet identifiant… ».
+- AC-8 — pass — relancer → 422 `TRAVEL_QUOTE_EXPIRED` → « Le devis EVO a expiré : refusez l’émission. ».
+- AC-9 — pass — refuser : motif exigé, puis confirmation « irréversible », envoi `{"reason":"Cover Edge : aucune police…"}`, page relue : badge « Refusée », statut Annulé, encadré disparu.
+- AC-2 / AC-3 / AC-4 — pass — contrat CERTIFICATE_READY : Afrique, Standard, « Standard Afrique », Voyageurs (2) « Awa Kouassi », badge « Attestation prête », ni Documents ni Quittances ; « Actualiser depuis EVO » → `?refresh=true` → « Active chez EVO » ; sans `evo` → « EVO indisponible », données locales gardées ; attestation téléchargée « Attestation NSIACIVO00000056.pdf ».
+- AC-11 — pass — cloche : « Émission voyage incertaine » → `/contrats/900812?from=voyage&status=TO_RECONCILE&page=0` ; « Fonds FineoPay insuffisants » → aucune navigation ; « Remboursement à traiter » → `/remboursements/77`.
+- AC-12 — pass — texte de l’alerte affiché tel quel, RF-77, aide-mémoire ; MTN + 07… → « Un numéro MTN commence par 05. » sans envoi ; 422 `REFUND_INVALID_STATUS` → « Ce remboursement n’attend pas de numéro. » ; succès → PUT `{"operator":"MTN","destination":"+2250544001122"}`, « le versement repart ».
+- Responsive (L-007, L-010) — pass — 0 px de débordement de page à 360 et 390 px (liste, contrat voyage, contrat à trancher, remboursement), et à 390 px sans JavaScript.
+- AC-14 — pass — dates sans décalage (heure d’Abidjan), « 45 250 FCFA ».
+- **V1-1** — visible defect — table de supervision en défilement horizontal à 1024 / 1280 / 1440 (voir *Review findings*).
+
+**Manuel**
+- M-1 — manual — pending — aspect visuel des 3 écrans (`/contrats/voyage`, `/contrats/{id}` voyage, `/remboursements/{id}`), libellés et ton.
+- M-2 — manual — pending — un vrai contrat voyage de la préprod (aucun n’existe à ce jour) : bloc voyage, actualisation EVO réelle, attestation réelle.
+- M-3 — manual — pending — rattachement réel sur EVO UAT (D-11 du brief : seulement avec accord, et un `TO_RECONCILE` ne s’obtient pas à la demande).
+- M-4 — manual — pending — accessibilité du lien client dans une ligne cliquable (R2-1) : axe non disponible ici.
+
+Observations : une fois, l’overlay Vite a affiché « socket hang up » (proxy de dev vers la préprod), non reproduit ; les radios d’opérateur affichent le préfixe « 07… » (lecture un peu sèche).
 
 ## Timeline
 
