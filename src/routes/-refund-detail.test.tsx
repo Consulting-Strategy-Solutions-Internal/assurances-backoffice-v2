@@ -27,7 +27,11 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@tanstack/react-router', () => ({
   createFileRoute: () => (options: unknown) => options,
   lazyRouteComponent: () => () => null,
-  Link: ({ children }: { children: ReactNode }) => <a href="/x">{children}</a>,
+  Link: ({ children, to }: { children: ReactNode; to?: string }) => (
+    <a href="/x" data-to={to}>
+      {children}
+    </a>
+  ),
 }))
 
 vi.mock('sonner', () => ({
@@ -285,6 +289,7 @@ describe('R1-10 : garde de la page et retour', () => {
   })
   it('la page propose un retour', async () => {
     renderPage()
-    expect(await screen.findByText('Retour au tableau de bord')).toBeTruthy()
+    const back = await screen.findByText('Retour au tableau de bord')
+    expect(back.closest('a')?.dataset.to).toBe('/dashboard')
   })
 })

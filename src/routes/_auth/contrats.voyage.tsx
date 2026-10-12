@@ -26,7 +26,7 @@ import { Button } from '#/components/ui/button'
 import { Pagination } from '#/components/ui/Pagination'
 import { Table, TableBody, TableHeader, TableRow } from '#/components/ui/table'
 import { isForbidden } from '#/lib/api-error'
-import { formatClaimDate } from '#/lib/claims'
+import { formatClaimDate, formatClaimTime } from '#/lib/claims'
 import { pageHead } from '#/lib/page-title'
 import {
   EVO_STATUS_LABELS,
@@ -96,7 +96,7 @@ function DateTimeCell({ value }: { value: string | null }) {
     <>
       <div>{formatClaimDate(value)}</div>
       <div className="text-[12px] text-muted-foreground">
-        {value.slice(11, 16)}
+        {formatClaimTime(value)}
       </div>
     </>
   )
@@ -244,10 +244,10 @@ export function TravelSupervisionContent() {
               <DataTableHead first sticky="left">
                 Contrat
               </DataTableHead>
-              {/* Seuils mesurés (V1-1, L-008) : ≈ 888 px tout affiché, 788 sans « Dernier envoi », 674 sans « Client ». */}
+              {/* Seuils mesurés (V1-1, L-008) : tout tient dès 896 px de contenu (954/954 à 1280) ; en dessous, sans Client ni Dernier envoi (698/698 à 1024). */}
               <DataTableHead hideBelow="lg">Client</DataTableHead>
               <DataTableHead>État et dernière erreur</DataTableHead>
-              <DataTableHead hideBelow="xl">Dernier envoi</DataTableHead>
+              <DataTableHead hideBelow="lg">Dernier envoi</DataTableHead>
               <DataTableHead>Couverture</DataTableHead>
               <DataTableHead>Décision</DataTableHead>
               <DataTableHead className="w-10" />
@@ -255,7 +255,11 @@ export function TravelSupervisionContent() {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableSkeletonRows columns={[28, 20, 32, 20, 24, 24]} trailing />
+              <TableSkeletonRows
+                columns={[28, 20, 32, 20, 24, 24]}
+                hideBelow={[undefined, 'lg', undefined, 'lg']}
+                trailing
+              />
             ) : offerOff ? (
               <TableEmptyState
                 colSpan={COLUMNS}
@@ -306,7 +310,7 @@ export function TravelSupervisionContent() {
                         )}
                       </div>
                     </DataTableCell>
-                    <DataTableCell hideBelow="xl" className="whitespace-nowrap">
+                    <DataTableCell hideBelow="lg" className="whitespace-nowrap">
                       <DateTimeCell value={item.evoSentAt} />
                     </DataTableCell>
                     <DataTableCell className="whitespace-nowrap">

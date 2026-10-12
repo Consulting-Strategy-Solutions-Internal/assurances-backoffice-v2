@@ -33,16 +33,19 @@ vi.mock('@tanstack/react-router', () => ({
     to,
     params,
     onClick,
+    onKeyDown,
   }: {
     children: ReactNode
     to?: string
     params?: Record<string, string>
     onClick?: (e: React.MouseEvent) => void
+    onKeyDown?: (e: React.KeyboardEvent) => void
   }) => (
     <a
       href="/x"
       data-to={to}
       data-params={JSON.stringify(params ?? null)}
+      onKeyDown={onKeyDown}
       onClick={(e) => {
         e.preventDefault()
         onClick?.(e)
@@ -293,5 +296,58 @@ describe('V1-1 : table resserrée (largeur mesurée, L-008)', () => {
     expect(within(coverage).getByText(/→ 30 oct\. 2026/)).toBeTruthy()
     const decision = table.getByText('À partir du').closest('td') as HTMLElement
     expect(within(decision).getByText(/13 oct\. 2026/)).toBeTruthy()
+  })
+})
+
+describe('R3 : seuils, squelette, clavier', () => {
+  it('R3-4 : Client et Dernier envoi masqués sous lg (en-tête et cellule)', async () => {
+    mocks.getTravelSupervision.mockResolvedValue(page([travelItem()]))
+    renderList()
+    await screen.findByText('1 contrat')
+    const table = inTable()
+    for (const name of ['Client', 'Dernier envoi']) {
+      const head = table.getByRole('columnheader', { name })
+      expect(head.className).toContain('@4xl/main:table-cell')
+    }
+    const clientCell = table.getAllByText('Client #106')[0]?.closest('td')
+    expect(clientCell?.className).toContain('@4xl/main:table-cell')
+  })
+
+  it('R3-1 : le squelette masque les mêmes colonnes que l’en-tête', () => {
+    mocks.getTravelSupervision.mockReturnValue(new Promise(() => undefined))
+    renderList()
+    const row = screen.getByRole('table').querySelector('tbody tr')
+    const cells = [...(row?.children ?? [])].map((c) => c.className)
+    expect(cells).toHaveLength(7)
+    expect(cells[1]).toContain('@4xl/main:table-cell')
+    expect(cells[3]).toContain('@4xl/main:table-cell')
+    expect(cells[2]).not.toContain('hidden')
+  })
+
+  it('R2-2 : Entrée sur le lien client n’ouvre pas le contrat', async () => {
+    mocks.getTravelSupervision.mockResolvedValue(page([travelItem()]))
+    renderList()
+    await screen.findByText('1 contrat')
+    const link = inTable().getByRole('link', { name: 'Client #106' })
+    mocks.navigate.mockClear()
+    fireEvent.keyDown(link, { key: 'Enter' })
+    expect(mocks.navigate).not.toHaveBeenCalled()
+    // contrôle : Entrée sur la ligne ouvre bien le contrat
+    fireEvent.keyDown(link.closest('tr') as HTMLElement, { key: 'Enter' })
+    expect(mocks.navigate).toHaveBeenCalled()
+  })
+
+  it('R3-3 : heure du dernier envoi formatée, vide sans heure', async () => {
+    mocks.getTravelSupervision.mockResolvedValue(
+      page([
+        travelItem({ evoSentAt: '2026-10-12T09:05:41' }),
+        travelItem({ id: 813, evoSentAt: '2026-10-12' }),
+      ]),
+    )
+    renderList()
+    await screen.findByText('2 contrats')
+    const table = inTable()
+    expect(table.getByText('09:05')).toBeTruthy()
+    expect(table.queryByText('T09:0')).toBeNull()
   })
 })
