@@ -25,6 +25,10 @@ import {
 } from '#/services/subscriptions'
 import type * as SubscriptionsService from '#/services/subscriptions'
 import type { SubscriptionDetailResponse } from '#/services/subscriptions'
+import { downloadTravelCertificate } from '#/services/travel'
+import type * as TravelService from '#/services/travel'
+import { travelContract } from '#/lib/travel.fixtures'
+import { formatFcfa } from '#/lib/utils'
 import { ContractDetailContent } from './_auth/contrats.$subscriptionId'
 
 vi.mock('@tanstack/react-router', () => ({
@@ -42,6 +46,11 @@ vi.mock('#/services/subscriptions', async (importOriginal) => ({
   ...(await importOriginal<typeof SubscriptionsService>()),
   getSubscription: vi.fn(),
   getSubscriptionRenewal: vi.fn(),
+}))
+vi.mock('#/services/travel', async (importOriginal) => ({
+  ...(await importOriginal<typeof TravelService>()),
+  downloadTravelCertificate: vi.fn(),
+  findTravelSupervisionItem: vi.fn(() => Promise.resolve(null)),
 }))
 vi.mock('#/services/clients', () => ({
   clientsKeys: { detail: (id: number) => ['client', id] },
@@ -341,5 +350,138 @@ describe('Page contrat : états (AC-1)', () => {
     expect(
       screen.getByText('Retour à la fiche client').closest('a')?.dataset.to,
     ).toBe('/clients/$clientId')
+  })
+})
+
+describe('Contrat voyage (AC-2…AC-4)', () => {
+  it('AC-2 : voyage, formule, prime, voyageurs, badge d’émission ; pas de quittances', async () => {
+    vi.mocked(getSubscription).mockResolvedValue(travelContract())
+    renderDrawer(812)
+    const trip = (await screen.findByText('Voyage')).closest(
+      '[data-slot="card"]',
+    ) as HTMLElement
+    expect(within(trip).getByText('Afrique')).toBeTruthy()
+    expect(within(trip).getByText('Standard')).toBeTruthy()
+    expect(within(trip).getByText('Standard Afrique')).toBeTruthy()
+    expect(trip.textContent).toContain(formatFcfa(45250))
+    const travelers = screen
+      .getByText('Voyageurs (1)')
+      .closest('[data-slot="card"]') as HTMLElement
+    expect(within(travelers).getByText('Awa Kouassi')).toBeTruthy()
+    expect(within(travelers).getByText(/20AB12345/)).toBeTruthy()
+    expect(screen.getAllByText('Attestation prête').length).toBeGreaterThan(0)
+    expect(screen.getByText('NSIACIVO00000056', { selector: 'dd *, dd' }))
+      .toBeTruthy()
+    expect(screen.queryByText('Quittances')).toBeNull()
+    expect(screen.queryByText('Documents du contrat')).toBeNull()
+  })
+
+  it('AC-2 : contrat pas encore payé → « Non payé »', async () => {
+    vi.mocked(getSubscription).mockResolvedValue(
+      travelContract(
+        { status: 'PENDING_PAYMENT', policyNumber: null },
+        {
+          evoIssuanceStatus: null,
+          policyNumber: null,
+          certificateDocumentId: null,
+        },
+      ),
+    )
+    renderDrawer(812)
+    expect((await screen.findAllByText('Non payé')).length).toBeGreaterThan(0)
+  })
+
+  it('AC-3 : « Actualiser depuis EVO » n’appelle refresh qu’au clic et affiche l’état EVO', async () => {
+    vi.mocked(getSubscription).mockImplementation((_id, options) =>
+      Promise.resolve(
+        options?.refresh
+          ? travelContract(
+              {},
+              {
+                evo: {
+                  status: 'active',
+                  policyNumber: 'NSIACIVO00000056',
+                  startDate: '2026-10-20',
+                  endDate: '2026-10-30',
+                  cancelDate: null,
+                },
+              },
+            )
+          : travelContract(),
+      ),
+    )
+    renderDrawer(812)
+    const button = await screen.findByRole('button', {
+      name: 'Actualiser depuis EVO',
+    })
+    expect(getSubscription).toHaveBeenCalledTimes(1)
+    expect(vi.mocked(getSubscription).mock.calls[0]?.[1]).toBeUndefined()
+    fireEvent.click(button)
+    expect(await screen.findByText('Active chez EVO')).toBeTruthy()
+    expect(getSubscription).toHaveBeenLastCalledWith(812, { refresh: true })
+  })
+
+  it('AC-3 : EVO en panne (200 sans evo) → « EVO indisponible », données locales gardées', async () => {
+    vi.mocked(getSubscription).mockResolvedValue(travelContract())
+    renderDrawer(812)
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Actualiser depuis EVO' }),
+    )
+    expect(await screen.findByText(/EVO indisponible/)).toBeTruthy()
+    expect(screen.getByText('Afrique')).toBeTruthy()
+  })
+
+  it('AC-3 : pas encore de police chez EVO → pas de bouton', async () => {
+    vi.mocked(getSubscription).mockResolvedValue(
+      travelContract(
+        { policyNumber: null },
+        {
+          evoIssuanceStatus: 'PENDING',
+          policyNumber: null,
+          certificateDocumentId: null,
+        },
+      ),
+    )
+    renderDrawer(812)
+    expect(await screen.findByText(/Pas encore de police chez EVO/)).toBeTruthy()
+    expect(
+      screen.queryByRole('button', { name: 'Actualiser depuis EVO' }),
+    ).toBeNull()
+  })
+
+  it('AC-4 : télécharge l’attestation ; absente → « pas encore disponible »', async () => {
+    vi.mocked(getSubscription).mockResolvedValue(travelContract())
+    vi.mocked(downloadTravelCertificate).mockResolvedValue(new Blob(['%PDF']))
+    renderDrawer(812)
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Télécharger l’attestation',
+      }),
+    )
+    await waitFor(() =>
+      expect(downloadTravelCertificate).toHaveBeenCalledWith(812),
+    )
+    cleanup()
+    vi.mocked(getSubscription).mockResolvedValue(
+      travelContract({}, { certificateDocumentId: null }),
+    )
+    renderDrawer(812)
+    expect(
+      await screen.findByText('Attestation pas encore disponible.'),
+    ).toBeTruthy()
+  })
+
+  it('AC-4 : erreur de téléchargement affichée sous la ligne', async () => {
+    vi.mocked(getSubscription).mockResolvedValue(travelContract())
+    vi.mocked(downloadTravelCertificate).mockRejectedValue(
+      axiosError(502, { status: 502, message: 'Storage unavailable' }),
+    )
+    renderDrawer(812)
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Télécharger l’attestation',
+      }),
+    )
+    expect(await screen.findByRole('alert')).toBeTruthy()
   })
 })

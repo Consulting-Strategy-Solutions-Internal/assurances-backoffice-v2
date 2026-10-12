@@ -9,6 +9,13 @@ import {
   ReceiptsCard,
   SignatureCard,
 } from '#/components/contracts/ContractSections'
+import {
+  CertificateCard,
+  EvoIssuanceCard,
+  EvoStatusPill,
+  TravelTripCard,
+  TravelersCard,
+} from '#/components/contracts/TravelSections'
 import { StatusPill } from '#/components/dashboard/StatusPill'
 import { BackLink } from '#/components/layout/BackLink'
 import {
@@ -140,6 +147,8 @@ export function ContractDetailContent({
   }
 
   const contract = detail.data
+  // Voyage : bloc `travel` ; ni police PDF ni quittances de renouvellement.
+  const travel = contract.travel
   const title = contract.policyNumber?.trim() || `Contrat #${contract.id}`
 
   return (
@@ -165,21 +174,38 @@ export function ContractDetailContent({
           </>
         }
         pills={
-          <StatusPill tone={SUBSCRIPTION_TONES[contract.status]}>
-            {SUBSCRIPTION_STATUS_LABELS[contract.status]}
-          </StatusPill>
+          <>
+            <StatusPill tone={SUBSCRIPTION_TONES[contract.status]}>
+              {SUBSCRIPTION_STATUS_LABELS[contract.status]}
+            </StatusPill>
+            {travel && <EvoStatusPill status={travel.evoIssuanceStatus} />}
+          </>
         }
       />
 
-      <div className="grid items-start gap-[18px] lg:grid-cols-2">
-        <div className="flex flex-col gap-[18px]">
-          <DocumentsCard contract={contract} />
-          <ReceiptsCard subscriptionId={contract.id} />
+      {travel ? (
+        <div className="grid items-start gap-[18px] lg:grid-cols-2">
+          <div className="flex flex-col gap-[18px]">
+            <TravelTripCard contract={contract} travel={travel} />
+            <TravelersCard travel={travel} />
+          </div>
+          <div className="flex flex-col gap-[18px]">
+            <EvoIssuanceCard contract={contract} travel={travel} />
+            <CertificateCard contract={contract} travel={travel} />
+            <SignatureCard contract={contract} />
+          </div>
         </div>
-        <div className="flex flex-col gap-[18px]">
-          <SignatureCard contract={contract} />
+      ) : (
+        <div className="grid items-start gap-[18px] lg:grid-cols-2">
+          <div className="flex flex-col gap-[18px]">
+            <DocumentsCard contract={contract} />
+            <ReceiptsCard subscriptionId={contract.id} />
+          </div>
+          <div className="flex flex-col gap-[18px]">
+            <SignatureCard contract={contract} />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
