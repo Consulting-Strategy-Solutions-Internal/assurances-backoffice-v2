@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
 import { Plane } from 'lucide-react'
@@ -63,6 +63,22 @@ function contractLabel(item: TravelSupervisionItem) {
 
 function clientLabel(item: TravelSupervisionItem) {
   return item.clientId != null ? `Client #${item.clientId}` : '—'
+}
+
+/** Lien vers la fiche client ; le clic n'ouvre pas aussi le contrat de la ligne. */
+function ClientCell({ clientId }: { clientId: number | null }) {
+  if (clientId == null) return <span className="text-muted-foreground">—</span>
+  return (
+    <Link
+      to="/clients/$clientId"
+      params={{ clientId: String(clientId) }}
+      className="text-primary hover:underline"
+      onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => e.stopPropagation()}
+    >
+      Client #{clientId}
+    </Link>
+  )
 }
 
 /** « Décision possible » / « À partir du … » pour un contrat à trancher ; vide sinon. */
@@ -246,8 +262,8 @@ export function TravelSupervisionContent() {
                     >
                       {contractLabel(item)}
                     </DataTableCell>
-                    <DataTableCell className="whitespace-nowrap text-muted-foreground">
-                      {clientLabel(item)}
+                    <DataTableCell className="whitespace-nowrap">
+                      <ClientCell clientId={item.clientId} />
                     </DataTableCell>
                     <DataTableCell>
                       <EvoStatusPill status={item.evoIssuanceStatus} />

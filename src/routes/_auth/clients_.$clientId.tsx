@@ -134,6 +134,20 @@ function StateCard({
 }
 
 export function ClientDetailContent({ clientId }: { clientId: number }) {
+  // Ancien lien vers le panneau d'un contrat : redirigé avant tout chargement.
+  const { contract: legacyContract } = Route.useSearch()
+  if (legacyContract !== undefined)
+    return (
+      <Navigate
+        to="/contrats/$subscriptionId"
+        params={{ subscriptionId: String(legacyContract) }}
+        replace
+      />
+    )
+  return <ClientDetailLoader clientId={clientId} />
+}
+
+function ClientDetailLoader({ clientId }: { clientId: number }) {
   const {
     data: client,
     isLoading,
@@ -187,7 +201,6 @@ function VerifiedNote({ at }: { at?: string | null }) {
 
 function ClientDetail({ client }: { client: ClientResponse }) {
   const navigate = useNavigate()
-  const { contract: legacyContract } = Route.useSearch()
   const openContract = (subscriptionId: number) =>
     void navigate({
       to: '/contrats/$subscriptionId',
@@ -238,13 +251,6 @@ function ClientDetail({ client }: { client: ClientResponse }) {
 
   return (
     <div className="flex flex-col gap-[18px]">
-      {legacyContract !== undefined && (
-        <Navigate
-          to="/contrats/$subscriptionId"
-          params={{ subscriptionId: String(legacyContract) }}
-          replace
-        />
-      )}
       {declaring && (
         <CreateClaimDialog
           defaultClientId={clientId}

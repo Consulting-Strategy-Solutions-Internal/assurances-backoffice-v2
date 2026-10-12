@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { createFileRoute } from '@tanstack/react-router'
+import type { ReactNode } from 'react'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { BellRing, ShieldAlert, Wallet } from 'lucide-react'
 import { toast } from 'sonner'
@@ -10,6 +11,7 @@ import {
   DetailHeaderCard,
   IconTile,
 } from '#/components/layout/DetailHeaderCard'
+import { BackLink } from '#/components/layout/BackLink'
 import { EmptyState } from '#/components/layout/EmptyState'
 import { SectionCard } from '#/components/layout/SectionCard'
 import { Button } from '#/components/ui/button'
@@ -263,6 +265,7 @@ export function RefundDetailContent({ refundId }: { refundId: number }) {
   const { can } = usePermissions()
   return (
     <div className="flex flex-col gap-[18px]">
+      <BackLink to="/dashboard">Retour au tableau de bord</BackLink>
       <DetailHeaderCard
         leading={
           <IconTile>
@@ -280,7 +283,8 @@ export function RefundDetailContent({ refundId }: { refundId: number }) {
             description="Seulement si le remboursement attend un numéro (numéro payeur illisible)."
           >
             {can('withdrawal:write') ? (
-              <DestinationForm refundId={refundId} />
+              // Remonté à chaque remboursement : rien de la saisie précédente ne le suit (L-013).
+              <DestinationForm key={refundId} refundId={refundId} />
             ) : (
               <p className="text-[13px] text-muted-foreground">
                 Le droit de saisir le numéro de remboursement d’un client («
@@ -295,10 +299,12 @@ export function RefundDetailContent({ refundId }: { refundId: number }) {
   )
 }
 
-function RefundDetailRoute() {
-  const { refundId } = Route.useParams()
+/**
+ * Refuse la page quand le rôle est connu et n'a aucun droit sur les
+ * remboursements ; droits inconnus : le serveur tranche.
+ */
+export function RefundGate({ children }: { children: ReactNode }) {
   const { permissions } = usePermissions()
-  const id = Number(refundId)
   if (
     permissions &&
     !permissions.has('withdrawal:read') &&
@@ -313,14 +319,29 @@ function RefundDetailRoute() {
         description="Vous n’avez pas le droit de traiter les remboursements."
       />
     )
-  if (!Number.isSafeInteger(id) || id <= 0)
-    return (
-      <EmptyState
-        variant="card"
-        icon={BellRing}
-        title="Identifiant de remboursement invalide."
-        description="Ouvrez le remboursement depuis son alerte."
-      />
-    )
-  return <RefundDetailContent refundId={id} />
+  return children
+}
+
+function RefundDetailRoute() {
+  const { refundId } = Route.useParams()
+  const id = Number(refundId)
+  return (
+    <RefundGate>
+      {Number.isSafeInteger(id) && id > 0 ? (
+        <RefundDetailContent refundId={id} />
+      ) : (
+        <EmptyState
+          variant="card"
+          icon={BellRing}
+          title="Identifiant de remboursement invalide."
+          description="Ouvrez le remboursement depuis son alerte."
+          action={
+            <Button asChild className="rounded-[11px]">
+              <Link to="/dashboard">Retour au tableau de bord</Link>
+            </Button>
+          }
+        />
+      )}
+    </RefundGate>
+  )
 }

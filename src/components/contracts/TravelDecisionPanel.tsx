@@ -23,6 +23,7 @@ import {
 } from '#/lib/travel'
 import type { TravelDecisionError } from '#/lib/travel'
 import { subscriptionsKeys } from '#/services/subscriptions'
+import { subscriptionsAllKey } from '#/services/subscriptions-by-client'
 import {
   attachTravelPolicy,
   findTravelSupervisionItem,
@@ -59,12 +60,15 @@ function useDecisionDone(subscriptionId: number) {
       void queryClient.invalidateQueries({
         queryKey: ['travel', 'supervision'],
       })
+      // Les contrats de la fiche client (statut changé par un refus).
+      void queryClient.invalidateQueries({ queryKey: subscriptionsAllKey })
     },
     reload: () => {
       void queryClient.invalidateQueries({
         queryKey: subscriptionsKeys.detail(subscriptionId),
       })
       void queryClient.invalidateQueries({ queryKey: travelKeys.all })
+      void queryClient.invalidateQueries({ queryKey: subscriptionsAllKey })
     },
   }
 }
@@ -88,7 +92,7 @@ function AttachDialog({
       onClose()
     },
     onError: (e) => {
-      const mapped = mapTravelDecisionError(e)
+      const mapped = mapTravelDecisionError(e, 'attach')
       if (mapped.kind === 'field') setFieldError(mapped.message)
       else if (mapped.kind === 'stale') {
         reload()

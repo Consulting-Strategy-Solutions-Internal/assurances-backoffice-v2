@@ -313,12 +313,24 @@ describe('fiche client — documents des contrats', () => {
     setup()
     mocks.search = { ...mocks.search, contract: 5 }
     renderWithQuery(<ClientDetailContent clientId={42} />)
-    await screen.findByText('IA-2026-000005')
+    expect(mocks.getClient).not.toHaveBeenCalled()
     expect(JSON.parse(screen.getByTestId('redirect').textContent)).toEqual({
       to: '/contrats/$subscriptionId',
       params: { subscriptionId: '5' },
       replace: true,
     })
+    mocks.search = { page: 0, size: 20, sort: 'lastName,asc' }
+  })
+
+  it('R1-9 : ?contract redirige même si le client ne se charge pas', async () => {
+    setup()
+    mocks.getClient.mockRejectedValue({
+      isAxiosError: true,
+      response: { status: 404, data: {} },
+    })
+    mocks.search = { ...mocks.search, contract: 5 }
+    renderWithQuery(<ClientDetailContent clientId={42} />)
+    expect(screen.getByTestId('redirect')).toBeTruthy()
     mocks.search = { page: 0, size: 20, sort: 'lastName,asc' }
   })
 

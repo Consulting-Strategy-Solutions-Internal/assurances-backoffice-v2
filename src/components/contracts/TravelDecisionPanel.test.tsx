@@ -220,6 +220,21 @@ describe('Rattacher (AC-7)', () => {
     ).toBeTruthy()
   })
 
+  it('R1-4 : police inconnue (500) → sous le champ', async () => {
+    mocks.attach.mockRejectedValue(axiosError(500, {}))
+    const dialog = await openAttach()
+    fireEvent.change(
+      within(dialog).getByLabelText(/Identifiant de la police/),
+      {
+        target: { value: 'POL-404' },
+      },
+    )
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Rattacher' }))
+    expect(
+      await within(dialog).findByText(/EVO ne reconnaît pas cet identifiant/),
+    ).toBeTruthy()
+  })
+
   it('502 : EVO ne répond pas', async () => {
     mocks.attach.mockRejectedValue(axiosError(502, {}))
     const dialog = await openAttach()
@@ -255,6 +270,25 @@ describe('Rattacher (AC-7)', () => {
     )
     expect(invalidate).toHaveBeenCalled()
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  })
+})
+
+describe('R1-5 : après une décision', () => {
+  it('relit aussi les contrats de la fiche client', async () => {
+    mocks.retry.mockResolvedValue(travelItem({ evoIssuanceStatus: 'SENDING' }))
+    renderPanel()
+    const invalidate = vi.spyOn(queryClient, 'invalidateQueries')
+    fireEvent.click(await button('Relancer'))
+    fireEvent.click(
+      within(screen.getByRole('alertdialog')).getByRole('button', {
+        name: 'Relancer l’émission',
+      }),
+    )
+    await waitFor(() =>
+      expect(invalidate).toHaveBeenCalledWith({
+        queryKey: ['subscriptions', 'all'],
+      }),
+    )
   })
 })
 

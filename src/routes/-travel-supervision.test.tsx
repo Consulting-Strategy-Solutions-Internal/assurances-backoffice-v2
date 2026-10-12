@@ -28,7 +28,29 @@ vi.mock('@tanstack/react-router', () => ({
     useSearch: () => mocks.search,
   }),
   lazyRouteComponent: () => () => null,
-  Link: ({ children }: { children: ReactNode }) => <a href="/x">{children}</a>,
+  Link: ({
+    children,
+    to,
+    params,
+    onClick,
+  }: {
+    children: ReactNode
+    to?: string
+    params?: Record<string, string>
+    onClick?: (e: React.MouseEvent) => void
+  }) => (
+    <a
+      href="/x"
+      data-to={to}
+      data-params={JSON.stringify(params ?? null)}
+      onClick={(e) => {
+        e.preventDefault()
+        onClick?.(e)
+      }}
+    >
+      {children}
+    </a>
+  ),
   useNavigate: () => mocks.navigate,
 }))
 
@@ -201,6 +223,19 @@ describe('TravelSupervisionContent (AC-5)', () => {
       params: { subscriptionId: '812' },
       search: { from: 'voyage', status: 'ISSUED', page: 1 },
     })
+  })
+
+  it('R1-1 : le client est un lien vers sa fiche, sans ouvrir le contrat', async () => {
+    mocks.getTravelSupervision.mockResolvedValue(page([travelItem()]))
+    renderList()
+    const link = (await screen.findAllByRole('link', { name: 'Client #106' }))
+      .map((a) => a as HTMLAnchorElement)
+      .find((a) => a.closest('table'))
+    expect(link?.dataset.to).toBe('/clients/$clientId')
+    expect(link?.dataset.params).toBe(JSON.stringify({ clientId: '106' }))
+    mocks.navigate.mockClear()
+    fireEvent.click(link as HTMLAnchorElement)
+    expect(mocks.navigate).not.toHaveBeenCalled()
   })
 
   it('vide : état vide', async () => {

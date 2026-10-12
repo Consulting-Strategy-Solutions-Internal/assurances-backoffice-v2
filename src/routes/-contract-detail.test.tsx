@@ -41,7 +41,6 @@ vi.mock('@tanstack/react-router', () => ({
   ),
 }))
 
-
 vi.mock('#/services/subscriptions', async (importOriginal) => ({
   ...(await importOriginal<typeof SubscriptionsService>()),
   getSubscription: vi.fn(),
@@ -91,7 +90,7 @@ function axiosError(status: number, data: unknown): AxiosError {
   } as AxiosResponse)
 }
 
-function renderDrawer(id = 7) {
+function renderPage(id = 7) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   })
@@ -117,8 +116,8 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('Page contrat (reprise du panneau)', () => {
-  it('AC-2 : signature et pièces d’identité fournies', async () => {
-    renderDrawer()
+  it('AC-1 (reprise du panneau) : signature et pièces d’identité fournies', async () => {
+    renderPage()
     const section = (
       await screen.findByText('Signature et pièces d’identité')
     ).closest('[data-slot="card"]') as HTMLElement
@@ -134,20 +133,20 @@ describe('Page contrat (reprise du panneau)', () => {
     ).toBeTruthy()
   })
 
-  it('AC-2 : contrat non signé, sans pièce', async () => {
+  it('AC-1 (reprise du panneau) : contrat non signé, sans pièce', async () => {
     vi.mocked(getSubscription).mockResolvedValue({
       ...signedContract,
       signed: false,
       identityDocuments: [],
     })
-    renderDrawer()
+    renderPage()
     expect(await screen.findByText('Non signé')).toBeTruthy()
     expect(screen.getByText('Aucune pièce fournie')).toBeTruthy()
   })
 
-  it('AC-3 : télécharge la police et chaque avenant', async () => {
+  it('AC-1 (reprise du panneau) : télécharge la police et chaque avenant', async () => {
     vi.mocked(downloadPolicyDocument).mockResolvedValue(new Blob(['%PDF']))
-    renderDrawer()
+    renderPage()
     fireEvent.click(
       await screen.findByRole('button', { name: 'Télécharger Police' }),
     )
@@ -162,21 +161,21 @@ describe('Page contrat (reprise du panneau)', () => {
     )
   })
 
-  it('AC-3 : erreur lisible sous le document', async () => {
+  it('AC-1 (reprise du panneau) : erreur lisible sous le document', async () => {
     vi.mocked(downloadPolicyDocument).mockRejectedValue(
       axiosError(404, {
         status: 404,
         message: 'The policy document is not issued yet',
       }),
     )
-    renderDrawer()
+    renderPage()
     fireEvent.click(
       await screen.findByRole('button', { name: 'Télécharger Police' }),
     )
     expect(await screen.findByText(/pas encore disponible/i)).toBeTruthy()
   })
 
-  it('AC-3 : police pas encore émise', async () => {
+  it('AC-1 (reprise du panneau) : police pas encore émise', async () => {
     vi.mocked(getSubscription).mockResolvedValue({
       ...signedContract,
       status: 'PENDING_PAYMENT',
@@ -184,7 +183,7 @@ describe('Page contrat (reprise du panneau)', () => {
       amendmentNumber: 0,
       policyDocumentId: null,
     })
-    renderDrawer()
+    renderPage()
     expect(
       await screen.findByText(/émise après le paiement et la signature/),
     ).toBeTruthy()
@@ -193,7 +192,7 @@ describe('Page contrat (reprise du panneau)', () => {
     ).toBeNull()
   })
 
-  it('AC-4 : quittances de ce contrat (modification appliquée + renouvellement)', async () => {
+  it('AC-1 (reprise du panneau) : quittances de ce contrat (modification appliquée + renouvellement)', async () => {
     vi.mocked(getAllAppliedAmendments).mockResolvedValue({
       items: [
         {
@@ -234,8 +233,10 @@ describe('Page contrat (reprise du panneau)', () => {
       },
     })
     vi.mocked(downloadReceiptDocument).mockResolvedValue(new Blob(['%PDF']))
-    renderDrawer()
-    const section = (await screen.findByText('Quittances')).closest('[data-slot="card"]') as HTMLElement
+    renderPage()
+    const section = (await screen.findByText('Quittances')).closest(
+      '[data-slot="card"]',
+    ) as HTMLElement
     await within(section).findByText(/Ristourne — modification n° 3/)
     expect(within(section).getByText('Renouvellement')).toBeTruthy()
     expect(within(section).queryByText(/Q-OTHER/)).toBeNull()
@@ -249,8 +250,8 @@ describe('Page contrat (reprise du panneau)', () => {
     )
   })
 
-  it('AC-4 : aucune quittance disponible', async () => {
-    renderDrawer()
+  it('AC-1 (reprise du panneau) : aucune quittance disponible', async () => {
+    renderPage()
     expect(await screen.findByText('Aucune quittance disponible.')).toBeTruthy()
   })
 
@@ -269,8 +270,10 @@ describe('Page contrat (reprise du panneau)', () => {
         documentId: 12,
       },
     })
-    renderDrawer()
-    const section = (await screen.findByText('Quittances')).closest('[data-slot="card"]') as HTMLElement
+    renderPage()
+    const section = (await screen.findByText('Quittances')).closest(
+      '[data-slot="card"]',
+    ) as HTMLElement
     expect(await within(section).findByText('Renouvellement')).toBeTruthy()
     expect(
       within(section).getByText(/droit de consulter les modifications/),
@@ -291,8 +294,10 @@ describe('Page contrat (reprise du panneau)', () => {
         documentId: 12,
       },
     })
-    renderDrawer()
-    const section = (await screen.findByText('Quittances')).closest('[data-slot="card"]') as HTMLElement
+    renderPage()
+    const section = (await screen.findByText('Quittances')).closest(
+      '[data-slot="card"]',
+    ) as HTMLElement
     expect(await within(section).findByText('Renouvellement')).toBeTruthy()
     expect(
       within(section).getByText(
@@ -307,7 +312,7 @@ describe('Page contrat (reprise du panneau)', () => {
       total: 2500,
       capped: true,
     })
-    renderDrawer()
+    renderPage()
     expect(
       await screen.findByText(
         /seules les 2 000 modifications les plus récentes/,
@@ -321,7 +326,7 @@ describe('Page contrat : états (AC-1)', () => {
     vi.mocked(getSubscription).mockRejectedValue(
       axiosError(404, { status: 404, message: 'Subscription not found' }),
     )
-    renderDrawer()
+    renderPage()
     expect(await screen.findByText('Contrat introuvable')).toBeTruthy()
   })
 
@@ -329,13 +334,13 @@ describe('Page contrat : états (AC-1)', () => {
     vi.mocked(getSubscription).mockRejectedValue(
       axiosError(403, { status: 403, message: 'Access denied' }),
     )
-    renderDrawer()
+    renderPage()
     expect(await screen.findByText('Droit insuffisant')).toBeTruthy()
   })
 
   it('500 → Réessayer', async () => {
     vi.mocked(getSubscription).mockRejectedValue(axiosError(500, {}))
-    renderDrawer()
+    renderPage()
     expect(
       await screen.findByText('Impossible de charger le contrat'),
     ).toBeTruthy()
@@ -343,7 +348,7 @@ describe('Page contrat : états (AC-1)', () => {
   })
 
   it('en-tête : n° de police, client, statut, retour à la fiche client', async () => {
-    renderDrawer()
+    renderPage()
     expect(await screen.findByText('IA-2026-000042')).toBeTruthy()
     expect(await screen.findByText(/Kouassi/)).toBeTruthy()
     expect(screen.getByText('Actif')).toBeTruthy()
@@ -356,7 +361,7 @@ describe('Page contrat : états (AC-1)', () => {
 describe('Contrat voyage (AC-2…AC-4)', () => {
   it('AC-2 : voyage, formule, prime, voyageurs, badge d’émission ; pas de quittances', async () => {
     vi.mocked(getSubscription).mockResolvedValue(travelContract())
-    renderDrawer(812)
+    renderPage(812)
     const trip = (await screen.findByText('Voyage')).closest(
       '[data-slot="card"]',
     ) as HTMLElement
@@ -370,8 +375,9 @@ describe('Contrat voyage (AC-2…AC-4)', () => {
     expect(within(travelers).getByText('Awa Kouassi')).toBeTruthy()
     expect(within(travelers).getByText(/20AB12345/)).toBeTruthy()
     expect(screen.getAllByText('Attestation prête').length).toBeGreaterThan(0)
-    expect(screen.getByText('NSIACIVO00000056', { selector: 'dd *, dd' }))
-      .toBeTruthy()
+    expect(
+      screen.getByText('NSIACIVO00000056', { selector: 'dd *, dd' }),
+    ).toBeTruthy()
     expect(screen.queryByText('Quittances')).toBeNull()
     expect(screen.queryByText('Documents du contrat')).toBeNull()
   })
@@ -387,7 +393,7 @@ describe('Contrat voyage (AC-2…AC-4)', () => {
         },
       ),
     )
-    renderDrawer(812)
+    renderPage(812)
     expect((await screen.findAllByText('Non payé')).length).toBeGreaterThan(0)
   })
 
@@ -410,7 +416,7 @@ describe('Contrat voyage (AC-2…AC-4)', () => {
           : travelContract(),
       ),
     )
-    renderDrawer(812)
+    renderPage(812)
     const button = await screen.findByRole('button', {
       name: 'Actualiser depuis EVO',
     })
@@ -423,7 +429,7 @@ describe('Contrat voyage (AC-2…AC-4)', () => {
 
   it('AC-3 : EVO en panne (200 sans evo) → « EVO indisponible », données locales gardées', async () => {
     vi.mocked(getSubscription).mockResolvedValue(travelContract())
-    renderDrawer(812)
+    renderPage(812)
     fireEvent.click(
       await screen.findByRole('button', { name: 'Actualiser depuis EVO' }),
     )
@@ -442,8 +448,10 @@ describe('Contrat voyage (AC-2…AC-4)', () => {
         },
       ),
     )
-    renderDrawer(812)
-    expect(await screen.findByText(/Pas encore de police chez EVO/)).toBeTruthy()
+    renderPage(812)
+    expect(
+      await screen.findByText(/Pas encore de police chez EVO/),
+    ).toBeTruthy()
     expect(
       screen.queryByRole('button', { name: 'Actualiser depuis EVO' }),
     ).toBeNull()
@@ -452,7 +460,7 @@ describe('Contrat voyage (AC-2…AC-4)', () => {
   it('AC-4 : télécharge l’attestation ; absente → « pas encore disponible »', async () => {
     vi.mocked(getSubscription).mockResolvedValue(travelContract())
     vi.mocked(downloadTravelCertificate).mockResolvedValue(new Blob(['%PDF']))
-    renderDrawer(812)
+    renderPage(812)
     fireEvent.click(
       await screen.findByRole('button', {
         name: 'Télécharger l’attestation',
@@ -465,7 +473,7 @@ describe('Contrat voyage (AC-2…AC-4)', () => {
     vi.mocked(getSubscription).mockResolvedValue(
       travelContract({}, { certificateDocumentId: null }),
     )
-    renderDrawer(812)
+    renderPage(812)
     expect(
       await screen.findByText('Attestation pas encore disponible.'),
     ).toBeTruthy()
@@ -476,7 +484,7 @@ describe('Contrat voyage (AC-2…AC-4)', () => {
     vi.mocked(downloadTravelCertificate).mockRejectedValue(
       axiosError(502, { status: 502, message: 'Storage unavailable' }),
     )
-    renderDrawer(812)
+    renderPage(812)
     fireEvent.click(
       await screen.findByRole('button', {
         name: 'Télécharger l’attestation',
@@ -491,11 +499,11 @@ describe('Contrat voyage : encadré Décision (AC-6)', () => {
     vi.mocked(getSubscription).mockResolvedValue(
       travelContract({}, { evoIssuanceStatus: 'TO_RECONCILE' }),
     )
-    renderDrawer(812)
+    renderPage(812)
     expect(await screen.findByText('Décision à prendre')).toBeTruthy()
     cleanup()
     vi.mocked(getSubscription).mockResolvedValue(travelContract())
-    renderDrawer(812)
+    renderPage(812)
     await screen.findByText('Voyage')
     expect(screen.queryByText('Décision à prendre')).toBeNull()
   })

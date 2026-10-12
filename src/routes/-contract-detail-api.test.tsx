@@ -17,13 +17,12 @@ vi.mock('@tanstack/react-router', () => ({
   ),
 }))
 
-
 afterEach(() => {
   cleanup()
   vi.restoreAllMocks()
 })
 
-it('AC-5 : n’appelle jamais les routes de signature ni de pièces d’identité (vrais services)', async () => {
+it('AC-1 (reprise du panneau) : n’appelle jamais les routes de signature ni de pièces d’identité (vrais services)', async () => {
   const get = vi.spyOn(api, 'get').mockImplementation((url: string) => {
     if (url === '/subscriptions/7')
       return Promise.resolve({

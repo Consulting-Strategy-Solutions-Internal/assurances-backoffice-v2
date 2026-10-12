@@ -12,7 +12,10 @@ import {
 } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import type { NotificationResponse } from '#/services/notifications'
-import { RefundDetailContent } from './_auth/remboursements_.$refundId'
+import {
+  RefundDetailContent,
+  RefundGate,
+} from './_auth/remboursements_.$refundId'
 
 const mocks = vi.hoisted(() => ({
   getRecentNotifications: vi.fn(),
@@ -70,15 +73,17 @@ function alert(
 const AWAITING =
   'Le remboursement RF-12 de 45 250 F CFA attend un numéro de remboursement : le numéro payeur est illisible.'
 
-function renderPage() {
+function renderPage(refundId = 12) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
-  render(
+  const page = (id: number) => (
     <QueryClientProvider client={queryClient}>
-      <RefundDetailContent refundId={12} />
-    </QueryClientProvider>,
+      <RefundDetailContent refundId={id} />
+    </QueryClientProvider>
   )
+  const { rerender } = render(page(refundId))
+  return { showRefund: (id: number) => rerender(page(id)) }
 }
 
 function fill(operator: string, number: string) {
@@ -213,5 +218,73 @@ describe('Page remboursement (AC-12)', () => {
     expect(
       screen.getByRole('button', { name: 'Enregistrer le numéro' }),
     ).toBeTruthy()
+  })
+})
+
+describe('R1-2 : un autre remboursement repart d’un formulaire vierge (L-013)', () => {
+  it('le bandeau « enregistré » et la saisie ne passent pas à RF-13', async () => {
+    mocks.setRefundDestination.mockResolvedValue({
+      id: 12,
+      reference: 'RF-12',
+      amount: 45250,
+      currency: 'XOF',
+      status: 'REQUESTED',
+      operator: 'MTN',
+      destination: '+2250544001122',
+    })
+    const { showRefund } = renderPage(12)
+    await screen.findByText(AWAITING)
+    fill('MTN', '05 44 00 11 22')
+    expect(await screen.findByText(/le versement repart/)).toBeTruthy()
+    showRefund(13)
+    expect(await screen.findByText('Remboursement RF-13')).toBeTruthy()
+    expect(screen.queryByText(/Numéro enregistré/)).toBeNull()
+    const input = screen.getByLabelText<HTMLInputElement>(
+      /Numéro de remboursement/,
+    )
+    expect(input.value).toBe('')
+  })
+
+  it('une saisie non envoyée pour RF-12 est effacée sur RF-13', async () => {
+    const { showRefund } = renderPage(12)
+    await screen.findByText(AWAITING)
+    fireEvent.change(screen.getByLabelText(/Numéro de remboursement/), {
+      target: { value: '05 44 00 11 22' },
+    })
+    showRefund(13)
+    await screen.findByText('Remboursement RF-13')
+    expect(
+      screen.getByLabelText<HTMLInputElement>(/Numéro de remboursement/).value,
+    ).toBe('')
+  })
+})
+
+describe('R1-10 : garde de la page et retour', () => {
+  function renderGate() {
+    render(
+      <RefundGate>
+        <p>contenu</p>
+      </RefundGate>,
+    )
+  }
+  it('droits inconnus (null) : la page passe (L-009)', () => {
+    mocks.permissions = null
+    renderGate()
+    expect(screen.getByText('contenu')).toBeTruthy()
+  })
+  it('withdrawal:read seul : la page passe', () => {
+    mocks.permissions = new Set(['withdrawal:read'])
+    renderGate()
+    expect(screen.getByText('contenu')).toBeTruthy()
+  })
+  it('aucun droit withdrawal:* connu : droit insuffisant', () => {
+    mocks.permissions = new Set(['subscription:read-all'])
+    renderGate()
+    expect(screen.getByText('Droit insuffisant')).toBeTruthy()
+    expect(screen.queryByText('contenu')).toBeNull()
+  })
+  it('la page propose un retour', async () => {
+    renderPage()
+    expect(await screen.findByText('Retour au tableau de bord')).toBeTruthy()
   })
 })

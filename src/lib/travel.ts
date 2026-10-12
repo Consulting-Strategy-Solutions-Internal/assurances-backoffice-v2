@@ -174,7 +174,10 @@ function messageOf(data: unknown): string {
  * Traduit une erreur des trois décisions d'après `status` et `errors.*` ;
  * seul `TRAVEL_POLICY_MISMATCH` affiche le `message` (il nomme l'écart).
  */
-export function mapTravelDecisionError(error: unknown): TravelDecisionError {
+export function mapTravelDecisionError(
+  error: unknown,
+  action?: 'attach' | 'retry' | 'refuse',
+): TravelDecisionError {
   if (isAxiosError(error)) {
     const status = error.response?.status
     const data: unknown = error.response?.data
@@ -232,6 +235,14 @@ export function mapTravelDecisionError(error: unknown): TravelDecisionError {
         kind: 'field',
         field: 'reason',
         message: 'Indiquez ce qui a été vérifié.',
+      }
+    // EVO répond 500 sur un identifiant de police inconnu (rien n'est rattaché).
+    if (action === 'attach' && status === 500)
+      return {
+        kind: 'field',
+        field: 'policyId',
+        message:
+          'EVO ne reconnaît pas cet identifiant ou a rencontré une erreur : rien n’a été rattaché. Vérifiez l’identifiant.',
       }
     if (status === 502)
       return {

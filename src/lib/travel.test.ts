@@ -79,7 +79,10 @@ describe('decisionState (AC-6)', () => {
   it('prêt quand reconcilableFrom est absent (le serveur reste juge)', () => {
     expect(
       decisionState(
-        travelItem({ evoIssuanceStatus: 'TO_RECONCILE', reconcilableFrom: null }),
+        travelItem({
+          evoIssuanceStatus: 'TO_RECONCILE',
+          reconcilableFrom: null,
+        }),
         before,
         true,
       ),
@@ -119,9 +122,9 @@ describe('isTravelContract', () => {
     expect(
       isTravelContract({ productSnapshot: { insuranceType: 'TRAVEL' } }),
     ).toBe(true)
-    expect(
-      isTravelContract({ productSnapshot: { insuranceType: 'IA' } }),
-    ).toBe(false)
+    expect(isTravelContract({ productSnapshot: { insuranceType: 'IA' } })).toBe(
+      false,
+    )
   })
 })
 
@@ -204,6 +207,18 @@ describe('mapTravelDecisionError (AC-7…AC-10)', () => {
       kind: 'too-early',
       message: 'Décision pas encore possible : attendez l’heure indiquée.',
     })
+  })
+
+  it('R1-4 : rattachement, police inconnue (500 côté EVO) → vérifier l’identifiant', () => {
+    expect(mapTravelDecisionError(axiosError(500, {}), 'attach')).toEqual({
+      kind: 'field',
+      field: 'policyId',
+      message:
+        'EVO ne reconnaît pas cet identifiant ou a rencontré une erreur : rien n’a été rattaché. Vérifiez l’identifiant.',
+    })
+    expect(mapTravelDecisionError(axiosError(500, {}), 'retry').kind).toBe(
+      'other',
+    )
   })
 
   it('502, 404, 403', () => {

@@ -124,8 +124,6 @@ export interface SubscriptionFilters {
 export const subscriptionsKeys = {
   all: ['subscriptions'] as const,
   detail: (id: number) => ['subscriptions', 'detail', id] as const,
-  /** Lecture `?refresh=true` (état EVO), seulement sur demande. */
-  evoRefresh: (id: number) => ['subscriptions', 'evo-refresh', id] as const,
   renewal: (id: number) => ['subscriptions', 'renewal', id] as const,
 }
 
