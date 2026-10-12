@@ -1,6 +1,6 @@
 # Build plan — Assurance Voyage (EVO) au back-office
 
-- **Status:** in-progress
+- **Status:** done
 - **Created:** 2026-10-12 · **Updated:** 2026-10-12
 - **PR:** —
 - **Branch:** `feat/travel-insurance` · **Worktree:** `.claude/worktrees/travel-insurance` · **Ports:** app 3001
@@ -82,18 +82,26 @@
 
 > Last review: round 3 · 2026-10-12 · re-review `aca70cf` → `59ce471` (V1-1) · V1-1 confirmé au niveau du code (mesure : verify) · verdict : prêt (0 🔴, 0 🟡)
 
-- [~] **R3-1** ⚪ squelette de chargement sans `hideBelow` : 7 cellules sous un en-tête de 5–6 colonnes — `src/routes/_auth/contrats.voyage.tsx:258` (fix: 8657a9f)
-- [~] **R3-2** ⚪ seuil `xl` de « Dernier envoi » peut-être plus prudent que la mesure (à 1280 la colonne est masquée alors que ≈ 888 px tiendraient dans 954) — `src/routes/_auth/contrats.voyage.tsx:251` (fix: 8657a9f)
-- [~] **R3-3** ⚪ heure du dernier envoi découpée dans la chaîne brute (`value.slice(11, 16)`) au lieu d'un formateur — `src/routes/_auth/contrats.voyage.tsx:99` (fix: 8657a9f)
-- [~] **R3-4** ⚪ seuils `hideBelow` de Client / Dernier envoi non testés — `src/routes/-travel-supervision.test.tsx:268` (fix: 8657a9f)
+- [x] **R3-1** ⚪ squelette de chargement sans `hideBelow` : 7 cellules sous un en-tête de 5–6 colonnes — `src/routes/_auth/contrats.voyage.tsx:258` (fix: 8657a9f) (fixed, round 4)
+- [x] **R3-2** ⚪ seuil `xl` de « Dernier envoi » peut-être plus prudent que la mesure (à 1280 la colonne est masquée alors que ≈ 888 px tiendraient dans 954) — `src/routes/_auth/contrats.voyage.tsx:251` (fix: 8657a9f) (fixed, round 4)
+- [x] **R3-3** ⚪ heure du dernier envoi découpée dans la chaîne brute (`value.slice(11, 16)`) au lieu d'un formateur — `src/routes/_auth/contrats.voyage.tsx:99` (fix: 8657a9f) (fixed, round 4)
+- [x] **R3-4** ⚪ seuils `hideBelow` de Client / Dernier envoi non testés — `src/routes/-travel-supervision.test.tsx:268` (fix: 8657a9f) (fixed, round 4)
+> Last review: round 4 · 2026-10-12 · re-review `8b796a6` → `8657a9f` · R2-2, R2-3, R3-1…R3-4 confirmés · verdict : prêt (0 🔴, 0 🟡)
+
+- [x] **R4-1** ⚪ seuil `lg` non mesuré au bas de sa plage (896 px de contenu) — mesuré : 896/896 px à 1222 de viewport avec une ligne « À partir du … », 904/904 à 1230, 924/924 à 1250 (verify run 3)
+- [~] **R4-2** ⚪ assertion vide `queryByText('T09:0')` dans le test d'intégration de l'heure — `src/routes/-travel-supervision.test.tsx:340` (fix: 2753ba1, test seul, non re-relu)
+- [~] **R4-3** ⚪ R3-4 ne vérifiait pas la cellule « Dernier envoi » — `src/routes/-travel-supervision.test.tsx:308` (fix: 2753ba1, test seul, non re-relu)
 - [ ] **R2-1** ⚪ lien client dans une ligne `role="button"` (ARIA nested-interactive) — non corrigé : à trancher par un passage axe (recette manuelle M-4, reportée) — `src/routes/_auth/contrats.voyage.tsx:72`
-- [~] **R2-2** ⚪ `stopPropagation` au clavier (Entrée sur le lien client) non testé — `src/routes/-travel-supervision.test.tsx:228` (fix: 8657a9f)
+- [x] **R2-2** ⚪ `stopPropagation` au clavier (Entrée sur le lien client) non testé — `src/routes/-travel-supervision.test.tsx:228` (fix: 8657a9f) (fixed, round 4)
 - [x] **V1-1** 🟡 table de supervision plus large que l'écran à toutes les largeurs bureau : largeur naturelle 1 322 px (Contrat 164, Client 94, État 138, Envois 71, Dernier envoi 137, Couverture 199, Décision 207, Dernière erreur 276) pour 698 px visibles à 1024, 954 à 1280, 1 114 à 1440 → défilement horizontal ; seuils `hideBelow` à recalculer et colonnes à resserrer (L-008) — S-2 / AC-5 (fix: 59ce471 — mesuré après correctif : 698/698 px à 1024, 826/826 à 1152, 954/954 à 1280, 1114/1114 à 1440) (fixed, run 2)
-- [~] **R2-3** ⚪ test « la page propose un retour » ne vérifie pas la cible (`/dashboard`) — `src/routes/-refund-detail.test.tsx:287` (fix: 8657a9f)
+- [x] **R2-3** ⚪ test « la page propose un retour » ne vérifie pas la cible (`/dashboard`) — `src/routes/-refund-detail.test.tsx:287` (fix: 8657a9f) (fixed, round 4)
 
 ## Acceptance run
 
-> Run: run 2 · 2026-10-12 · HEAD `8b796a6` (+ uncommitted: no) · 27 simulés + 4 réels pass · 0 fail · 4 manual (1 confirmed, 3 deferred)
+> Run: run 3 · 2026-10-12 · HEAD `2753ba1` (+ uncommitted: no) · parcours simulé complet rejoué (`verify/mock.mjs`) : 0 fail · 4 manual (1 confirmed, 3 deferred)
+> - Après R3-2 (`lg`) : table 698/698 px à 1024, 826/826 à 1152, 890/890 à 1216 (sans Client ni Dernier envoi), 896/896 à 1222 (les 6 colonnes, ligne « À partir du … »), 954/954 à 1280, 1114/1114 à 1440 ; 0 px de débordement à 360/390, avec et sans JavaScript.
+
+> Run 2 (historique) · 2026-10-12 · HEAD `8b796a6` (+ uncommitted: no) · 27 simulés + 4 réels pass · 0 fail · 4 manual (1 confirmed, 3 deferred)
 > Run 2 rejoue tout le parcours simulé (`verify/mock.mjs`) après V1-1 ; la partie réelle (lecture seule) est reprise du run 1 — le correctif ne touche que la liste, dont l'état vide réel est inchangé.
 > - V1-1 — pass — table de supervision : 698/698 px à 1024, 954/954 à 1280, 1114/1114 à 1440 (aucun défilement horizontal) ; 0 px de débordement à 360/390, avec et sans JavaScript.
 
