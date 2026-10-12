@@ -82,7 +82,7 @@
 
 - [ ] **R2-1** ⚪ lien client dans une ligne `role="button"` (ARIA nested-interactive) — à passer à axe en verify — `src/routes/_auth/contrats.voyage.tsx:72`
 - [ ] **R2-2** ⚪ `stopPropagation` au clavier (Entrée sur le lien client) non testé — `src/routes/-travel-supervision.test.tsx:228`
-- [ ] **V1-1** 🟡 table de supervision plus large que l'écran à toutes les largeurs bureau : largeur naturelle 1 322 px (Contrat 164, Client 94, État 138, Envois 71, Dernier envoi 137, Couverture 199, Décision 207, Dernière erreur 276) pour 698 px visibles à 1024, 954 à 1280, 1 114 à 1440 → défilement horizontal ; seuils `hideBelow` à recalculer et colonnes à resserrer (L-008) — S-2 / AC-5
+- [~] **V1-1** 🟡 table de supervision plus large que l'écran à toutes les largeurs bureau : largeur naturelle 1 322 px (Contrat 164, Client 94, État 138, Envois 71, Dernier envoi 137, Couverture 199, Décision 207, Dernière erreur 276) pour 698 px visibles à 1024, 954 à 1280, 1 114 à 1440 → défilement horizontal ; seuils `hideBelow` à recalculer et colonnes à resserrer (L-008) — S-2 / AC-5 (fix: 59ce471 — mesuré après correctif : 698/698 px à 1024, 826/826 à 1152, 954/954 à 1280, 1114/1114 à 1440)
 - [ ] **R2-3** ⚪ test « la page propose un retour » ne vérifie pas la cible (`/dashboard`) — `src/routes/-refund-detail.test.tsx:287`
 
 ## Acceptance run
