@@ -1,7 +1,10 @@
 import { isAxiosError } from 'axios'
 import { apiErrorMessage } from '#/lib/api-error'
 import type { NotificationResponse } from '#/services/notifications'
-import type { MobileMoneyOperator } from '#/services/refunds'
+import type {
+  MobileMoneyOperator,
+  RefundRequestStatus,
+} from '#/services/refunds'
 
 export const MOBILE_MONEY_OPERATORS = [
   'ORANGE',
@@ -26,6 +29,23 @@ export const OPERATOR_PREFIXES: Record<MobileMoneyOperator, string> = {
   MTN: '05',
   MOOV: '01',
   WAVE: '',
+}
+
+export const REFUND_STATUS_LABELS: Record<RefundRequestStatus, string> = {
+  REQUESTED: 'Demandé',
+  AWAITING_DESTINATION: 'En attente d’un numéro',
+  AWAITING_FUNDS: 'En attente de fonds',
+  SENDING: 'Envoi en cours',
+  SUBMITTED: 'Transmis à FineoPay',
+  PAID: 'Versé',
+  FAILED: 'En échec',
+}
+
+/** « +2250544001122 » → « +225 05 44 00 11 22 » ; autre valeur rendue telle quelle. */
+export function formatIvorianNumber(value: string | null): string {
+  if (!value) return '—'
+  const m = /^\+225(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})$/.exec(value)
+  return m ? `+225 ${m.slice(1).join(' ')}` : value
 }
 
 /** `destination` `@Size(max = 30)` côté backend (L-011). */

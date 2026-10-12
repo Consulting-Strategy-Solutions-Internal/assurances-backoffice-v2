@@ -2,6 +2,7 @@ import { AxiosError, AxiosHeaders } from 'axios'
 import { describe, expect, it } from 'vitest'
 import {
   findRefundAlert,
+  formatIvorianNumber,
   mapRefundDestinationError,
   normalizeIvorianNumber,
   validateRefundDestination,
@@ -170,5 +171,12 @@ describe('findRefundAlert', () => {
 
   it('null sans alerte', () => {
     expect(findRefundAlert([notification({ resourceId: 99 })], 12)).toBeNull()
+  })
+})
+
+describe('formatIvorianNumber', () => {
+  it('groupe les chiffres', () => {
+    expect(formatIvorianNumber('+2250544001122')).toBe('+225 05 44 00 11 22')
+    expect(formatIvorianNumber(null)).toBe('—')
   })
 })
