@@ -29,6 +29,7 @@ import { Button } from '#/components/ui/button'
 import { isForbidden } from '#/lib/api-error'
 import { pageHead } from '#/lib/page-title'
 import { clientFullName } from '#/lib/clients'
+import { TRAVEL_FILTERS } from '#/lib/travel'
 import { clientsKeys, getClient } from '#/services/clients'
 import { getSubscription, subscriptionsKeys } from '#/services/subscriptions'
 import {
@@ -36,8 +37,15 @@ import {
   SUBSCRIPTION_TONES,
 } from '#/services/subscriptions-by-client'
 
-/** D'où vient l'utilisateur, pour que « Retour » y ramène. */
-export const contractSearchSchema = z.object({})
+/**
+ * D'où vient l'utilisateur, pour que « Retour » y ramène : la supervision
+ * voyage (avec son filtre et sa page), sinon la fiche client.
+ */
+export const contractSearchSchema = z.object({
+  from: z.literal('voyage').optional().catch(undefined),
+  status: z.enum(TRAVEL_FILTERS).optional().catch(undefined),
+  page: z.coerce.number().int().min(0).optional().catch(undefined),
+})
 
 export type ContractSearch = z.output<typeof contractSearchSchema>
 
@@ -111,6 +119,7 @@ function ClientLink({ clientId }: { clientId: number }) {
 /** Page d'un contrat, tous produits (remplace le panneau de la fiche client). */
 export function ContractDetailContent({
   subscriptionId,
+  search = {},
 }: {
   subscriptionId: number
   search?: ContractSearch
@@ -154,12 +163,24 @@ export function ContractDetailContent({
 
   return (
     <div className="flex flex-col gap-[18px]">
-      <BackLink
-        to="/clients/$clientId"
-        params={{ clientId: String(contract.clientId) }}
-      >
-        Retour à la fiche client
-      </BackLink>
+      {search.from === 'voyage' ? (
+        <BackLink
+          to="/contrats/voyage"
+          search={{
+            status: search.status ?? 'TO_RECONCILE',
+            page: search.page ?? 0,
+          }}
+        >
+          Retour à la supervision voyage
+        </BackLink>
+      ) : (
+        <BackLink
+          to="/clients/$clientId"
+          params={{ clientId: String(contract.clientId) }}
+        >
+          Retour à la fiche client
+        </BackLink>
+      )}
       <DetailHeaderCard
         leading={
           <IconTile>

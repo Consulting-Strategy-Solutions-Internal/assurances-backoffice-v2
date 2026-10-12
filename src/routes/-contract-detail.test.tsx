@@ -500,3 +500,23 @@ describe('Contrat voyage : encadré Décision (AC-6)', () => {
     expect(screen.queryByText('Décision à prendre')).toBeNull()
   })
 })
+
+describe('Retour (D-12)', () => {
+  it('depuis la supervision : retour vers /contrats/voyage', async () => {
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+    render(
+      <QueryClientProvider client={client}>
+        <ContractDetailContent
+          subscriptionId={7}
+          search={{ from: 'voyage', status: 'REJECTED', page: 2 }}
+        />
+      </QueryClientProvider>,
+    )
+    const link = (
+      await screen.findByText('Retour à la supervision voyage')
+    ).closest('a')
+    expect(link?.dataset.to).toBe('/contrats/voyage')
+  })
+})

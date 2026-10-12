@@ -30,6 +30,7 @@ import { Route as AuthCommissionsSchemesRouteImport } from './routes/_auth/commi
 import { Route as AuthCommissionsWalletsRouteImport } from './routes/_auth/commissions.wallets'
 import { Route as AuthContratsSubscriptionIdRouteImport } from './routes/_auth/contrats.$subscriptionId'
 import { Route as AuthContratsModificationsRouteImport } from './routes/_auth/contrats.modifications'
+import { Route as AuthContratsVoyageRouteImport } from './routes/_auth/contrats.voyage'
 import { Route as AuthPartnersPartnerIdRouteImport } from './routes/_auth/partners_.$partnerId'
 import { Route as AuthProduitsIaIaPourTousRouteImport } from './routes/_auth/produits-ia.ia-pour-tous'
 import { Route as AuthProduitsIaIaStandardRouteImport } from './routes/_auth/produits-ia.ia-standard'
@@ -161,6 +162,11 @@ const AuthContratsModificationsRoute =
     path: '/contrats/modifications',
     getParentRoute: () => AuthRoute,
   } as any)
+const AuthContratsVoyageRoute = AuthContratsVoyageRouteImport.update({
+  id: '/contrats/voyage',
+  path: '/contrats/voyage',
+  getParentRoute: () => AuthRoute,
+} as any)
 const AuthPartnersPartnerIdRoute = AuthPartnersPartnerIdRouteImport.update({
   id: '/partners_/$partnerId',
   path: '/partners/$partnerId',
@@ -318,6 +324,7 @@ export interface FileRoutesByFullPath {
   '/commissions/wallets': typeof AuthCommissionsWalletsRoute
   '/contrats/$subscriptionId': typeof AuthContratsSubscriptionIdRoute
   '/contrats/modifications': typeof AuthContratsModificationsRoute
+  '/contrats/voyage': typeof AuthContratsVoyageRoute
   '/partners/$partnerId': typeof AuthPartnersPartnerIdRoute
   '/produits-ia/ia-pour-tous': typeof AuthProduitsIaIaPourTousRoute
   '/produits-ia/ia-standard': typeof AuthProduitsIaIaStandardRouteWithChildren
@@ -363,6 +370,7 @@ export interface FileRoutesByTo {
   '/commissions/wallets': typeof AuthCommissionsWalletsRoute
   '/contrats/$subscriptionId': typeof AuthContratsSubscriptionIdRoute
   '/contrats/modifications': typeof AuthContratsModificationsRoute
+  '/contrats/voyage': typeof AuthContratsVoyageRoute
   '/partners/$partnerId': typeof AuthPartnersPartnerIdRoute
   '/produits-ia/ia-pour-tous': typeof AuthProduitsIaIaPourTousRoute
   '/sinistres/$claimId': typeof AuthSinistresClaimIdRoute
@@ -408,6 +416,7 @@ export interface FileRoutesById {
   '/_auth/commissions/wallets': typeof AuthCommissionsWalletsRoute
   '/_auth/contrats/$subscriptionId': typeof AuthContratsSubscriptionIdRoute
   '/_auth/contrats/modifications': typeof AuthContratsModificationsRoute
+  '/_auth/contrats/voyage': typeof AuthContratsVoyageRoute
   '/_auth/partners_/$partnerId': typeof AuthPartnersPartnerIdRoute
   '/_auth/produits-ia/ia-pour-tous': typeof AuthProduitsIaIaPourTousRoute
   '/_auth/produits-ia/ia-standard': typeof AuthProduitsIaIaStandardRouteWithChildren
@@ -455,6 +464,7 @@ export interface FileRouteTypes {
     | '/commissions/wallets'
     | '/contrats/$subscriptionId'
     | '/contrats/modifications'
+    | '/contrats/voyage'
     | '/partners/$partnerId'
     | '/produits-ia/ia-pour-tous'
     | '/produits-ia/ia-standard'
@@ -500,6 +510,7 @@ export interface FileRouteTypes {
     | '/commissions/wallets'
     | '/contrats/$subscriptionId'
     | '/contrats/modifications'
+    | '/contrats/voyage'
     | '/partners/$partnerId'
     | '/produits-ia/ia-pour-tous'
     | '/sinistres/$claimId'
@@ -544,6 +555,7 @@ export interface FileRouteTypes {
     | '/_auth/commissions/wallets'
     | '/_auth/contrats/$subscriptionId'
     | '/_auth/contrats/modifications'
+    | '/_auth/contrats/voyage'
     | '/_auth/partners_/$partnerId'
     | '/_auth/produits-ia/ia-pour-tous'
     | '/_auth/produits-ia/ia-standard'
@@ -724,6 +736,13 @@ declare module '@tanstack/react-router' {
       path: '/contrats/modifications'
       fullPath: '/contrats/modifications'
       preLoaderRoute: typeof AuthContratsModificationsRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/contrats/voyage': {
+      id: '/_auth/contrats/voyage'
+      path: '/contrats/voyage'
+      fullPath: '/contrats/voyage'
+      preLoaderRoute: typeof AuthContratsVoyageRouteImport
       parentRoute: typeof AuthRoute
     }
     '/_auth/partners_/$partnerId': {
@@ -962,6 +981,7 @@ interface AuthRouteChildren {
   AuthCommissionsWalletsRoute: typeof AuthCommissionsWalletsRoute
   AuthContratsSubscriptionIdRoute: typeof AuthContratsSubscriptionIdRoute
   AuthContratsModificationsRoute: typeof AuthContratsModificationsRoute
+  AuthContratsVoyageRoute: typeof AuthContratsVoyageRoute
   AuthPartnersPartnerIdRoute: typeof AuthPartnersPartnerIdRoute
   AuthProduitsIaIaPourTousRoute: typeof AuthProduitsIaIaPourTousRoute
   AuthProduitsIaIaStandardRoute: typeof AuthProduitsIaIaStandardRouteWithChildren
@@ -992,6 +1012,7 @@ const AuthRouteChildren: AuthRouteChildren = {
   AuthCommissionsWalletsRoute: AuthCommissionsWalletsRoute,
   AuthContratsSubscriptionIdRoute: AuthContratsSubscriptionIdRoute,
   AuthContratsModificationsRoute: AuthContratsModificationsRoute,
+  AuthContratsVoyageRoute: AuthContratsVoyageRoute,
   AuthPartnersPartnerIdRoute: AuthPartnersPartnerIdRoute,
   AuthProduitsIaIaPourTousRoute: AuthProduitsIaIaPourTousRoute,
   AuthProduitsIaIaStandardRoute: AuthProduitsIaIaStandardRouteWithChildren,
